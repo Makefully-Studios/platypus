@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>components/LogicPacingPlatform.js - Documentation</title>
+    <title>RandomSet.js - Documentation</title>
 
     <script src="scripts/prettify/prettify.js"></script>
     <script src="scripts/prettify/lang-css.js"></script>
@@ -29,7 +29,7 @@
 
 <div id="main">
     
-    <h1 class="page-title">components/LogicPacingPlatform.js</h1>
+    <h1 class="page-title">RandomSet.js</h1>
     
 
     
@@ -39,70 +39,141 @@
     
     <section>
         <article>
-            <pre class="prettyprint source linenums"><code>/**
-## JSON Definition:
-    {
-      "type": "LogicDirectionalMovement",
-      
-      "angle": 3.14,
-      // Optional. Defines the angle of movement in radians. Defaults to 0 (horizontal, starts moving right).
-      
-      "distance": 440,
-      // Optional. Declares distance in world units that the entity should move back and forth across. Defaults to 128.
-      
-      "period": 6000,
-      // Optional. Sets the time in milliseconds that the entity should take to make a complete movement cycle. Defaults to 4 seconds (4000).
-      
-      "startPos": 0
-      // Optional. Position in the cycle that the movement should begin. Defaults in the middle at 0; PI/2 and -PI/2 will put you at the extremes.
-    }
-*/
-import createComponentClass from '../factory.js';
+            <pre class="prettyprint source linenums"><code>import config from 'config';
+import recycle from 'recycle';
 
-export default (function () {
-    return createComponentClass(/** @lends platypus.components.LogicPacingPlatform.prototype */{
-        
-        id: 'LogicPacingPlatform',
-        
-        /**
-         * This component changes the (x, y) position of an object according to its speed and heading and alternates back and forth. This is useful for in-place moving platforms.
-         *
-         * @memberof platypus.components
-         * @uses platypus.Component
-         * @constructs
-         * @param {*} definition 
-         * @listens platypus.Entity#handle-logic
-         */
-        initialize: function (definition) {
-            this.ang      = this.owner.angle      || definition.angle     || 0; //PI/2 makes it go down first
-            this.dist     = this.owner.distance || definition.distance || 128; //Distance in pixels
-            this.dX       = this.dist * Math.cos(this.ang);
-            this.dY       = this.dist * Math.sin(this.ang);
-            this.period   = this.owner.period    || definition.period     || 4000;
-            this.time     = 0;
-            this.startPos = this.owner.startPos || definition.startPos || 0; //PI/2 and -PI/2 will put you at the extremes
-            this.offset   = 0;
-            this.originX  = this.owner.x;
-            this.originY  = this.owner.y;
-        },
+const
+    /**
+     * This class defines a set that is populated and then pulled from at random. When pulled from, the set will return copies of the contents
+     * such that all the contents in the set are used once before there are repeats. Repeats may still occur when the set has been used
+     * up or when the number of items requested is greater than the size of the set.
+     *
+     * @memberof platypus
+     * @class RandomSet
+     * @param contents {array} The contents that will populate the set.
+     * @return {platypus.RandomSet} Returns the new RandomSet object.
+     */
+    RandomSet = function (contents) {
+        let x = 0;
 
-        events: {
-            "handle-logic": function (update) {
-                var period = this.period,
-                    delta = update.delta;
-                
-                this.time += delta;
-                if (this.time > period) {
-                    this.time = this.time % period;
-                }
-                this.offset = (this.time / period) * (2 * Math.PI);
-                
-                this.owner.x = this.originX + Math.sin(this.offset + this.startPos) * this.dX;
-                this.owner.y = this.originY + Math.sin(this.offset + this.startPos) * this.dY;
+        if (contents) {
+            this.contents = [];
+            for (x = 0; x &lt; contents.length; x++) {
+                this.contents.push(contents[x]);
             }
+        } else {
+            this.contents = [];
         }
-    });
-}());
+        this.availableIndexes = [];
+
+        this.refill();
+    },
+    proto = RandomSet.prototype;
+
+
+proto.refill = function () {
+    let x = 0; 
+    
+    this.availableIndexes = [];
+    for (x = 0; x &lt; this.contents.length; x++) {
+        this.availableIndexes.push(x);
+    }
+};
+
+/**
+ * Add single element to the content set. Includes the new content in the current set, which means it be returned quickly depending on the remaining set size. 
+ * 
+ * @method platypus.RandomSet#add
+ * @param toAdd {primitive|Object} Content to add to the set.
+ */
+proto.add = function (toAdd) {
+    this.contents.push(toAdd);
+    this.availableIndexes.push(this.contents.length - 1);
+};
+
+/**
+ * Remove from the content set. Use removeAll if you want to remove all instances, otherwise only removes the first instance found.
+ * 
+ * @method platypus.RandomSet#remove
+ * @param toRemove {primitive|Object} Content to remove from the set.
+ * @param removeAll {boolean} Remove all instances of the primitive/object.
+ */
+proto.remove = function (toRemove, removeAll) {
+    let index = 0;
+
+    do {
+        index = this.contents.indexOf(toRemove);
+        if (index !== -1) {
+            this.contentRecord.splice(index, 1);
+        }
+    } while (index !== -1 &amp;&amp; removeAll)
+
+    do {
+        index = this.availableIndexes.indexOf(index);
+        if (index !== -1) {
+            this.contents.splice(index, 1);
+        }
+    } while (index !== -1 &amp;&amp; removeAll)
+};
+
+/**
+ * Get a random member of the set.
+ * 
+ * @method platypus.RandomSet#get
+ * @return {primitive|Object} A random member of the set
+ */
+proto.get = function () {
+    let index = 0;
+
+    if (this.availableIndexes.length === 0) {
+        this.refill();
+    }
+
+    index = this.availableIndexes.splice(Math.floor(Math.random() * this.availableIndexes.length), 1)[0];
+
+    return this.contents[index];
+}
+
+/**
+ * Get an array of random set members. There may be multiple of the same member in the set if the quantity requested is greater
+ * than the set size, or the set is exhausted and replenished while retrieving members.
+ * 
+ * @method platypus.RandomSet#getMultiple
+ * @param numberToGet {integer} Number of set members to retrieve
+ * @return {primitive|Object} A random member of the set
+ */
+proto.getMultiple = function (numberToGet) {
+    const toReturn = [];
+    let x = 0;
+    
+    for (x = 0; x &lt; numberToGet; x++) {
+        toReturn.push(this.get());
+    }
+
+    return toReturn;
+}
+
+
+/**
+ * Returns an RandomSet from cache or creates a new one if none are available.
+ *
+ * @method platypus.RandomSet.setUp
+ * @return {platypus.RandomSet} The instantiated RandomSet.
+ */
+/**
+ * Returns a RandomSet back to the cache.
+ *
+ * @method platypus.RandomSet.recycle
+ * @param {platypus.RandomSet} randomSet The RandomSet to be recycled.
+ */
+/**
+ * Relinquishes properties of the RandomSet and recycles it.
+ *
+ * @method platypus.RandomSet#recycle
+ */
+recycle.add(RandomSet, 'RandomSet', RandomSet, null, true, config.dev);
+
+export default RandomSet;
 </code></pre>
         </article>
     </section>
