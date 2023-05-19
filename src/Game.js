@@ -1,13 +1,14 @@
 /* global document, platypus, window */
-import {Application, CaptionPlayer, ScaleManager, TextRenderer} from 'springroll';
+import {Application, CaptionPlayer, TextRenderer} from 'springroll';
 import {Container, Renderer, Ticker} from 'pixi.js';
 import {arrayCache, greenSlice, greenSplice, union} from './utils/array.js';
 import Async from './Async.js';
 import Data from './Data.js';
 import Entity from './Entity.js';
 import Messenger from './Messenger.js';
+import Resize from './Resize.js';
 import SFXPlayer from './SFXPlayer.js';
-import Sound from 'pixi-sound';
+import Sound from '@pixi/sound';
 import Storage from './Storage.js';
 import TweenJS from '@tweenjs/tween.js';
 import VOPlayer from './VOPlayer.js';
@@ -177,6 +178,7 @@ export default (function () {
                     const
                         dpi = window.devicePixelRatio || 1,
                         ticker = Ticker.shared;
+                    let resizeCallback = null;
                         
                     platypus.game = this; //Make this instance the only Game instance.
                     
@@ -221,7 +223,7 @@ export default (function () {
                             smallRatio = Math.min(ratio1, ratio2),
                             largeRatio = Math.max(ratio1, ratio2);
 
-                        this.scaleManager = new ScaleManager(({width, height/*, ratio*/}) => {
+                        resizeCallback = ({width, height}) => {
                             const
                                 renderer = this.renderer,
                                 frame = document.getElementById('content'),
@@ -251,17 +253,18 @@ export default (function () {
 
                             renderer.resize(w, h);
                             renderer.render(this.stage); // to prevent flickering from canvas adjustment.
-                        });
+                        };
                     } else {
-                        this.scaleManager = new ScaleManager(({width, height/*, ratio*/}) => {
+                        resizeCallback = ({width, height}) => {
                             const
                                 renderer = this.renderer;
 
                             renderer.resize(width * dpi, height * dpi);
                             renderer.render(this.stage); // to prevent flickering from canvas adjustment.
-                        });
+                        };
                     }
-                    this.scaleManager.onResize({ // Run once to resize content div.
+                    this.scaleManager = new Resize(resizeCallback, platypus.supports.iOS ? document.documentElement : null);
+                    resizeCallback({ // Run once to resize content div.
                         width: window.innerWidth,
                         height: window.innerHeight
                     });
@@ -796,6 +799,8 @@ export default (function () {
         **/
         destroy () {
             const layers = this.layers;
+
+            this.scaleManager.destroy();
 
             for (let i = 0; i < layers.length; i++) {
                 layers[i].destroy();

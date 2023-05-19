@@ -1,5 +1,5 @@
 /* global platypus */
-import {Container, Graphics, Matrix, filters} from 'pixi.js';
+import {ColorMatrixFilter, Container, Graphics, Matrix} from 'pixi.js';
 import AABB from '../AABB.js';
 import Data from '../Data.js';
 import Interactive from './Interactive.js';
@@ -8,8 +8,7 @@ import createComponentClass from '../factory.js';
 import {greenSplit} from '../utils/string.js';
 
 export default (function () {
-    var ColorMatrixFilter = filters.ColorMatrixFilter,
-        pixiMatrix = new Matrix(),
+    var pixiMatrix = new Matrix(),
         castValue = function (color) {
             if (color === null) {
                 return color;

@@ -1,5 +1,5 @@
 /* global console, document, platypus */
-import {VERSION, utils} from 'pixi.js';
+import {VERSION} from 'pixi.js';
 import {arrayCache} from './utils/array.js';
 import {greenSplit} from './utils/string.js';
 
@@ -55,9 +55,6 @@ var getPortion = function (num, max) {
         
         return versions;
     };
-
-// Over-riding the pixi.js hello since we're creating our own.
-utils.skipHello();
 
 export default function (app) {
     var options = app.options,
