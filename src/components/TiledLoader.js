@@ -50,7 +50,7 @@ export default (function () {
             }
             return layer;
         },
-        getImageId = function (path) {
+        getKey = function (path) {
             var result = path.match(FILENAME_TO_ID);
 
             return result[5] || result[7];
@@ -508,7 +508,7 @@ export default (function () {
         },
         importTileset = function (tileset) {
             var key = '',
-                source = platypus.game.settings.levels[tileset.source.replace('.json', '')];
+                source = platypus.game.settings.levels[getKey(tileset.source)];
             
             for (key in source) {
                 if (source.hasOwnProperty(key)) {
@@ -946,7 +946,7 @@ export default (function () {
                     tileLayer.tileheight = asset.height;
                     tileLayer.tilewidth = asset.width;
                 } else {
-                    imageId = getImageId(imageLayer.image);
+                    imageId = getKey(imageLayer.image);
                     asset = this.assetCache.get(imageId);
                     if (asset) {
                         platypus.debug.warn('Component TiledLoader: Did not find a spritesheet for "' + imageLayer.name + '", so using "' + imageLayer.image + '" instead.');
@@ -1030,7 +1030,7 @@ export default (function () {
                         if (asset) { // Prefer to have name in tiled match image id in game
                             images.push(tileset.name);
                         } else {
-                            imageId = getImageId(tileset.image);
+                            imageId = getKey(tileset.image);
                             asset = this.assetCache.get(imageId);
                             if (asset) {
                                 platypus.debug.warn('Component TiledLoader: Did not find a spritesheet for "' + tileset.name + '", so using "' + tileset.image + '" instead.');

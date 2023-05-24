@@ -7,7 +7,7 @@
 /* global platypus, setTimeout */
 import Data from './Data.js';
 import DataMap from './DataMap.js';
-import {Loader} from 'pixi.js';
+import {Assets} from 'pixi.js';
 import {arrayCache} from './utils/array.js';
 
 const
@@ -131,7 +131,7 @@ export default class AssetManager {
      * @param {Function} one This function is called as each asset is loaded.
      * @param {Function} all This function is called once all assets in the list are loaded.
      */
-    load (list, one, all) {
+    async load (list, one, all) {
         const
             counts = this.counts,
             needsLoading = arrayCache.setUp(),
@@ -153,31 +153,20 @@ export default class AssetManager {
         }
 
         if (needsLoading.length) {
-            const queue = new Loader(),
-                total = needsLoading.length;
-            let progress = 0;
+            const
+                loadedList = await Assets.load(needsLoading, one);
 
-            queue.onLoad.add((loader, response) => {
-                this.set(response.name, response.data, adds[response.name]);
-                progress += 1;
-                if (one) {
-                    one(progress / total);
-                }
+            Object.keys(loadedList).forEach((key) => {
+                const
+                    response = loadedList[key],
+                    {id} = formatAsset(key);
+
+                this.set(id, response, adds[id]);
             });
 
             if (all) {
-                queue.onComplete.add(all);
+                all();
             }
-            
-            for (let i = 0; i < total; i++) {
-                const
-                    item = needsLoading[i],
-                    id = item.id || item.src || item;
-
-                queue.add(id, item.src || item, item);
-            }
-
-            queue.load();
         } else {
             setTimeout(() => { // To run in same async sequence as above.
                 if (one) {
