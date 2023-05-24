@@ -416,7 +416,10 @@ export default (function () {
                         this.cacheAll   = true;
 
                         this.render = this.renderCache;
-                        this.cacheTexture = RenderTexture.create(this.cacheWidth, this.cacheHeight);
+                        this.cacheTexture = RenderTexture.create({
+                            width: this.cacheWidth,
+                            height: this.cacheHeight
+                        });
 
                         this.tilesSprite = sprite = new Sprite(this.cacheTexture);
                         sprite.scale.x = this.scaleX;
@@ -442,7 +445,10 @@ export default (function () {
                         this.render = this.renderCache;
                         this.cacheAll = false;
 
-                        this.cacheTexture = RenderTexture.create(this.cacheWidth, this.cacheHeight);
+                        this.cacheTexture = RenderTexture.create({
+                            width: this.cacheWidth,
+                            height: this.cacheHeight
+                        });
 
                         this.tilesSprite = new Sprite(this.cacheTexture);
                         this.tilesSprite.scale.x = this.scaleX;
@@ -450,7 +456,10 @@ export default (function () {
                         this.tilesSprite.z = z;
 
                         // Set up copy buffer and circular pointers
-                        this.cacheTexture.alternate = RenderTexture.create(this.cacheWidth, this.cacheHeight);
+                        this.cacheTexture.alternate = RenderTexture.create({
+                            width: this.cacheWidth,
+                            height: this.cacheHeight
+                        });
                         this.tilesSpriteCache = new Sprite(this.cacheTexture.alternate);
 
                         this.cacheTexture.alternate.alternate = this.cacheTexture;
@@ -655,38 +664,38 @@ export default (function () {
             },
 
             createGrid: function (container) {
-                var ch = this.cacheHeight,
+                const
+                    ch = this.cacheHeight,
                     cw = this.cacheWidth,
                     cth = this.cacheTilesHeight,
                     ctw = this.cacheTilesWidth,
-                    h = 0,
-                    w = 0,
                     outerMargin = EDGES_BLEED,
                     extrusion = EDGE_BLEED,
-                    rt = null,
                     sx = this.scaleX,
                     sy = this.scaleY,
                     th = this.tileHeight,
                     tw = this.tileWidth,
                     tsh = this.tilesHeight,
                     tsw = this.tilesWidth,
-                    x = 0,
-                    y = 0,
-                    z = this.owner.z,
-                    col = null,
-                    ct = null,
                     cg = arrayCache.setUp();
+                let ct = null,
+                    z = this.owner.z;
 
-                for (x = 0; x < tsw; x += ctw) {
-                    col = arrayCache.setUp();
+                for (let x = 0; x < tsw; x += ctw) {
+                    const
+                        col = arrayCache.setUp();
                     cg.push(col);
-                    for (y = 0; y < tsh; y += cth) {
+                    for (let y = 0; y < tsh; y += cth) {
                         // This prevents us from using too large of a cache for the right and bottom edges of the map.
-                        w = Math.min(getPowerOfTwo((tsw - x) * tw + outerMargin), cw);
-                        h = Math.min(getPowerOfTwo((tsh - y) * th + outerMargin), ch);
+                        const
+                            width = Math.min(getPowerOfTwo((tsw - x) * tw + outerMargin), cw),
+                            height = Math.min(getPowerOfTwo((tsh - y) * th + outerMargin), ch),
+                            rt = RenderTexture.create({
+                                width,
+                                height
+                            });
 
-                        rt = RenderTexture.create(w, h);
-                        rt.frame = new Rectangle(extrusion, extrusion, (((w - outerMargin) / tw) >> 0) * tw + extrusion, (((h - outerMargin) / th) >> 0) * th + extrusion);
+                        rt.frame = new Rectangle(extrusion, extrusion, (((width - outerMargin) / tw) >> 0) * tw + extrusion, (((height - outerMargin) / th) >> 0) * th + extrusion);
                         ct = new Sprite(rt);
                         ct.z = z;
                         ct.scale.x = sx;
@@ -848,7 +857,7 @@ export default (function () {
                 arrayCache.recycle(ents);
             },
             
-            renderCache: function (bounds, dest, src, wrapper, oldCache, oldBounds) {
+            renderCache: function (bounds, renderTexture, src, wrapper, oldCache, oldBounds) {
                 var renderer = this.renderer;
 
                 if (oldCache && !oldBounds.empty) {
@@ -860,11 +869,13 @@ export default (function () {
                 //clearRenderTexture(renderer, dest);
                 src.x = -bounds.left * this.tileWidth;
                 src.y = -bounds.top * this.tileHeight;
-                renderer.render(wrapper, dest);
-                dest.requiresUpdate = true;
+                renderer.render(wrapper, {
+                    renderTexture
+                });
+                renderTexture.requiresUpdate = true;
             },
 
-            renderCacheWithExtrusion: function (bounds, dest, src, wrapper) {
+            renderCacheWithExtrusion: function (bounds, renderTexture, src, wrapper) {
                 var extrusion = 1,
                     border = new Graphics(),
                     renderer = this.renderer;
@@ -879,20 +890,30 @@ export default (function () {
                 wrapper.mask = border;
                 src.x = -bounds.left * this.tileWidth;
                 src.y = -bounds.top * this.tileHeight + extrusion;
-                renderer.render(wrapper, dest);
+                renderer.render(wrapper, {
+                    renderTexture
+                });
                 src.x = -bounds.left * this.tileWidth + extrusion;
                 src.y = -bounds.top * this.tileHeight;
-                renderer.render(wrapper, dest);
+                renderer.render(wrapper, {
+                    renderTexture
+                });
                 src.x = -bounds.left * this.tileWidth + extrusion * 2;
                 src.y = -bounds.top * this.tileHeight + extrusion;
-                renderer.render(wrapper, dest);
+                renderer.render(wrapper, {
+                    renderTexture
+                });
                 src.x = -bounds.left * this.tileWidth + extrusion;
                 src.y = -bounds.top * this.tileHeight + extrusion * 2;
-                renderer.render(wrapper, dest);
+                renderer.render(wrapper, {
+                    renderTexture
+                });
                 wrapper.mask = null;
                 src.x = -bounds.left * this.tileWidth + extrusion;
                 src.y = -bounds.top * this.tileHeight + extrusion;
-                renderer.render(wrapper, dest);
+                renderer.render(wrapper, {
+                    renderTexture
+                });
                 dest.requiresUpdate = true;
             },
             
