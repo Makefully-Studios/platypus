@@ -1,6 +1,5 @@
 import DataMap from './DataMap.js';
 import {arrayCache} from './utils/array.js';
-import config from 'config';
 import {greenSplit} from './utils/string.js';
 import recycle from 'recycle';
 
@@ -167,7 +166,7 @@ export default (function () {
      */
     recycle.add(StateMap, 'StateMap', StateMap, function () {
         this.clear();
-    }, true, config.dev);
+    }, true);
     
     return StateMap;
 }());

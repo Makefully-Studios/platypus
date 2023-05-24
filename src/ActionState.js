@@ -1,7 +1,6 @@
 import Data from './Data.js';
 import StateMap from './StateMap.js';
 import {arrayCache} from './utils/array.js';
-import config from 'config';
 import recycle from 'recycle';
 
 const
@@ -116,6 +115,6 @@ recycle.add(ActionState, 'ActionState', ActionState, function () {
     this.states.recycle();
     this.stateSummary.recycle();
     arrayCache.recycle(this.inputs);
-}, true, config.dev);
+}, true);
 
 export default ActionState;

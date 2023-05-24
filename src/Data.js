@@ -1,4 +1,3 @@
-import config from 'config';
 import recycle from 'recycle';
 
 export default (function () {
@@ -60,7 +59,7 @@ export default (function () {
                 delete this[key];
             }
         }
-    }, true, config.dev);
+    }, true);
     
     return Data;
 }());

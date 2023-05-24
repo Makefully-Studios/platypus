@@ -1,4 +1,3 @@
-import config from 'config';
 import recycle from 'recycle';
 
 const
@@ -425,6 +424,6 @@ proto.getIntersectionArea = function (aabb) {
  *
  * @method platypus.AABB#recycle
  */
-recycle.add(AABB, 'AABB', AABB, null, true, config.dev);
+recycle.add(AABB, 'AABB', AABB, null, true);
 
 export default AABB;

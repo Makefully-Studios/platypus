@@ -13,10 +13,8 @@
 /* global platypus */
 import {arrayCache, greenSlice} from './utils/array.js';
 import Component from './Component.js';
-import config from 'config';
 
-var debug = config.dev,
-    priority = 0,
+var priority = 0,
     doNothing = function () {},
     setupProperty = function (property, component, owner) {
         Object.defineProperty(component, property, {
@@ -184,60 +182,34 @@ export default function (componentDefinition) {
                 return !invalid;
             };
 
-        // We only perform validation in debug mode since it may impact performance.
-        if (debug) {
-            return function (propertiesDefinition) {
-                var properties = componentDefinition.properties,
-                    publicProperties = componentDefinition.publicProperties,
-                    component = {
-                        type: this.type
-                    },
-                    key = '';
-                
-                for (key in properties) {
-                    if (properties.hasOwnProperty(key) && (properties[key] !== this[key])) {
-                        if (!validating && !valid(this[key])) {
-                            platypus.debug.warn('Component "' + this.type + '" includes a non-JSON property value for "' + key + '" (type "' + (typeof this[key]) + '"). You may want to create a custom `toJSON` method for this component.', this[key]);
-                        }
-                        component[key] = this[key];
+        return function (propertiesDefinition, debug) {
+            var properties = componentDefinition.properties,
+                publicProperties = componentDefinition.publicProperties,
+                component = {
+                    type: this.type
+                },
+                key = '';
+            
+            for (key in properties) {
+                if (properties.hasOwnProperty(key) && (properties[key] !== this[key])) {
+                    if (debug && !validating && !valid(this[key])) {
+                        platypus.debug.warn('Component "' + this.type + '" includes a non-JSON property value for "' + key + '" (type "' + (typeof this[key]) + '"). You may want to create a custom `toJSON` method for this component.', this[key]);
                     }
+                    component[key] = this[key];
                 }
+            }
 
-                for (key in publicProperties) {
-                    if (publicProperties.hasOwnProperty(key) && (publicProperties[key] !== this.owner[key]) && (typeof propertiesDefinition[key] === 'undefined')) {
-                        if (!validating && !valid(this.owner[key])) {
-                            platypus.debug.warn('Component "' + this.type + '" includes a non-JSON public property value for "' + key + '" (type "' + (typeof this.owner[key]) + '"). You may want to create a custom `toJSON` method for this component.', this.owner[key]);
-                        }
-                        propertiesDefinition[key] = this.owner[key];
+            for (key in publicProperties) {
+                if (publicProperties.hasOwnProperty(key) && (publicProperties[key] !== this.owner[key]) && (typeof propertiesDefinition[key] === 'undefined')) {
+                    if (debug && !validating && !valid(this.owner[key])) {
+                        platypus.debug.warn('Component "' + this.type + '" includes a non-JSON public property value for "' + key + '" (type "' + (typeof this.owner[key]) + '"). You may want to create a custom `toJSON` method for this component.', this.owner[key]);
                     }
+                    propertiesDefinition[key] = this.owner[key];
                 }
+            }
 
-                return component;
-            };
-        } else {
-            return function (propertiesDefinition) {
-                var properties = componentDefinition.properties,
-                    publicProperties = componentDefinition.publicProperties,
-                    component = {
-                        type: this.type
-                    },
-                    key = '';
-                
-                for (key in properties) {
-                    if (properties.hasOwnProperty(key) && (properties[key] !== this[key])) {
-                        component[key] = this[key];
-                    }
-                }
-
-                for (key in publicProperties) {
-                    if (publicProperties.hasOwnProperty(key) && (publicProperties[key] !== this.owner[key])) {
-                        propertiesDefinition[key] = this.owner[key];
-                    }
-                }
-
-                return component;
-            };
-        }
+            return component;
+        };
     }());
 
     if (componentDefinition.methods) {

@@ -10,8 +10,8 @@
 import AssetManager from './AssetManager.js';
 import {Debugger} from 'springroll';
 import Game from './Game.js';
-import config from 'config';
 import factory from './factory.js';
+import pkg from '../package.json';
 
 // Components
 import Interactive from "./components/Interactive.js";
@@ -116,11 +116,14 @@ export {default as createComponentClass} from './factory.js';
 export default (function () {
     var platypus = global.platypus = {},
         debugWrapper = Debugger ? function (method, ...args) {
-            Debugger.log(method, ...args);
+            if (platypus.game?.settings?.debug) {
+                Debugger.log(method, ...args);
+            }
         } : function (method, ...args) {
-            window.console[method](...args);
+            if (platypus.game?.settings?.debug) {
+                window.console[method](...args);
+            }
         },
-        log = config.dev ? debugWrapper : function () {},
         uagent    = navigator.userAgent.toLowerCase(),
         isEdge    = (uagent.search('edge')    > -1),
         isIPod    = (uagent.search('ipod')    > -1),
@@ -240,12 +243,11 @@ export default (function () {
      * @type Object
      */
     platypus.debug = {
-        general: log.bind(null, 'log'),
-        log: log.bind(null, 'log'),
-        warn: log.bind(null, 'warn'),
-        debug: log.bind(null, 'debug'),
-        error: log.bind(null, 'error'),
-        olive: log.bind(null, 'log') // Backwards compatibility - need to deprecate.
+        general: debugWrapper.bind(null, 'log'),
+        log: debugWrapper.bind(null, 'log'),
+        warn: debugWrapper.bind(null, 'warn'),
+        debug: debugWrapper.bind(null, 'debug'),
+        error: debugWrapper.bind(null, 'error')
     };
 
     platypus.assetCache = new AssetManager();
@@ -256,15 +258,7 @@ export default (function () {
      * @type String
      * @static
      **/
-    platypus.version = config.version;
-
-    /**
-     * The build date for this release in UTC format.
-     * @property buildDate
-     * @type String
-     * @static
-     **/
-    platypus.buildDate = config.buildDate;
+    platypus.version = pkg.version;
 
     platypus.Game = Game;
 

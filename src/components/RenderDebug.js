@@ -1,6 +1,5 @@
 import {Container, Graphics} from 'pixi.js';
 import {arrayCache} from '../utils/array.js';
-import config from 'config';
 import createComponentClass from '../factory.js';
 
 const
@@ -155,7 +154,7 @@ export default (function () {
         
         events: {
             "load": function () {
-                if (!config.dev) {
+                if (!platypus.game.settings.debug) {
                     this.owner.removeComponent(this);
                     return;
                 }

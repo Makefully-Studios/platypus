@@ -1,6 +1,5 @@
 import AABB from './AABB.js';
 import Vector from './Vector.js';
-import config from 'config';
 import recycle from 'recycle';
 
 export default (function () {
@@ -316,7 +315,7 @@ export default (function () {
      *
      * @method platypus.CollisionShape#recycle
      */
-    recycle.add(CollisionShape, 'CollisionShape', CollisionShape, null, true, config.dev);
+    recycle.add(CollisionShape, 'CollisionShape', CollisionShape, null, true);
     
     return CollisionShape;
 }());

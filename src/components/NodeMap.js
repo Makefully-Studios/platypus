@@ -1,7 +1,6 @@
 import {arrayCache, greenSplice} from '../utils/array.js';
 import Entity from '../Entity.js';
 import Vector from '../Vector.js';
-import config from 'config';
 import createComponentClass from '../factory.js';
 import recycle from 'recycle';
 
@@ -86,7 +85,7 @@ export default (function () {
     
     recycle.add(Node, 'Node', Node, function () {
         arrayCache.recycle(this.contains);
-    }, true, config.dev);
+    }, true);
     
     return createComponentClass(/** @lends platypus.components.NodeMap.prototype */{
         id: 'NodeMap',

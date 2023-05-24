@@ -3,16 +3,12 @@ const
     webpack = require('webpack');
     
 module.exports = env => {
-    const mode = env.dev ? 'development' : 'production';
+    const
+        mode = env.dev ? 'development' : 'production';
 
     return {
         entry: './src/index.js',
-        mode: mode,
-        resolve: {
-            alias: {
-                config: path.join(__dirname, 'src', 'config', mode)
-            }
-        },
+        mode,
         output: {
             path: path.resolve(__dirname, 'lib'),
             filename: 'platypus.js',

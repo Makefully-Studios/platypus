@@ -1,4 +1,3 @@
-import config from 'config';
 import recycle from 'recycle';
 
 export default (function () {
@@ -135,7 +134,7 @@ export default (function () {
      *
      * @method platypus.RandomSet#recycle
      */
-    recycle.add(RandomSet, 'RandomSet', RandomSet, null, true, config.dev);
+    recycle.add(RandomSet, 'RandomSet', RandomSet, null, true);
 
     return RandomSet;
 }());

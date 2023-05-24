@@ -1,7 +1,6 @@
 /* global window */
 import './polyfills/Map.js';
 import {arrayCache, greenSplice} from './utils/array.js';
-import config from 'config';
 import recycle from 'recycle';
 
 export default (function () {
@@ -197,7 +196,7 @@ export default (function () {
      */
     recycle.add(DataMap, 'DataMap', DataMap, function () {
         this.clear();
-    }, true, config.dev);
+    }, true);
     
     return DataMap;
 }());

@@ -1,5 +1,4 @@
 import {arrayCache} from './utils/array.js';
-import config from 'config';
 import recycle from 'recycle';
 
 export default (function () {
@@ -121,7 +120,7 @@ export default (function () {
      *
      * @method platypus.CollisionDataContainer#recycle
      */
-    recycle.add(CollisionDataContainer, 'CollisionDataContainer', CollisionDataContainer, null, true, config.dev);
+    recycle.add(CollisionDataContainer, 'CollisionDataContainer', CollisionDataContainer, null, true);
 
     return CollisionDataContainer;
 }());

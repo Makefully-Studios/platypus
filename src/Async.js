@@ -1,5 +1,4 @@
 /*global clearTimeout, setTimeout */
-import config from 'config';
 import recycle from 'recycle';
 
 export default (function () {
@@ -81,7 +80,7 @@ export default (function () {
         this.increment = 0;
         this.resolve = null;
         this.timeout = 0;
-    }, true, config.dev);
+    }, true);
 
     return Async;
 }());

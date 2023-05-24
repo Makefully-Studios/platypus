@@ -1,10 +1,8 @@
 /* global platypus, window */
 import {arrayCache, greenSlice} from './utils/array.js';
-import config from 'config';
 
 export default (function () {
-    var debug = config.dev,
-        perfTools = debug && window.performance && window.performance.mark && window.performance.measure && window.performance, // End with this to set perfTools to window.performance
+    var perfTools = window.performance && window.performance.mark && window.performance.measure && window.performance, // End with this to set perfTools to window.performance
         runBoth = function (f1, f2) {
             return function () {
                 f1.apply(this, arguments);
@@ -20,10 +18,58 @@ export default (function () {
     class Messenger {
         /**
          */
-        constructor () {
+        constructor ({debug} = {}) {
             this._listeners = {};
             this._destroyed = false;
             this.loopCheck = arrayCache.setUp();
+
+            if (debug) {
+                const
+                    triggerEvent = this.triggerEvent;
+
+                this.triggerEvent = function (event, value) {
+                    var i = 0,
+                        debugLimit = 5,
+                        debugLogging = value && value.debug,
+                        debugCount = 0,
+                        count = 0;
+                    
+                    // Debug logging.
+                    if (debugLogging || this.debug) {
+                        for (i = 0; i < this.loopCheck.length; i++) {
+                            if (this.loopCheck[i] === event) {
+                                debugCount += 1;
+                                if (debugCount > debugLimit) {
+                                    throw "Endless loop detected for '" + event + "'.";
+                                } else {
+                                    platypus.debug.warn("Event '" + event + "' is nested inside another '" + event + "' event.");
+                                }
+                            }
+                        }
+        
+                        this.loopCheck.push(event);
+                        if (perfTools) {
+                            perfTools.mark("a");
+                        }
+                        count = triggerEvent.apply(this, arguments);
+                        if (perfTools) {
+                            perfTools.mark("b");
+                            perfTools.measure(this.type + ":" + event, 'a', 'b');
+                        }
+                        this.loopCheck.length = this.loopCheck.length - 1;
+                        if (debugLogging) {
+                            if (count) {
+                                platypus.debug.log('Entity "' + this.type + '": Event "' + event + '" has ' + count + ' subscriber' + ((count > 1) ? 's' : '') + '.', value);
+                            } else {
+                                platypus.debug.warn('Entity "' + this.type + '": Event "' + event + '" has no subscribers.', value);
+                            }
+                        }
+                        return count;
+                    } else {
+                        return triggerEvent.apply(this, arguments);
+                    }
+                };
+            }
         }
 
         /**
@@ -239,52 +285,5 @@ export default (function () {
         }
     }
 
-    // Add logging checks for development mode.
-    if (debug) {
-        Messenger.prototype._triggerEvent = Messenger.prototype.triggerEvent;
-        Messenger.prototype.triggerEvent = function (event, value) {
-            var i = 0,
-                debugLimit = 5,
-                debugLogging = value && value.debug,
-                debugCount = 0,
-                count = 0;
-            
-            // Debug logging.
-            if (debugLogging || this.debug) {
-                for (i = 0; i < this.loopCheck.length; i++) {
-                    if (this.loopCheck[i] === event) {
-                        debugCount += 1;
-                        if (debugCount > debugLimit) {
-                            throw "Endless loop detected for '" + event + "'.";
-                        } else {
-                            platypus.debug.warn("Event '" + event + "' is nested inside another '" + event + "' event.");
-                        }
-                    }
-                }
-
-                this.loopCheck.push(event);
-                if (perfTools) {
-                    perfTools.mark("a");
-                }
-                count = this._triggerEvent.apply(this, arguments);
-                if (perfTools) {
-                    perfTools.mark("b");
-                    perfTools.measure(this.type + ":" + event, 'a', 'b');
-                }
-                this.loopCheck.length = this.loopCheck.length - 1;
-                if (debugLogging) {
-                    if (count) {
-                        platypus.debug.olive('Entity "' + this.type + '": Event "' + event + '" has ' + count + ' subscriber' + ((count > 1) ? 's' : '') + '.', value);
-                    } else {
-                        platypus.debug.warn('Entity "' + this.type + '": Event "' + event + '" has no subscribers.', value);
-                    }
-                }
-                return count;
-            } else {
-                return this._triggerEvent.apply(this, arguments);
-            }
-        };
-    }
-    
     return Messenger;
 }());

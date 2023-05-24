@@ -407,7 +407,7 @@ const
                             if (destination[key]) {
                                 arrayCache.recycle(destination[key].frames);
                                 destination[key].recycle();
-                                platypus.debug.olive('PIXIAnimation "' + id + '": Overwriting duplicate animation for "' + key + '".');
+                                platypus.debug.log('PIXIAnimation "' + id + '": Overwriting duplicate animation for "' + key + '".');
                             }
                             destination[key] = formatAnimation(key, source[key], speedRatio, firstFrameIndex);
                         }

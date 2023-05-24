@@ -12,7 +12,6 @@ import Sound from '@pixi/sound';
 import Storage from './Storage.js';
 import TweenJS from '@tweenjs/tween.js';
 import VOPlayer from './VOPlayer.js';
-import config from 'config';
 import sayHello from './sayHello.js';
 
 export default (function () {
@@ -182,7 +181,7 @@ export default (function () {
                         
                     platypus.game = this; //Make this instance the only Game instance.
                     
-                    if (config.dev) {
+                    if (options.dev) {
                         settings.debug = true;
                     }
                     
@@ -318,7 +317,7 @@ export default (function () {
                     ticker.add(this.tickInstance);
                     this.paused = false;
 
-                    if (config.dev) {
+                    if (settings.debug) {
                         setUpFPS(ticker, this.canvas);
                     }
                 };
@@ -602,7 +601,7 @@ export default (function () {
                                                  */
                                                 layer.triggerEvent('layer-unloaded');
     
-                                                platypus.debug.olive('Layer unloaded: ' + layer.id);
+                                                platypus.debug.log('Layer unloaded: ' + layer.id);
                                     
                                                 greenSplice(this.layers, this.layers.indexOf(layer));
     
@@ -626,7 +625,7 @@ export default (function () {
                                     holds += 1;
                                 }, release);
     
-                                platypus.debug.olive('Layer unloading: ' + layer.id);
+                                platypus.debug.log('Layer unloading: ' + layer.id);
                                 release();
                             };
                             
@@ -673,7 +672,7 @@ export default (function () {
                                 this.sceneLayers.push(layer);
                             }
 
-                            platypus.debug.olive('Layer live: ' + layer.id);
+                            platypus.debug.log('Layer live: ' + layer.id);
     
                             /**
                              * This event is triggered on each newly-live layer once it is finished loading and ready to display.

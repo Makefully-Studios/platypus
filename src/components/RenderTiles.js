@@ -4,7 +4,6 @@ import {arrayCache, greenSlice, greenSplice, union} from '../utils/array.js';
 import AABB from '../AABB.js';
 import PIXIAnimation from '../PIXIAnimation.js';
 import RenderContainer from './RenderContainer.js';
-import config from 'config';
 import createComponentClass from '../factory.js';
 import recycle from 'recycle';
 
@@ -113,7 +112,7 @@ export default (function () {
         this.recycle();
     };
 
-    recycle.add(Template, 'Template', Template, null, true, config.dev);
+    recycle.add(Template, 'Template', Template, null, true);
 
     return createComponentClass(/** @lends platypus.components.RenderTiles.prototype */{
 

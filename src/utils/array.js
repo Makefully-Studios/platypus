@@ -1,7 +1,6 @@
-import config from 'config';
 import recycle from 'recycle';
 
-export const arrayCache = recycle.add(Array, 'Array', null, null, false, config.dev);
+export const arrayCache = recycle.add(Array, 'Array', null, null, false);
 
 /**
  * Merges items from one array into the other, making sure to not duplicate identical entries.

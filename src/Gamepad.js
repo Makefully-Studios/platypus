@@ -1,7 +1,6 @@
 import Data from './Data.js';
 import Vector from './Vector.js';
 import {arrayCache} from './utils/array.js';
-import config from 'config';
 import recycle from 'recycle';
 
 const
@@ -171,6 +170,6 @@ recycle.add(Gamepad, 'Gamepad', Gamepad, function () {
     this.onDown = null;
     this.onUp = null;
     this.onChange = null;
-}, true, config.dev);
+}, true);
 
 export default Gamepad;

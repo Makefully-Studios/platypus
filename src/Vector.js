@@ -1,6 +1,5 @@
 /* global platypus */
 import {arrayCache, greenSlice} from './utils/array.js';
-import config from 'config';
 import recycle from 'recycle';
 
 export default (function () {
@@ -711,7 +710,7 @@ export default (function () {
      */
     recycle.add(Vector, 'Vector', Vector, function () {
         this.matrix.length = 0;
-    }, true, config.dev);
+    }, true);
     
     return Vector;
 }());
