@@ -442,13 +442,19 @@ export default (function () {
                             // Check for relevant objectgroups in tileset
                             union(tiles, layer.data); // merge used tiles into one-off list
                             for (let j = 0; j < tiles.length; j++) {
-                                const id = maskId & tiles[j];
+                                const
+                                    id = maskId & tiles[j];
+                                    
                                 for (let k = 0; k < level.tilesets.length; k++) {
-                                    const tiles = level.tilesets[k].tiles;
+                                    const
+                                        {tiles, firstgid} = level.tilesets[k];
+
                                     if (tiles) {
                                         for (let l = 0; l < tiles.length; l++) {
-                                            const tile = tiles[l];
-                                            if ((tile.id === id) && tile.objectgroup) {
+                                            const
+                                                tile = tiles[l];
+
+                                            if (((tile.id + firstgid) === id) && tile.objectgroup) {
                                                 addObjectGroupAssets(assets, tile.objectgroup);
                                             }
                                         }
