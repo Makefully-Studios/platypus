@@ -39,6 +39,8 @@ export default createComponentClass(/** @lends platypus.components.Node.prototyp
     },
     
     publicProperties: {
+        neighbors: null,
+        nodeId: '',
         x: 0,
         y: 0,
         z: 0
@@ -50,15 +52,14 @@ export default createComponentClass(/** @lends platypus.components.Node.prototyp
      * @memberof platypus.components
      * @uses platypus.Component
      * @constructs
-     * @param {*} definition 
      */
-    initialize: function (definition) {
+    initialize: function () {
         const owner = this.owner;
 
-        this.nodeId = definition.nodeId || owner.nodeId || owner.id || String(Math.random());
+        this.nodeId = this.nodeId || owner.id || String(Math.random());
         
         if ((typeof this.nodeId !== 'string') && (this.nodeId.length)) {
-            this.nodeId = definition.nodeId.join('|');
+            this.nodeId = this.nodeId.join('|');
         }
         
         owner.nodeId = this.nodeId;
@@ -70,7 +71,9 @@ export default createComponentClass(/** @lends platypus.components.Node.prototyp
         
         Vector.assign(owner, 'position', 'x', 'y', 'z');
         
-        this.neighbors = owner.neighbors = definition.neighbors || owner.neighbors || {};
+        if (!this.neighbors) {
+            this.neighbors = {};
+        }
         
         if (this.neighborProperties) {
             const properties = this.neighborProperties;

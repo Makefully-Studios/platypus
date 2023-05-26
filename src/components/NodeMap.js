@@ -60,7 +60,7 @@ proto.getNode = function (desc) {
     }
 };
 
-proto.add = function (entity) {
+proto.addToNode = function (entity) {
     var i = 0;
     
     for (i = 0; i < this.contains.length; i++) {
@@ -72,7 +72,7 @@ proto.add = function (entity) {
     return entity;
 };
 
-proto.remove = function (entity) {
+proto.removeFromNode = function (entity) {
     var i = 0;
     
     for (i = 0; i < this.contains.length; i++) {
