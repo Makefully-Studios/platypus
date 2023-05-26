@@ -463,7 +463,7 @@ export default createComponentClass(/** @lends platypus.components.Interactive.p
                         sprite.removeListener('pointerover', pointerover);
                         sprite.removeListener('pointerout',  pointerout);
                     }
-                    sprite.interactive = false;
+                    sprite.eventMode = 'auto';
                     this.removeInputListeners = null;
                 };
 
@@ -479,7 +479,7 @@ export default createComponentClass(/** @lends platypus.components.Interactive.p
                     pointertap = null;
                 
                 // The following appends necessary information to displayed objects to allow them to receive touches and clicks
-                sprite.interactive = true;
+                sprite.eventMode = 'static';
                 
                 pointerdown = triggerPointerDown.bind(this);
                 pointermove = triggerPointerMove.bind(this);
