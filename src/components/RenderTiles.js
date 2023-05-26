@@ -510,7 +510,7 @@ export default (function () {
                     }
 
                     // Prevent subsequent draws
-                    entity.removeComponent('RenderSprite');
+                    entity.removeFromParentContainer();
 
                     this.updateCache = true; //TODO: This currently causes a blanket cache update - may be worthwhile to only recache if this entity's location is currently in a cache (either cacheGrid or the current viewable area).
                 }

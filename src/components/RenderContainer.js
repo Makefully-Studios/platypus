@@ -655,11 +655,13 @@ export default (function () {
              * @param {Container} container Container to add this to.
              */
             addToParentContainer: function (container) {
-                this.parentContainer = container;
-                this.parentContainer.addChild(this.container);
+                if (!this.cache) {
+                    this.parentContainer = container;
+                    this.parentContainer.addChild(this.container);
 
-                if (this.mask && !this.localMask) {
-                    this.setMask(this.mask);
+                    if (this.mask && !this.localMask) {
+                        this.setMask(this.mask);
+                    }
                 }
             }
         }
