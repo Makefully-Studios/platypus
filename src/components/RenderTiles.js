@@ -325,6 +325,10 @@ export default (function () {
                 this.cacheSprite(entity);
             },
 
+            "peer-entity-removed": function (entity) {
+                this.uncacheSprite(entity);
+            },
+
             /**
              * This event adds a layer of tiles to render on top of the existing layer of rendered tiles.
              *
@@ -469,17 +473,20 @@ export default (function () {
             },
 
             cacheSprite: function (entity) {
-                var x = 0,
-                    y = 0,
-                    object = entity.cacheRender,
-                    bounds = null,
-                    top = 0,
-                    bottom = 0,
-                    right = 0,
-                    left = 0;
+                const
+                    object = entity.cacheRender;
 
                 // Determine whether to merge this image with the background.
-                if (this.entityCache && object) { //TODO: currently only handles a single display object on the cached entity.
+                if (this.entityCache && object) {
+                    const
+                        {x: boundsX, y: boundsY, width, height} = object.getBounds(object.transformMatrix),
+                        offsetX = boundsX - this.left,
+                        offsetY = boundsY - this.top,
+                        top    = Math.max(0, Math.floor(offsetY / this.tileHeight)),
+                        bottom = Math.min(this.tilesHeight, Math.ceil((offsetY + height) / this.tileHeight)),
+                        left   = Math.max(0, Math.floor(offsetX / this.tileWidth)),
+                        right  = Math.min(this.tilesWidth, Math.ceil((offsetX + width) / this.tileWidth));
+
                     if (!this.doMap) {
                         this.doMap = arrayCache.setUp();
                         this.cachedDisplayObjects = arrayCache.setUp();
@@ -487,21 +494,12 @@ export default (function () {
                     }
                     this.cachedDisplayObjects.push(object);
 
-                    // Determine range:
-                    bounds = object.getBounds(object.transformMatrix);
-                    bounds.x -= this.left;
-                    bounds.y -= this.top;
-                    top    = Math.max(0, Math.floor(bounds.y / this.tileHeight));
-                    bottom = Math.min(this.tilesHeight, Math.ceil((bounds.y + bounds.height) / this.tileHeight));
-                    left   = Math.max(0, Math.floor(bounds.x / this.tileWidth));
-                    right  = Math.min(this.tilesWidth, Math.ceil((bounds.x + bounds.width) / this.tileWidth));
-
                     // Find tiles that should include this display object
-                    for (x = left; x < right; x++) {
+                    for (let x = left; x < right; x++) {
                         if (!this.doMap[x]) {
                             this.doMap[x] = arrayCache.setUp();
                         }
-                        for (y = top; y < bottom; y++) {
+                        for (let y = top; y < bottom; y++) {
                             if (!this.doMap[x][y]) {
                                 this.doMap[x][y] = arrayCache.setUp();
                             }
@@ -513,6 +511,44 @@ export default (function () {
                     entity.removeFromParentContainer();
 
                     this.updateCache = true; //TODO: This currently causes a blanket cache update - may be worthwhile to only recache if this entity's location is currently in a cache (either cacheGrid or the current viewable area).
+                }
+            },
+
+            uncacheSprite: function (entity) {
+                const
+                    object = entity.cacheRender;
+
+                // Determine whether to merge this image with the background.
+                if (this.entityCache && object) {
+                    const
+                        {x: boundsX, y: boundsY, width, height} = object.getBounds(object.transformMatrix),
+                        index = this.cachedDisplayObjects.indexOf(object),
+                        offsetX = boundsX - this.left,
+                        offsetY = boundsY - this.top,
+                        top    = Math.max(0, Math.floor(offsetY / this.tileHeight)),
+                        bottom = Math.min(this.tilesHeight, Math.ceil((offsetY + height) / this.tileHeight)),
+                        left   = Math.max(0, Math.floor(offsetX / this.tileWidth)),
+                        right  = Math.min(this.tilesWidth, Math.ceil((offsetX + width) / this.tileWidth));
+
+                    if (index >= 0) {
+                        this.cachedDisplayObjects.splice(index, 1);
+                    }
+
+                    // Find tiles that should include this display object
+                    for (let x = left; x < right; x++) {
+                        for (let y = top; y < bottom; y++) {
+                            if (this.doMap?.[x]?.[y]) {
+                                const
+                                    index = this.doMap[x][y].indexOf(object);
+                                
+                                if (index >= 0) {
+                                    this.doMap[x][y].splice(index, 1);
+                                }
+                            }
+                        }
+                    }
+
+                    this.updateCache = true;
                 }
             },
 

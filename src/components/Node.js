@@ -152,34 +152,40 @@ export default createComponentClass(/** @lends platypus.components.Node.prototyp
          * @returns {platypus.Entity}
          */
         getNode: function (desc) {
-            var neighbor = null;
-            
+            const
+                neighbor = this.neighbors[desc];
+
             //map check
             if (!this.map && this.owner.map) {
                 this.map = this.owner.map;
             }
             
-            if (this.neighbors[desc]) {
-                neighbor = this.neighbors[desc];
-                if (neighbor.isNode) {
-                    return neighbor;
-                } else if (typeof neighbor === 'string') {
-                    neighbor = this.map.getNode(neighbor);
-                    if (neighbor) {
-                        this.neighbors[desc] = neighbor;
-                        return neighbor;
+            if (neighbor) {
+                const
+                    testNeighbor = neighbor.destroyed ? neighbor.id : neighbor;
+
+                if (testNeighbor.isNode) {
+                    return testNeighbor;
+                } else if (typeof testNeighbor === 'string') {
+                    const
+                        actualNeighbor = this.map.getNode(testNeighbor);
+                    
+                    if (actualNeighbor) {
+                        this.neighbors[desc] = actualNeighbor;
+                        return actualNeighbor;
                     }
-                } else if (neighbor.length) {
-                    neighbor = this.map.getNode(neighbor.join('|'));
-                    if (neighbor) {
-                        this.neighbors[desc] = neighbor;
-                        return neighbor;
+                } else if (testNeighbor.length) {
+                    const
+                        actualNeighbor = this.map.getNode(testNeighbor.join('|'));
+
+                    if (actualNeighbor) {
+                        this.neighbors[desc] = actualNeighbor;
+                        return actualNeighbor;
                     }
                 }
-                return null;
-            } else {
-                return null;
             }
+
+            return null;
         },
 
         /**

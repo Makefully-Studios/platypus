@@ -187,6 +187,16 @@ export default createComponentClass(/** @lends platypus.components.NodeMap.proto
                     this.residentsAwaitingNode.push(entity);
                 }
             }
+        },
+
+        "child-entity-removed": function (entity) {
+            if (entity.isNode) {
+                this.owner.triggerEvent('remove-node', entity);
+            }
+        },
+
+        "remove-node": function (node) {
+            this.removeNode(node);
         }
     },
     
@@ -194,6 +204,18 @@ export default createComponentClass(/** @lends platypus.components.NodeMap.proto
         addNode: function (node) {
             this.map.push(node);
             this.nodes[node.id] = node;
+        },
+        
+        removeNode: function (node) {
+            const
+                index = this.map.indexOf(node);
+
+            if (index >= 0) {
+                this.map.splice(index, 1);
+                delete this.nodes[node.id];
+            } else {
+                platypus.debug.warn(`NodeMap: "${node.id}" is not mapped, so it cannot be removed.`);
+            }
         },
         
         destroy: function () {
