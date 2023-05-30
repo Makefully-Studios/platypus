@@ -83,6 +83,7 @@ export default createComponentClass(/** @lends platypus.components.Interactive.p
          * @property buttonMode
          * @type Boolean
          * @default false
+         * @deprecated
          */
         buttonMode: false
     },
@@ -116,17 +117,15 @@ export default createComponentClass(/** @lends platypus.components.Interactive.p
         if (this.hitArea) {
             this.container.hitArea = this.setHitArea(this.hitArea);
         }
+
+        if (this.buttonMode) {
+            platypus.debug.warn('Interactive: "buttonMode" is deprecated. Set "cursor" to "pointer" on the entity instead.');
+        }
     },
 
     events: {
         "camera-update": function (camera) {
             this.camera.set(camera.viewport);
-        },
-
-        "handle-render": function () {
-            if (this.buttonMode !== this.container.buttonMode) {
-                this.container.buttonMode = this.buttonMode;
-            }
         },
 
         /**

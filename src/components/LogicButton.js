@@ -155,7 +155,7 @@ export default (function () {
             state.set('released', !this.pressed);
             state.set('pressed', this.pressed);
             state.set('highlighted', false);
-            this.owner.buttonMode = !this.disabled;
+            this.owner.container.cursor = this.disabled ? null : 'pointer';
             this.cancelled = false;
 
             this.readyToToggle = false;
@@ -267,7 +267,7 @@ export default (function () {
                     if (this.useOnce && this.removeEventListener) { //Second check is to ensure method exists which won't be the case if a result of the press is the button being destroyed.
                         this.removeEventListener('pressup');
                         this.state.set('disabled', true);
-                        this.owner.buttonMode = false;
+                        this.owner.container.cursor = null;
                     }
                 }
 
@@ -297,7 +297,7 @@ export default (function () {
              */
             "disable": function () {
                 this.state.set('disabled', true);
-                this.owner.buttonMode = false;
+                this.owner.container.cursor = null;
             },
             
             /**
@@ -307,7 +307,7 @@ export default (function () {
              */
             "enable": function () {
                 this.state.set('disabled', false);
-                this.owner.buttonMode = true;
+                this.owner.container.cursor = 'pointer';
             },
 
             /**
@@ -318,7 +318,7 @@ export default (function () {
             "toggle-disabled": function () {
                 var value = this.state.get('disabled');
                 
-                this.owner.buttonMode = value;
+                this.owner.container.cursor = value ? 'pointer': null;
                 this.state.set('disabled', !value);
             },
             
@@ -406,7 +406,7 @@ export default (function () {
             destroy: function () {
                 this.aabb.recycle();
                 this.aabb = null;
-                this.owner.buttonMode = false;
+                this.owner.container.cursor = null;
                 this.state = null;
             }
         }
