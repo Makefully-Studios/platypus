@@ -1,5 +1,7 @@
 /* global platypus */
 import * as PIXI from 'pixi.js';
+import {Spine, TextureAtlas} from 'pixi-spine';
+import {AtlasAttachmentLoader, SkeletonJson} from "@pixi-spine/runtime-3.8";
 import {arrayCache, union} from '../utils/array.js';
 import Data from '../Data.js';
 import RenderAnimator from './RenderAnimator.js';
@@ -33,7 +35,8 @@ export default (function () {
             if (!asset) {
                 platypus.debug.warn('RenderSpine: "' + path + '" is not a loaded asset.');
             }
-            return new BaseTexture(asset, {
+
+            return new BaseTexture(asset.baseTexture.resource, {
                 alphaMode: pma ? PIXI.ALPHA_MODES.PMA : PIXI.ALPHA_MODES.UNPACK
             });
         };
@@ -426,19 +429,12 @@ export default (function () {
                 };
             
             return function (def, callback) {
-                const PIXIspine = PIXI.spine,
-                    core = PIXIspine && PIXIspine.core,
-                    Spine = PIXIspine && PIXIspine.Spine;
-                
                 // If PIXI.spine is unavailable, this component doesn't work.
-                if (!Spine || !core) {
+                if (!Spine) {
                     platypus.debug.error('RenderSpine requires `PIXI.spine` to function.');
                     return false;
                 } else {
                     const
-                        TextureAtlas = core.TextureAtlas,
-                        AtlasAttachmentLoader = core.AtlasAttachmentLoader,
-                        SkeletonJson = core.SkeletonJson,
                         settings = platypus.game.settings,
                         atlas = settings.atlases[this.atlas],
                         skeleton = settings.skeletons[this.skeleton],
