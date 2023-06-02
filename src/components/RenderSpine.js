@@ -11,7 +11,6 @@ import createComponentClass from '../factory.js';
 
 export default (function () {
     const
-        BaseTexture = PIXI.BaseTexture,
         createTest = function (testStates, skin) {
             if (testStates === 'default') {
                 return defaultTest.bind(null, skin);
@@ -29,16 +28,15 @@ export default (function () {
             }
             return null;
         },
-        getBaseTexture = function (path, pma) {
-            var asset = platypus.assetCache.get(path.substring(path.lastIndexOf('/') + 1, path.lastIndexOf('.')));
+        getBaseTexture = function (path) {
+            const
+                asset = platypus.assetCache.get(path.substring(path.lastIndexOf('/') + 1, path.lastIndexOf('.')));
             
             if (!asset) {
                 platypus.debug.warn('RenderSpine: "' + path + '" is not a loaded asset.');
             }
 
-            return new BaseTexture(asset.baseTexture.resource, {
-                alphaMode: pma ? PIXI.ALPHA_MODES.PMA : PIXI.ALPHA_MODES.UNPACK
-            });
+            return asset.baseTexture;
         };
     
     return createComponentClass(/** @lends platypus.components.RenderSpine.prototype */{
@@ -374,17 +372,16 @@ export default (function () {
          * @fires platypus.Entity#update-animation
          */
         initialize: (function () {
-            var
+            const
                 createAnimationMap = function (animationMap, animations) {
-                    var map  = null,
-                        anim = '';
-
                     if (animationMap) {
                         return animationMap;
                     } else {
                         // Create 1-to-1 animation map since none was defined
-                        map = {};
-                        for (anim in animations) {
+                        const
+                            map = {};
+
+                        for (const anim in animations) {
                             if (animations.hasOwnProperty(anim)) {
                                 map[anim] = anim;
                             }
@@ -392,9 +389,10 @@ export default (function () {
                         return map;
                     }
                 },
-                imageCallback = function (pma, loadFinished, line, callback) {
+                imageCallback = function (loadFinished, line, callback) {
                     // Not sure if this handles memory well - keeping it in for now.
-                    var baseTexture = getBaseTexture(line, pma);
+                    const
+                        baseTexture = getBaseTexture(line);
 
                     callback(baseTexture);
 
@@ -419,7 +417,8 @@ export default (function () {
                     this.owner.triggerEvent('animation-ended', animationName);
                 },
                 handleSpineEvent = function (entry, event) {
-                    var eventName = event.data.name;
+                    const
+                        eventName = event.data.name;
 
                     if (this.playAnimation(eventName)) {
                         this.spine.update(0.000001);
@@ -438,7 +437,7 @@ export default (function () {
                         settings = platypus.game.settings,
                         atlas = settings.atlases[this.atlas],
                         skeleton = settings.skeletons[this.skeleton],
-                        spineAtlas = new TextureAtlas(atlas, imageCallback.bind(null, this.preMultipliedAlpha, callback)),
+                        spineAtlas = new TextureAtlas(atlas, imageCallback.bind(null, callback)),
                         spineJsonParser = new SkeletonJson(new AtlasAttachmentLoader(spineAtlas)),
                         skeletonData = spineJsonParser.readSkeletonData(skeleton),
                         spine = this.spine = new Spine(skeletonData),
@@ -625,9 +624,7 @@ export default (function () {
 
         methods: {
             addToContainer: function () {
-                var container = this.owner.container;
-
-                container.addChild(this.spine);
+                this.owner.container.addChild(this.spine);
             },
             
             playAnimation: function (animation, loop = true) {
@@ -693,18 +690,15 @@ export default (function () {
             },
 
             setMixTimes: function (mixTimes) {
-                var spine = this.spine,
+                const
+                    spine = this.spine,
                     animations = spine.spineData.animations,
-                    colon = 0,
-                    i = 0,
-                    j = 0,
-                    key = '',
                     stateData = spine.stateData;
 
                 if (typeof mixTimes === 'number') {
-                    i = animations.length;
+                    let i = animations.length;
                     while (i--) {
-                        j = animations.length;
+                        let j = animations.length;
                         while (j--) {
                             if (i !== j) {
                                 stateData.setMix(animations[i].name, animations[j].name, mixTimes);
@@ -712,9 +706,11 @@ export default (function () {
                         }
                     }
                 } else {
-                    for (key in mixTimes) {
+                    for (const key in mixTimes) {
                         if (mixTimes.hasOwnProperty(key)) {
-                            colon = key.indexOf(':');
+                            const
+                                colon = key.indexOf(':');
+
                             if (colon >= 0) {
                                 stateData.setMix(key.substring(0, colon), key.substring(colon + 1), mixTimes[key]);
                             }
@@ -734,8 +730,8 @@ export default (function () {
         },
         
         getAssetList: (function () {
-            var
-                getImages = function (atlas, atlases) {
+            const
+                getImages = function (atlas, atlases, pma) {
                     const images = arrayCache.setUp();
 
                     if (atlas) {
@@ -755,7 +751,16 @@ export default (function () {
 
                         while (j--) { // Fix up relative image location paths.
                             if (lines[j].substr(lines[j].length - 4) === '.png') {
-                                images.push(lines[j]);
+                                if (pma) {
+                                    images.push({
+                                        src: lines[j],
+                                        data: {
+                                            alphaMode: PIXI.ALPHA_MODES.PMA
+                                        }
+                                    });
+                                } else {
+                                    images.push(lines[j]);
+                                }
                             }
                         }
                     }
@@ -764,23 +769,26 @@ export default (function () {
                 };
             
             return function (component, props, defaultProps) {
-                var arr = null,
-                    i = 0,
-                    images = null,
+                const
                     atlases = platypus.game.settings.atlases,
-                    atlas = component.atlas || props.atlas || defaultProps.atlas;
+                    atlas = component.atlas ?? props.atlas ?? defaultProps.atlas,
+                    pma = component.preMultipliedAlpha ?? props.preMultipliedAlpha ?? defaultProps.preMultipliedAlpha ?? true;
                 
                 if (Array.isArray(atlas)) {
-                    i = atlas.length;
-                    images = arrayCache.setUp();
+                    const
+                        images = arrayCache.setUp();
+                    let i = atlas.length;
+                    
                     while (i--) {
-                        arr = getImages(atlas[i], atlases);
+                        const
+                            arr = getImages(atlas[i], atlases, pma);
+
                         union(images, arr);
                         arrayCache.recycle(arr);
                     }
                     return images;
                 } else {
-                    return getImages(atlas, atlases);
+                    return getImages(atlas, atlases, pma);
                 }
             };
         }())

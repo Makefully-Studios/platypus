@@ -12,23 +12,19 @@ import {arrayCache} from './utils/array.js';
 
 const
     fn = /^(?:\w+:\/{2}\w+(?:\.\w+)*\/?)?(?:[\/.]*?(?:[^?]+)?\/)?(?:([^\/?]+)\.(\w+|{\w+(?:,\w+)*}))(?:\?\S*)?$/,
-    folders = {
-        png: 'images',
-        jpg: 'images',
-        jpeg: 'images',
-        ogg: 'audio',
-        mp3: 'audio',
-        m4a: 'audio',
-        wav: 'audio'
-    },
     formatAsset = function (asset) { //TODO: Make this behavior less opaque.
         const
-            path = asset.src || asset,
+            path = asset.src ?? asset,
             match = path.match(fn);
             
+        if (asset.id) {
+            platypus.debug.warn(`AssetManager: Use "alias" instead of "id" for asset identification. (${asset.id})`);
+        }
+
         return Data.setUp(
-            'id', asset.id || (match ? match[1] : path),
-            'src', (match ? platypus.game.options[folders[match[2].toLowerCase()]] || '' : '') + path
+            'alias', asset.alias ?? [asset.id ?? (match ? match[1] : path)],
+            'src', path,
+            'data', asset.data ?? null
         );
     };
 
@@ -42,26 +38,26 @@ export default class AssetManager {
      * This method removes an asset from memory if it's the last needed instance of the asset.
      *
      * @method platypus.AssetManager#delete
-     * @param {*} id
+     * @param {*} alias
      * @return {Boolean} Returns `true` if asset was removed from asset cache.
      */
-    delete (id) {
+    delete (alias) {
         const assets = this.assets;
 
-        if (assets.has(id)) {
+        if (assets.has(alias)) {
             const counts = this.counts;
 
-            counts[id] -= 1;
-            if (counts[id] === 0) {
-                const asset = assets.get(id);
+            counts[alias] -= 1;
+            if (counts[alias] === 0) {
+                const asset = assets.get(alias);
                 
                 if (asset && asset.src) {
                     asset.src = '';
                 }
-                assets.delete(id);
+                assets.delete(alias);
             }
 
-            return !counts[id];
+            return !counts[alias];
         } else {
             return false;
         }
@@ -71,19 +67,19 @@ export default class AssetManager {
      * Returns a loaded instance of a given asset.
      *
      * @method platypus.AssetManager#get
-     * @param {*} id
+     * @param {*} alias
      * @return {Object} Returns the asset if defined.
      */
-    get (id) {
-        return this.assets.get(id);
+    get (alias) {
+        return this.assets.get(alias);
     }
 
     /**
-     * Returns id for given path.
+     * Returns alias for given path.
      *
      * @method platypus.AssetManager#getFileId
      * @param {*} path
-     * @return {String} Returns id generated from path.
+     * @return {String} Returns alias generated from path.
      */
     getFileId (path) {
         const match = path.match(fn);
@@ -95,31 +91,31 @@ export default class AssetManager {
      * Returns whether a given asset is currently loaded by the AssetManager.
      *
      * @method platypus.AssetManager#has
-     * @param {*} id
+     * @param {*} alias
      * @return {Object} Returns `true` if the asset is loaded and `false` if not.
      */
-    has (id) {
-        return this.assets.has(id);
+    has (alias) {
+        return this.assets.has(alias);
     }
 
     /**
-     * Sets a mapping between an id and a loaded asset. If the mapping already exists, simply increment the count for a given id.
+     * Sets a mapping between an alias and a loaded asset. If the mapping already exists, simply increment the count for a given alias.
      *
      * @method platypus.AssetManager#set
-     * @param {*} id
+     * @param {*} alias
      * @param {*} value The loaded asset.
      * @param {Number} count The number of assets needed.
      */
-    set (id, value, count = 1) {
+    set (alias, value, count = 1) {
         const
             assets = this.assets,
             counts = this.counts;
 
-        if (assets.has(id)) {
-            counts[id] += count;
+        if (assets.has(alias)) {
+            counts[alias] += count;
         } else {
-            assets.set(id, value);
-            counts[id] = count;
+            assets.set(alias, value);
+            counts[alias] = count;
         }
     }
 
@@ -137,31 +133,46 @@ export default class AssetManager {
             needsLoading = arrayCache.setUp(),
             adds = Data.setUp();
 
+        if (platypus.game?.options?.images ?? platypus.game?.options?.audio) {
+            platypus.debug.warn('AssetManager: Default asset folders can no longer specified via game options. Include pathing in asset imports.');
+        }
+
+        // work-around for Pixi v7 Spine PMA issue https://github.com/pixijs/pixijs/issues/9141
+        Assets.setPreferences({
+            preferCreateImageBitmap: false,
+            preferWorker: false
+        });
+
         for (let i = 0; i < list.length; i++) {
             const
                 item = formatAsset(list[i]),
-                id = item.id || item.src || item;
+                alias = item.alias?.[0] ?? item.id ?? item.src ?? item;
 
-            if (this.has(id)) {
-                counts[id] += 1;
-            } else if (adds.hasOwnProperty(id)) {
-                adds[id] += 1;
+            if (this.has(alias)) {
+                counts[alias] += 1;
+            } else if (adds.hasOwnProperty(alias)) {
+                adds[alias] += 1;
             } else {
-                adds[id] = 1;
+                adds[alias] = 1;
                 needsLoading.push(item);
             }
         }
 
         if (needsLoading.length) {
+            // Do this first to pass `data` property if needed
+            needsLoading.forEach((asset) => {
+                Assets.add(asset.alias, asset.src, asset.data);
+            });
+
             const
-                loadedList = await Assets.load(needsLoading, one);
+                aliases = needsLoading.map((asset) => asset.alias[0]),
+                loadedList = await Assets.load(aliases, one);
 
-            Object.keys(loadedList).forEach((key) => {
+            aliases.forEach((alias) => {
                 const
-                    response = loadedList[key],
-                    {id} = formatAsset(key);
+                    response = loadedList[alias];
 
-                this.set(id, response, adds[id]);
+                this.set(alias, response, adds[alias]);
             });
 
             if (all) {
@@ -188,10 +199,10 @@ export default class AssetManager {
      * @param {Array} list A list of assets to unload.
      */
     unload (list) {
-        var i = list.length;
+        let i = list.length;
 
         while (i--) {
-            this.delete(list[i].id || list[i]);
+            this.delete(list[i].alias?.[0] ?? list[i].id ?? list[i]);
         }
     }
 }
