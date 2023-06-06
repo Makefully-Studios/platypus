@@ -240,26 +240,22 @@ export default createComponentClass(/** @lends platypus.components.NodeMap.proto
          * @method platypus.components.NodeMap#getNode
          * @param id {String|Array|Node} This id of the node to retrieve. If an array or more than one parameter is supplied, values are concatenated with "|" to create a single string id. Supplying a node returns the same node (useful for processing a mixed list of nodes and node ids).
          */
-        getNode: function () {
-            var i       = 0,
-                id      = '',
-                divider = '',
-                args    = arguments;
+        getNode: function (...args) {
+            let id = args.join('|');
             
             if (args.length === 1) {
                 if (args[0].isNode) {
-                    return args[0];
+                    if (args[0].destroyed) {
+                        return this.nodes[args[0].id];
+                    } else {
+                        return args[0];
+                    }
                 } else if (Array.isArray(args[0])) {
-                    args = args[0];
+                    id = args[0].join('|');
                 }
             }
             
-            for (i = 0; i < args.length; i++) {
-                id += divider + args[i];
-                divider = '|';
-            }
-
-            return this.nodes[id] || null;
+            return this.nodes[id] ?? null;
         },
         
         /**
