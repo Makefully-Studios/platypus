@@ -2,7 +2,7 @@
 import {arrayCache, greenSlice, greenSplice} from './utils/array.js';
 import Data from './Data.js';
 import Messenger from './Messenger.js';
-import Sound from '@pixi/sound';
+import {Sound} from '@pixi/sound';
 
 /**
  * This class is used to create `platypus.game.voPlayer` and manages playback by only playing one at a time, playing a list, and even handling captions at the same time.

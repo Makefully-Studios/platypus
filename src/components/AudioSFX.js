@@ -1,7 +1,7 @@
 /* global platypus */
 import {arrayCache, greenSplice} from '../utils/array.js';
 import Data from '../Data.js';
-import Sound from '@pixi/sound';
+import {Sound} from '@pixi/sound';
 import StateMap from '../StateMap.js';
 import createComponentClass from '../factory.js';
 

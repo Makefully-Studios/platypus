@@ -1,6 +1,6 @@
 /* global platypus */
 import {arrayCache, greenSplice} from './utils/array.js';
-import Sound from '@pixi/sound';
+import {Sound} from '@pixi/sound';
 
 /**
  * This class plays sfx audio and manages Springroll volume changes.

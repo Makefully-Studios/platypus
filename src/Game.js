@@ -8,8 +8,9 @@ import Entity from './Entity.js';
 import Messenger from './Messenger.js';
 import Resize from './Resize.js';
 import SFXPlayer from './SFXPlayer.js';
-import Sound from '@pixi/sound';
+import {Sound} from '@pixi/sound';
 import Storage from './Storage.js';
+import TickerClient from './TickerClient.js';
 import TweenJS from '@tweenjs/tween.js';
 import VOPlayer from './VOPlayer.js';
 import sayHello from './sayHello.js';
@@ -176,7 +177,7 @@ export default (function () {
                 load = function (displayOptions, settings) {
                     const
                         dpi = window.devicePixelRatio || 1,
-                        ticker = Ticker.shared;
+                        ticker = options.workerTick ? new TickerClient() : Ticker.shared;
                     let resizeCallback = null;
                         
                     platypus.game = this; //Make this instance the only Game instance.
@@ -372,21 +373,23 @@ export default (function () {
                     }),
                     state = springroll.state;
                 
-                state.pause.subscribe(function (current) {
-                    if (current) {
-                        if (!this.paused) {
-                            this.ticker.remove(this.tickInstance);
-                            this.paused = true;
-                            Sound.pauseAll();
+                if (!options.disablePause) {
+                    state.pause.subscribe(function (current) {
+                        if (current) {
+                            if (!this.paused) {
+                                this.ticker.remove(this.tickInstance);
+                                this.paused = true;
+                                Sound.pauseAll();
+                            }
+                        } else {
+                            if (this.paused) {
+                                this.ticker.add(this.tickInstance);
+                                this.paused = false;
+                                Sound.resumeAll();
+                            }
                         }
-                    } else {
-                        if (this.paused) {
-                            this.ticker.add(this.tickInstance);
-                            this.paused = false;
-                            Sound.resumeAll();
-                        }
-                    }
-                }.bind(this));
+                    }.bind(this));
+                }
                 
                 state.soundVolume.subscribe(function () {
                     /* SR seems to trigger this too aggressively, in that it already calls mute/unmute on the comprising sfx/music/vo channels. We rely on the others instead. */
