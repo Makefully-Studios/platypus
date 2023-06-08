@@ -473,8 +473,28 @@ export default (function () {
                         }
                     }
                     if (!ss) { //We need to load the tileset images since there is not a separate spriteSheet describing them
-                        for (i = 0; i < level.tilesets.length; i++) {
-                            tilesets.push(level.tilesets[i].image);
+                        const
+                            levelTilesets = level.tilesets;
+
+                        for (let i = 0; i < levelTilesets.length; i++) {
+                            const
+                                tileset = levelTilesets[i];
+
+                            if (tileset.image) {
+                                tilesets.push(tileset.image);
+                            } else {
+                                const
+                                    tiles = tileset.tiles;
+
+                                for (let j = 0; j < tiles.length; j++) {
+                                    const
+                                        tile = tiles[j];
+
+                                    if (tile.image) {
+                                        tilesets.push(tile.image);
+                                    }
+                                }
+                            }
                         }
                         union(assets, tilesets);
                         arrayCache.recycle(tilesets);
@@ -738,40 +758,64 @@ export default (function () {
                     index = 0,
                     data = null,
                     createFrames = function (frames, index, tileset, modifier) {
-                        var margin = tileset.margin || 0,
-                            spacing = tileset.spacing || 0,
-                            tileWidth = tileset.tilewidth,
-                            tileHeight = tileset.tileheight,
-                            tileWidthHalf = tileWidth / 2,
-                            tileHeightHalf = tileHeight / 2,
-                            tileWidthSpace = tileWidth + spacing,
-                            tileHeightSpace = tileHeight + spacing,
-                            margin2 = margin * 2,
-                            marginSpace = margin2 - spacing,
-                            cols = tileset.columns || (((tileset.imagewidth / tileWidthSpace) + marginSpace) >> 0),
-                            rows = /* Tiled tileset def doesn't seem to have rows */ (((tileset.imageheight / tileHeightSpace) + marginSpace) >> 0);
-                        
-                        // deprecated unit/image resizing
-                        tileWidth = tileWidth * modifier;
-                        tileHeight = tileHeight * modifier;
-                        tileWidthHalf = tileWidthHalf * modifier;
-                        tileHeightHalf = tileHeightHalf * modifier;
-                        tileWidthSpace = tileWidthSpace * modifier;
-                        tileHeightSpace = tileHeightSpace * modifier;
+                        const
+                            {image, tiles} = tileset;
 
-                        for (let y = 0; y < rows; y++) {
-                            for (let x = 0; x < cols; x++) {
+                        if (image) {
+                            var margin = tileset.margin || 0,
+                                spacing = tileset.spacing || 0,
+                                tileWidth = tileset.tilewidth,
+                                tileHeight = tileset.tileheight,
+                                tileWidthHalf = tileWidth / 2,
+                                tileHeightHalf = tileHeight / 2,
+                                tileWidthSpace = tileWidth + spacing,
+                                tileHeightSpace = tileHeight + spacing,
+                                margin2 = margin * 2,
+                                marginSpace = margin2 - spacing,
+                                cols = tileset.columns || (((tileset.imagewidth / tileWidthSpace) + marginSpace) >> 0),
+                                rows = /* Tiled tileset def doesn't seem to have rows */ (((tileset.imageheight / tileHeightSpace) + marginSpace) >> 0);
+                            
+                            // deprecated unit/image resizing
+                            tileWidth = tileWidth * modifier;
+                            tileHeight = tileHeight * modifier;
+                            tileWidthHalf = tileWidthHalf * modifier;
+                            tileHeightHalf = tileHeightHalf * modifier;
+                            tileWidthSpace = tileWidthSpace * modifier;
+                            tileHeightSpace = tileHeightSpace * modifier;
+
+                            for (let y = 0; y < rows; y++) {
+                                for (let x = 0; x < cols; x++) {
+                                    frames.push([
+                                        margin + x * tileWidthSpace,
+                                        margin + y * tileHeightSpace,
+                                        tileWidth,
+                                        tileHeight,
+                                        index,
+                                        tileWidthHalf,
+                                        tileHeightHalf
+                                    ]);
+                                }
+                            }
+                            index += 1;
+                        } else if (tiles) {
+                            for (let i = 0; i < tiles.length; i++) {
+                                const
+                                    {imageheight, imagewidth} = tiles[i];
+
                                 frames.push([
-                                    margin + x * tileWidthSpace,
-                                    margin + y * tileHeightSpace,
-                                    tileWidth,
-                                    tileHeight,
+                                    0,
+                                    0,
+                                    imageheight,
+                                    imagewidth,
                                     index,
-                                    tileWidthHalf,
-                                    tileHeightHalf
+                                    imageheight / 2,
+                                    imagewidth / 2
                                 ]);
+                                index += 1;
                             }
                         }
+
+                        return index;
                     };
                 
                 decodeLayer(layer);
@@ -830,8 +874,10 @@ export default (function () {
                 tileDefinition.properties.z = tileDefinition.properties.z || this.layerZ;
 
                 if (tilesets.length) {
+                    let imageIndex = 0;
+
                     for (let x = 0; x < tilesets.length; x++) {
-                        createFrames(importFrames, x, tilesets[x], 1);
+                        imageIndex = createFrames(importFrames, imageIndex, tilesets[x], 1);
                     }
 
                     lastSet = tilesets[tilesets.length - 1];
@@ -1030,21 +1076,26 @@ export default (function () {
                     images = arrayCache.setUp();
                 }
                 if (images.length === 0) {
-                    for (i = 0; i < tilesets.length; i++) {
-                        tileset = tilesets[i];
-                        asset = this.assetCache.get(tileset.name);
-                        if (asset) { // Prefer to have name in tiled match image id in game
-                            images.push(tileset.name);
+                    for (let i = 0; i < tilesets.length; i++) {
+                        const
+                            addImage = (data) => {
+                                const
+                                    imageKey = getKey(data.image),
+                                    asset = this.assetCache.get(imageKey);
+
+                                if (asset) { // Prefer to have name in tiled match image id in game
+                                    images.push(imageKey);
+                                } else {
+                                    platypus.debug.warn('Component TiledLoader: Cannot find the "' + imageKey + '" sprite sheet. Add it to the list of assets in config.json and give it the id "' + imageKey + '".');
+                                    images.push(data.image);
+                                }
+                            },
+                            tileset = tilesets[i];
+
+                        if (tileset.image) {
+                            addImage(tileset);
                         } else {
-                            imageId = getKey(tileset.image);
-                            asset = this.assetCache.get(imageId);
-                            if (asset) {
-                                platypus.debug.warn('Component TiledLoader: Did not find a spritesheet for "' + tileset.name + '", so using "' + tileset.image + '" instead.');
-                                images.push(imageId);
-                            } else {
-                                platypus.debug.warn('Component TiledLoader: Cannot find the "' + tileset.name + '" sprite sheet. Add it to the list of assets in config.json and give it the id "' + tileset.name + '".');
-                                images.push(tileset.image);
-                            }
+                            tileset.tiles.forEach(addImage);
                         }
                     }
                 }
