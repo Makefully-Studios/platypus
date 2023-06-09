@@ -661,7 +661,11 @@ export default (function () {
              * @type boolean
              * @default false
              */
-            manuallyLoad: false
+            manuallyLoad: false,
+
+            tileWidth: null,
+
+            tileHeight: null
         },
 
         /**
@@ -1030,37 +1034,23 @@ export default (function () {
             
             loadLevel: function (levelData, callback) {
                 const
-                    entityLinker = EntityLinker.setUp();
-
-                var asset = null,
-                    layers = null,
-                    level = null,
-                    height = 0,
+                    entityLinker = EntityLinker.setUp(),
+                    level = (typeof levelData.level === 'string') ? platypus.game.settings.levels[levelData.level] : levelData.level, //format level appropriately
+                    layers = level.layers,
+                    tilesets = importTilesetData(level.tilesets),
+                    tileWidth = this.tileWidth = level.tilewidth,
+                    tileHeight = this.tileHeight = level.tileheight;
+    
+                var height = 0,
                     i = 0,
-                    imageId = '',
                     images = null,
                     layer = null,
                     layerDefinition = null,
-                    tileset = null,
-                    tilesets = null,
                     tilesetObjectGroups = DataMap.setUp(),
-                    tileWidth = 0,
-                    tileHeight = 0,
                     progress = Data.setUp('count', 0, 'progress', 0, 'total', 0),
                     width = 0,
                     x = 0,
                     y = 0;
-                
-                //format level appropriately
-                if (typeof levelData.level === 'string') {
-                    level = platypus.game.settings.levels[levelData.level];
-                } else {
-                    level = levelData.level;
-                }
-                layers = level.layers;
-                tilesets = importTilesetData(level.tilesets);
-                tileWidth = level.tilewidth;
-                tileHeight = level.tileheight;
 
                 createTilesetObjectGroupReference(tilesetObjectGroups, tilesets);
 
