@@ -29,88 +29,83 @@ var priority = 0,
     };
     
 export default function (componentDefinition) {
-    var func  = null,
-        proto = null;
+    const
+        {id} = componentDefinition,
+
+        // Not sure if this is future-proof, but putting in object to create dynamic name.
+        NewComponent = ({[id]: class extends Component {
+            constructor (owner, definition, callback) {
+                super(componentDefinition.id, owner);
     
-    class NewComponent extends Component {
-        constructor (owner, definition, callback) {
-            var prop  = '',
-                func  = '',
-                name  = '',
-                alias = '';
-                
-            super(componentDefinition.id, owner);
-
-            // Set up properties, prioritizing component settings, entity settings, and finally defaults.
-            if (componentDefinition.properties) {
-                for (prop in componentDefinition.properties) {
-                    if (componentDefinition.properties.hasOwnProperty(prop)) {
-                        if (definition && (typeof definition[prop] !== 'undefined')) {
-                            this[prop] = definition[prop];
-                        } else if (typeof this.owner[prop] !== 'undefined') {
-                            this[prop] = this.owner[prop];
-                        } else {
-                            this[prop] = componentDefinition.properties[prop];
+                // Set up properties, prioritizing component settings, entity settings, and finally defaults.
+                if (componentDefinition.properties) {
+                    for (const prop in componentDefinition.properties) {
+                        if (componentDefinition.properties.hasOwnProperty(prop)) {
+                            if (definition && (typeof definition[prop] !== 'undefined')) {
+                                this[prop] = definition[prop];
+                            } else if (typeof this.owner[prop] !== 'undefined') {
+                                this[prop] = this.owner[prop];
+                            } else {
+                                this[prop] = componentDefinition.properties[prop];
+                            }
                         }
                     }
                 }
-            }
-
-            // These component properties are equivalent with `entity.property`
-            if (componentDefinition.publicProperties) {
-                for (prop in componentDefinition.publicProperties) {
-                    if (componentDefinition.publicProperties.hasOwnProperty(prop)) {
-                        setupProperty(prop, this, owner);
-                        if (definition && (typeof definition[prop] !== 'undefined')) {
-                            this[prop] = definition[prop];
-                        } else if (typeof this.owner[prop] !== 'undefined') {
-                            this[prop] = this.owner[prop];
-                        } else {
-                            this[prop] = componentDefinition.publicProperties[prop];
+    
+                // These component properties are equivalent with `entity.property`
+                if (componentDefinition.publicProperties) {
+                    for (const prop in componentDefinition.publicProperties) {
+                        if (componentDefinition.publicProperties.hasOwnProperty(prop)) {
+                            setupProperty(prop, this, owner);
+                            if (definition && (typeof definition[prop] !== 'undefined')) {
+                                this[prop] = definition[prop];
+                            } else if (typeof this.owner[prop] !== 'undefined') {
+                                this[prop] = this.owner[prop];
+                            } else {
+                                this[prop] = componentDefinition.publicProperties[prop];
+                            }
                         }
                     }
                 }
-            }
-
-            if (componentDefinition.events) {
-                priority -= 1; // So event priority remains in order of component addition.
-                for (func in componentDefinition.events) {
-                    if (componentDefinition.events.hasOwnProperty(func)) {
-                        this.addEventListener(func, componentDefinition.events[func], priority);
-                        if (definition && definition.aliases) {
-                            for (alias in definition.aliases) {
-                                if (definition.aliases.hasOwnProperty(alias) && (definition.aliases[alias] === func)) {
-                                    this.addEventListener(alias, componentDefinition.events[func], priority);
+    
+                if (componentDefinition.events) {
+                    priority -= 1; // So event priority remains in order of component addition.
+                    for (const func in componentDefinition.events) {
+                        if (componentDefinition.events.hasOwnProperty(func)) {
+                            this.addEventListener(func, componentDefinition.events[func], priority);
+                            if (definition && definition.aliases) {
+                                for (const alias in definition.aliases) {
+                                    if (definition.aliases.hasOwnProperty(alias) && (definition.aliases[alias] === func)) {
+                                        this.addEventListener(alias, componentDefinition.events[func], priority);
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
-
-            if (componentDefinition.publicMethods) {
-                for (func in componentDefinition.publicMethods) {
-                    if (componentDefinition.publicMethods.hasOwnProperty(func)) {
-                        name = func;
-                        if (definition && definition.aliases) {
-                            for (alias in definition.aliases) {
-                                if (definition.aliases.hasOwnProperty(alias) && (definition.aliases[alias] === func)) {
-                                    name = alias;
+    
+                if (componentDefinition.publicMethods) {
+                    for (const func in componentDefinition.publicMethods) {
+                        if (componentDefinition.publicMethods.hasOwnProperty(func)) {
+                            let name = func;
+                            if (definition && definition.aliases) {
+                                for (const alias in definition.aliases) {
+                                    if (definition.aliases.hasOwnProperty(alias) && (definition.aliases[alias] === func)) {
+                                        name = alias;
+                                    }
                                 }
                             }
+                            this.addMethod(name, componentDefinition.publicMethods[func]);
                         }
-                        this.addMethod(name, componentDefinition.publicMethods[func]);
                     }
                 }
-            }
-
-            if (!this.initialize(definition, callback) && callback) { // whether the callback will be used; if not, we run immediately.
-                callback();
-            }
-        }
-    }
     
-    proto = NewComponent.prototype;
+                if (!this.initialize(definition, callback) && callback) { // whether the callback will be used; if not, we run immediately.
+                    callback();
+                }
+            }
+        }})[id],
+        proto = NewComponent.prototype;
 
     proto.initialize = componentDefinition.initialize || doNothing;
     
@@ -213,7 +208,7 @@ export default function (componentDefinition) {
     }());
 
     if (componentDefinition.methods) {
-        for (func in componentDefinition.methods) {
+        for (const func in componentDefinition.methods) {
             if (componentDefinition.methods.hasOwnProperty(func)) {
                 if (func === 'destroy') {
                     proto._destroy = componentDefinition.methods[func];
@@ -224,7 +219,7 @@ export default function (componentDefinition) {
         }
     }
     if (componentDefinition.publicMethods) {
-        for (func in componentDefinition.publicMethods) {
+        for (const func in componentDefinition.publicMethods) {
             if (componentDefinition.publicMethods.hasOwnProperty(func)) {
                 proto[func] = componentDefinition.publicMethods[func];
             }

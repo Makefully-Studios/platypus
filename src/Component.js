@@ -2,54 +2,49 @@
 import {arrayCache, greenSplice} from './utils/array.js';
 import Data from './Data.js';
 
-export default (function () {
-    var getAssetList = function () {
-            return arrayCache.setUp();
-        },
+/**
+ * This is the extendable Component class. Typically specific component classes should be created using `createComponentClass()`. This method accepts component definitions and creates component classes that can be used to create components by entities.  It adds properties and methods that are common to all components so that component definitions can focus on unique properties and methods.
+ *
+ * To create an extended component class, use the following syntax:
+ *
+ *      createComponentClass(componentDefinition, prototype);
+ *
+ *  * `componentDefinition` is list of key/value pairs that describe the component's behavior.
+ *  * `prototype` is an optional prototype that this component extends.
+ * See [component-template.js]("component-template"%20Component.html) for an example componentDefinition that can be sent into this component class factory.
+ *
+ * @memberof platypus
+ * @class Component
+ * @static
+ */
+export default class Component {
+    constructor (type, owner) {
+        this.type = type;
+        this.owner = owner;
+        this.publicMethods = Data.setUp();
+        this.listener = Data.setUp(
+            "events", arrayCache.setUp(),
+            "messages", arrayCache.setUp()
+        );
 
         /**
-         * This is the extendable Component class. Typically specific component classes should be created using `createComponentClass()`. This method accepts component definitions and creates component classes that can be used to create components by entities.  It adds properties and methods that are common to all components so that component definitions can focus on unique properties and methods.
+         * Returns a JSON object describing the component.
          *
-         * To create an extended component class, use the following syntax:
-         *
-         *      createComponentClass(componentDefinition, prototype);
-         *
-         *  * `componentDefinition` is list of key/value pairs that describe the component's behavior.
-         *  * `prototype` is an optional prototype that this component extends.
-         * See [component-template.js]("component-template"%20Component.html) for an example componentDefinition that can be sent into this component class factory.
-         *
-         * @memberof platypus
-         * @class Component
-         * @static
-         */
-        Component = function (type, owner) {
-            this.type = type;
-            this.owner = owner;
-            this.publicMethods = Data.setUp();
-            this.listener = Data.setUp(
-                "events", arrayCache.setUp(),
-                "messages", arrayCache.setUp()
-            );
-        },
-        proto = Component.prototype;
-    
+         * @method platypus.Component#toJSON
+         * @return {Object} Returns a JSON definition that can be used to recreate the component.
+         **/
+        this.toJSON = null; // defined in factory.js
+    }
+
     /**
      * Returns a string describing the component.
      *
      * @method platypus.Component#toString
      * @return {String} Returns the component type as a string of the form "[Component ComponentType]".
      **/
-    proto.toString = function () {
+    toString () {
         return "[Component " + this.type + "]";
-    };
-
-    /**
-     * Returns a JSON object describing the component.
-     *
-     * @method platypus.Component#toJSON
-     * @return {Object} Returns a JSON definition that can be used to recreate the component.
-     **/
-    proto.toJSON = null; // defined in factory.js
+    }
 
     /**
      * This method cleans up listeners and methods that this component added to the entity. It should never be called by the component itself. Call this.owner.removeComponent(this) instead.
@@ -57,7 +52,7 @@ export default (function () {
      * @method platypus.Component#destroy
      * @private
      */
-    proto.destroy = function () {
+    destroy () {
         var func = '';
         
         if (this.listener) {
@@ -80,8 +75,8 @@ export default (function () {
             this.listener.recycle();
             this.listener = null;
         }
-    };
-    
+    }
+
     /**
      * This method removes multiple event listeners from the entity.
      *
@@ -89,7 +84,7 @@ export default (function () {
      * @param [listeners] {Array} The list of listeners to remove. If not supplied, all event listeners are removed.
      * @private
      */
-    proto.removeEventListeners = function (listeners) {
+    removeEventListeners (listeners) {
         var i = 0,
             events   = null,
             messages = null;
@@ -107,8 +102,8 @@ export default (function () {
                 this.removeEventListener(listeners[i]);
             }
         }
-    };
-    
+    }
+
     /**
      * This method adds an event listener to the entity.
      *
@@ -118,7 +113,7 @@ export default (function () {
      * @return handler {Function} A reference to the bound handler.
      * @private
      */
-    proto.addEventListener = function (event, callback, priority) {
+    addEventListener (event, callback, priority) {
         var handler = callback.bind(this); // <-- I think we need to stop doing this
         
         this.listener.events.push(event);
@@ -126,8 +121,8 @@ export default (function () {
         this.owner.on(event, handler, priority);
 
         return handler;
-    };
-    
+    }
+
     /**
      * This method adds a method to the entity.
      *
@@ -136,7 +131,7 @@ export default (function () {
      * @param func {Function} The function describing the method.
      * @private
      */
-    proto.addMethod = function (name, func) {
+    addMethod (name, func) {
         if (this.owner[name]) {
             platypus.debug.warn(this.owner.type + ': Entity already has a method called "' + name + '". Method not added.');
         } else {
@@ -145,7 +140,7 @@ export default (function () {
             }.bind(this);
             this.publicMethods[name] = func;
         }
-    };
+    }
 
     /**
      * This method removes an event listener from the entity.
@@ -155,7 +150,7 @@ export default (function () {
      * @param callback {Function} The listener to remove. If not supplied, all event listeners for the provided event are removed.
      * @private
      */
-    proto.removeEventListener = function (event, callback) {
+    removeEventListener (event, callback) {
         var i = 0,
             events   = this.listener.events,
             messages = this.listener.messages;
@@ -167,8 +162,8 @@ export default (function () {
                 greenSplice(this.listener.messages, i);
             }
         }
-    };
-    
+    }
+
     /**
      * This method removes a method from the entity.
      *
@@ -176,7 +171,7 @@ export default (function () {
      * @param name {String} The name of the method to be removed.
      * @private
      */
-    proto.removeMethod = function (name) {
+    removeMethod (name) {
         if (!this.owner[name]) {
             platypus.debug.warn(this.owner.type + ': Entity does not have a method called "' + name + '".');
         } else {
@@ -194,7 +189,7 @@ export default (function () {
      * @param defaultProperties {Object} The default properties of the Entity.
      * @return {Array} A list of the necessary assets to load.
      */
-    Component.getAssetList = getAssetList;
-    
-    return Component;
-}());
+    static getAssetList () {
+        return arrayCache.setUp();
+    }
+}
