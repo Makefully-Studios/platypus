@@ -103,10 +103,14 @@ export default createComponentClass(/** @lends platypus.components.Node.prototyp
     
     events: {
         "add-neighbors": function (neighbors) {
-            for (const direction in neighbors) {
-                if (neighbors.hasOwnProperty(direction)) {
-                    this.neighbors[direction] = neighbors[direction];
-                }
+            const
+                directions = Object.keys(neighbors);
+
+            for (let i = 0; i < directions.length; i++) {
+                const
+                    direction = directions[i];
+
+                this.neighbors[direction] = neighbors[direction];
             }
             
             for (let i = 0; i < this.contains.length; i++) {
@@ -114,31 +118,44 @@ export default createComponentClass(/** @lends platypus.components.Node.prototyp
             }
         },
         "remove-neighbor": function (nodeOrNodeId) {
-            var i  = null,
-                id = nodeOrNodeId;
-            
-            if (typeof id !== 'string') {
-                id = id.nodeId;
-            }
+            const
+                id = nodeOrNodeId.nodeId ?? nodeOrNodeId,
+                neighbors = Object.keys(this.neighbors);
 
-            for (i in this.neighbors) {
-                if (this.neighbors.hasOwnProperty(i)) {
-                    if (typeof this.neighbors[i] === 'string') {
-                        if (this.neighbors[i] === id) {
-                            delete this.neighbors[i];
-                            break;
-                        }
-                    } else if (this.neighbors[i].nodeId === id) {
-                        delete this.neighbors[i];
-                        break;
-                    }
+            for (let i = 0; i < neighbors.length; i++) {
+                const
+                    neighbor = neighbors[i];
+                
+                if ((neighbor === id) || (neighbor.nodeId === id)) {
+                    delete this.neighbors[i];
                 }
             }
         }
     },
     
     methods: {
-        destroy: function () {
+        toJSON (entityProperties) {
+            const
+                neighborProperties = this.neighborProperties;
+
+            neighborProperties.forEach((neighbor) => {
+                const
+                    neighborNode = this.neighbors[neighbor];
+
+                if (neighborNode) {
+                    entityProperties[neighbor] = neighborNode.id;
+                }
+            });
+
+            entityProperties.nodeId = this.nodeId;
+
+            return {
+                type: 'Node',
+                neighborProperties
+            };
+        },
+
+        destroy () {
             arrayCache.recycle(this.contains);
             this.contains = this.owner.contains = null;
             arrayCache.recycle(this.edgesContain);
@@ -147,6 +164,18 @@ export default createComponentClass(/** @lends platypus.components.Node.prototyp
     },
     
     publicMethods: {
+        joinNode (node, direction, mutual = false) {
+            this.neighbors[direction] = node;
+            
+            for (let i = 0; i < this.contains.length; i++) {
+                this.contains[i].triggerEvent('set-directions');
+            }
+
+            if (mutual) {
+                node.joinNode(this.owner, (typeof mutual === 'boolean') ? direction : mutual);
+            }
+        },
+
         /**
          * Gets a neighboring node Entity.
          * 

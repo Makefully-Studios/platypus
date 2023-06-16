@@ -321,6 +321,10 @@ export default (function () {
                 this.cacheSprite(entity);
             },
 
+            "refresh-cache": function () {
+                this.updateCache = true;
+            },
+
             "peer-entity-added": function (entity) {
                 this.cacheSprite(entity);
             },
