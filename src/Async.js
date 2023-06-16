@@ -41,6 +41,8 @@ export default (function () {
                     arr[i](cb);
                 }
             }
+
+            platypus.debug.warn('Async: This class is deprecated in favor of `Promise.all`.');
         };
 
     /**

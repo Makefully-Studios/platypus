@@ -2,7 +2,6 @@
 import {Application, CaptionPlayer, TextRenderer} from 'springroll';
 import {Container, Renderer, Ticker} from 'pixi.js';
 import {arrayCache, greenSlice, greenSplice, union} from './utils/array.js';
-import Async from './Async.js';
 import Data from './Data.js';
 import Entity from './Entity.js';
 import Messenger from './Messenger.js';
@@ -513,24 +512,6 @@ export default (function () {
                     layers = Array.isArray(layerId) ? greenSlice(layerId) : arrayCache.setUp(layerId),
                     assets = arrayCache.setUp(),
                     properties = arrayCache.setUp(),
-                    loader = arrayCache.setUp((callback) => {
-                        const
-                            queue = this.loadingQueue,
-                            index = queue.indexOf(layerId);
-
-                        // Make sure previous layers have already gone live.
-                        if (index === 0) {
-                            queue.shift();
-                            callback();
-                            while (typeof queue[0] === 'function') {
-                                const prevCallback = queue[0];
-                                queue.shift();
-                                prevCallback();
-                            }
-                        } else { // Not the next in line, so we'll handle this later. (ie bracket above on another group of layers completion)
-                            queue[index] = callback;
-                        }
-                    }),
                     getDefinition = (layer) => {
                         const id = layer ? layer.type || layer : null;
 
@@ -567,83 +548,85 @@ export default (function () {
 
                         platypus.assetCache.load(assets, progressCallback, completeCallback);
                     },
-                    loadLayer = function (layers, assetLists, index, layerDefinition, properties, data, completeCallback) {
-                        const props = Data.setUp(properties);
+                    loadLayer = (layers, assetLists, index, layerDefinition, properties, data) => {
+                        return new Promise((resolve) => {
+                            const props = Data.setUp(properties);
         
-                        props.stage = this.stage;
-                        props.parent = this;
-
-                        if (layerDefinition) { // Load layer
-                            const
-                                holds = Data.setUp('count', 1, 'release', () => {
-                                    holds.count -= 1;
-                                    if (!holds.count) { // All holds have been released
-                                        holds.recycle();
-                                        
-                                        completeCallback();
-                                    }
-                                }),
-                                layer = new Entity(layerDefinition, {
-                                    properties: props
-                                }, (entity) => {
-                                    layers[index] = entity;
-                                    holds.release();
-                                });
-        
-                            layer.unloadLayer = () => {
+                            props.stage = this.stage;
+                            props.parent = this;
+    
+                            if (layerDefinition) { // Load layer
                                 const
-                                    release = () => {
-                                        holds -= 1;
-                                        if (holds === 0) {
-                                            // Delay load so it doesn't end a layer mid-tick.
-                                            window.setTimeout(() => {
-                                                /**
-                                                 * This event is triggered on the layers once the Scene is over.
-                                                 *
-                                                 * @event platypus.Entity#layer-unloaded
-                                                 */
-                                                layer.triggerEvent('layer-unloaded');
-    
-                                                platypus.debug.log('Layer unloaded: ' + layer.id);
-                                    
-                                                greenSplice(this.layers, this.layers.indexOf(layer));
-    
-                                                layer.destroy();
-                                                platypus.assetCache.unload(assetLists[index]);
-                                                arrayCache.recycle(assetLists[index]);
-                                            }, 1);
+                                    holds = Data.setUp('count', 1, 'release', () => {
+                                        holds.count -= 1;
+                                        if (!holds.count) { // All holds have been released
+                                            holds.recycle();
+                                            
+                                            resolve();
                                         }
-                                    };
-                                let holds = 1;
-    
+                                    }),
+                                    layer = new Entity(layerDefinition, {
+                                        properties: props
+                                    }, (entity) => {
+                                        layers[index] = entity;
+                                        holds.release();
+                                    });
+            
+                                layer.unloadLayer = () => {
+                                    const
+                                        release = () => {
+                                            holds -= 1;
+                                            if (holds === 0) {
+                                                // Delay load so it doesn't end a layer mid-tick.
+                                                window.setTimeout(() => {
+                                                    /**
+                                                     * This event is triggered on the layers once the Scene is over.
+                                                     *
+                                                     * @event platypus.Entity#layer-unloaded
+                                                     */
+                                                    layer.triggerEvent('layer-unloaded');
+        
+                                                    platypus.debug.log('Layer unloaded: ' + layer.id);
+                                        
+                                                    greenSplice(this.layers, this.layers.indexOf(layer));
+        
+                                                    layer.destroy();
+                                                    platypus.assetCache.unload(assetLists[index]);
+                                                    arrayCache.recycle(assetLists[index]);
+                                                }, 1);
+                                            }
+                                        };
+                                    let holds = 1;
+        
+                                    /**
+                                     * This event is triggered on the layer to allow children of the layer to place a hold on the closing until they're ready.
+                                     *
+                                     * @event platypus.Entity#unload-layer
+                                     * @param data {Object} A list of key-value pairs of data sent into this Scene from the previous Scene.
+                                     * @param hold {Function} Calling this function places a hold; `release` must be called to release this hold and unload the layer.
+                                     * @param release {Function} Calling this function releases a previous hold.
+                                     */
+                                    layer.triggerEvent('unload-layer', () => {
+                                        holds += 1;
+                                    }, release);
+        
+                                    platypus.debug.log('Layer unloading: ' + layer.id);
+                                    release();
+                                };
+                                
                                 /**
-                                 * This event is triggered on the layer to allow children of the layer to place a hold on the closing until they're ready.
+                                 * This event is triggered on the layers once all assets have been readied and the layer is created.
                                  *
-                                 * @event platypus.Entity#unload-layer
-                                 * @param data {Object} A list of key-value pairs of data sent into this Scene from the previous Scene.
-                                 * @param hold {Function} Calling this function places a hold; `release` must be called to release this hold and unload the layer.
-                                 * @param release {Function} Calling this function releases a previous hold.
+                                 * @event platypus.Entity#layer-loaded
+                                 * @param persistentData {Object} Data passed from the last scene into this one.
+                                 * @param persistentData.level {Object} A level name or definition to load if the level is not already specified.
+                                 * @param holds {platypus.Data} An object that handles any holds on before making the scene live.
+                                 * @param holds.count {Number} The number of holds to wait for before triggering "scene-live"
+                                 * @param holds.release {Function} The method to trigger to let the scene loader know that one hold has been released.
                                  */
-                                layer.triggerEvent('unload-layer', () => {
-                                    holds += 1;
-                                }, release);
-    
-                                platypus.debug.log('Layer unloading: ' + layer.id);
-                                release();
-                            };
-                            
-                            /**
-                             * This event is triggered on the layers once all assets have been readied and the layer is created.
-                             *
-                             * @event platypus.Entity#layer-loaded
-                             * @param persistentData {Object} Data passed from the last scene into this one.
-                             * @param persistentData.level {Object} A level name or definition to load if the level is not already specified.
-                             * @param holds {platypus.Data} An object that handles any holds on before making the scene live.
-                             * @param holds.count {Number} The number of holds to wait for before triggering "scene-live"
-                             * @param holds.release {Function} The method to trigger to let the scene loader know that one hold has been released.
-                             */
-                            layer.triggerEvent('layer-loaded', data, holds);
-                        }
+                                layer.triggerEvent('layer-loaded', data, holds);
+                            }
+                        });
                     },
                     progressHandler = progressIdOrFunction ? ((typeof progressIdOrFunction === 'string') ? function (progress, ratio) {
                         progress.progress = ratio;
@@ -659,33 +642,51 @@ export default (function () {
                         layerDefinition = getDefinition(layer),
                         layerProps = (layer && layer.type && layer.properties) || null;
 
-                    loader.push(loadLayer.bind(this, layers, assets, i, layerDefinition, layerProps, data));
                     layers[i] = layerDefinition;
                     properties[i] = layerProps;
                 }
 
-                loadAssets(layers, properties, data, assets, progressHandler, () => {
-                    Async.setUp(loader, () => {
-                        for (let i = 0; i < layers.length; i++) {
-                            const layer = layers[i];
+                loadAssets(layers, properties, data, assets, progressHandler, async () => {
+                    await Promise.all([new Promise ((resolve) => {
+                        const
+                            queue = this.loadingQueue,
+                            index = queue.indexOf(layerId);
 
-                            this.layers.push(layer);
-
-                            if (isScene) {
-                                this.sceneLayers.push(layer);
+                        // Make sure previous layers have already gone live.
+                        if (index === 0) {
+                            queue.shift();
+                            resolve();
+                            while (typeof queue[0] === 'function') {
+                                const
+                                    prevCallback = queue[0];
+                                    
+                                queue.shift();
+                                prevCallback();
                             }
-
-                            platypus.debug.log('Layer live: ' + layer.id);
-    
-                            /**
-                             * This event is triggered on each newly-live layer once it is finished loading and ready to display.
-                             *
-                             * @event platypus.Entity#layer-live
-                             * @param data {Object} A list of key-value pairs of data sent into this Scene from the previous Scene.
-                             */
-                            layer.triggerEvent('layer-live', data);
+                        } else { // Not the next in line, so we'll handle this later. (ie bracket above on another group of layers completion)
+                            queue[index] = resolve;
                         }
-                    });
+                    }), ...layers.map((layerDefinition, index, list) => loadLayer(list, assets, index, layerDefinition, properties[index], data))]);
+
+                    for (let i = 0; i < layers.length; i++) {
+                        const layer = layers[i];
+
+                        this.layers.push(layer);
+
+                        if (isScene) {
+                            this.sceneLayers.push(layer);
+                        }
+
+                        platypus.debug.log('Layer live: ' + layer.id);
+
+                        /**
+                         * This event is triggered on each newly-live layer once it is finished loading and ready to display.
+                         *
+                         * @event platypus.Entity#layer-live
+                         * @param data {Object} A list of key-value pairs of data sent into this Scene from the previous Scene.
+                         */
+                        layer.triggerEvent('layer-live', data);
+                    }
                 });
             });
         }

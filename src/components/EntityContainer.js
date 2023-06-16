@@ -1,6 +1,5 @@
 /* global platypus */
 import {arrayCache, greenSlice, greenSplice, union} from '../utils/array.js';
-import Async from '../Async.js';
 import Data from '../Data.js';
 import Entity from '../Entity.js';
 import Messenger from '../Messenger.js';
@@ -38,51 +37,33 @@ const
          * @listens platypus.Entity#handle-logic
          * @listens platypus.Entity#remove-entity
          */
-        initialize: (function () {
-            var
-                entityInit = function (entityDefinition, callback) {
-                    this.addEntity(entityDefinition, callback);
-                };
+        initialize: function (definition, callback) {
+            const
+                //combine component list and entity list into one if they both exist.
+                owner = this.owner,
+                entities = (definition.entities && owner.entities) ? definition.entities.concat(owner.entities) : (definition.entities ?? owner.entities ?? null),
+                events = this.childEvents;
+    
+            Messenger.initialize(this);
 
-            return function (definition, callback) {
-                var i = 0,
-                    entities = null,
-                    events = this.childEvents,
-                    entityInits = null;
-        
-                Messenger.initialize(this);
+            this.newAdds = arrayCache.setUp();
 
-                this.newAdds = arrayCache.setUp();
+            owner.entities = this.entities = arrayCache.setUp();
+            
+            this.childEvents = arrayCache.setUp();
+            for (let i = 0; i < events.length; i++) {
+                this.addNewPublicEvent(events[i]);
+            }
+            this.addNewPrivateEvent('peer-entity-added');
+            this.addNewPrivateEvent('peer-entity-removed');
 
-                //saving list of entities for load message
-                if (definition.entities && this.owner.entities) { //combine component list and entity list into one if they both exist.
-                    entities = definition.entities.concat(this.owner.entities);
-                } else {
-                    entities = definition.entities || this.owner.entities || null;
-                }
-
-                this.owner.entities = this.entities = arrayCache.setUp();
-                
-                this.childEvents = arrayCache.setUp();
-                for (i = 0; i < events.length; i++) {
-                    this.addNewPublicEvent(events[i]);
-                }
-                this.addNewPrivateEvent('peer-entity-added');
-                this.addNewPrivateEvent('peer-entity-removed');
-
-                if (entities) {
-                    entityInits = arrayCache.setUp();
-                    for (i = 0; i < entities.length; i++) {
-                        entityInits.push(entityInit.bind(this, entities[i]));
-                    }
-                    Async.setUp(entityInits, callback);
-                    arrayCache.recycle(entityInits);
-                    return true; // notifies owner that this component is asynchronous.
-                } else {
-                    return false;
-                }
-            };
-        } ()),
+            if (entities) {
+                Promise.all(entities.map((entity) => new Promise((resolve) => this.addEntity(entity, resolve)))).then(callback);
+                return true; // notifies owner that this component is asynchronous.
+            } else {
+                return false;
+            }
+        },
         
         events: {
             /**

@@ -22,7 +22,7 @@ export {default as recycle} from 'recycle';
 export {default as AABB} from './AABB.js';
 export {default as ActionState} from './ActionState.js';
 export {Application as Application} from 'springroll';
-export {default as Async} from './Async.js';
+export {default as Async} from './Async.js'; // deprecated in platypus 3
 export {default as CollisionData} from './CollisionData.js';
 export {default as CollisionDataContainer} from './CollisionDataContainer.js';
 export {default as CollisionShape} from './CollisionShape.js';
