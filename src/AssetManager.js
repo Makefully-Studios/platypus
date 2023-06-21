@@ -134,7 +134,7 @@ export default class AssetManager {
             adds = Data.setUp();
 
         if (platypus.game?.options?.images ?? platypus.game?.options?.audio) {
-            platypus.debug.warn('AssetManager: Default asset folders can no longer specified via game options. Include pathing in asset imports.');
+            platypus.debug.warn('AssetManager: Default asset folders are no longer specified via game options. Include pathing in asset imports.');
         }
 
         // work-around for Pixi v7 Spine PMA issue https://github.com/pixijs/pixijs/issues/9141
