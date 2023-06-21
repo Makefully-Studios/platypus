@@ -52,46 +52,51 @@ export default createComponentClass(/** @lends platypus.components.AudioMusic.pr
     },
         
     initialize: function () {
-        const fadeOuts = arrayCache.setUp();
+        const
+            fadeOuts = arrayCache.setUp(),
+            keys = Object.keys(tracks),
+            {length} = keys,
+            tracks = this.tracks;
         let fade = 1000;
 
         this.player = platypus.game.musicPlayer;
         
-        for (const key in tracks) {
-            if (tracks.hasOwnProperty(key)) {
-                fadeOuts.push(key);
-            }
+        for (let i = 0; i < length; i++) {
+            fadeOuts.push(keys[i]);
         }
     
-        if (this.tracks) {
-            for (const key in this.tracks) {
-                if (this.tracks.hasOwnProperty(key)) {
-                    const fadeOut = fadeOuts.indexOf(key),
-                        trackProperties = this.tracks[key];
-                    
-                    let sound = tracks[key],
-                        tween = null;
+        if (tracks) {
+            const
+                keys = Object.keys(tracks),
+                {length} = keys;
 
-                    if (fadeOut >= 0) {
-                        greenSplice(fadeOuts, fadeOut);
-                    } else { // gotta load it because it's not there!
-                        sound = tracks[key] = this.player.play(platypus.assetCache.getFileId(trackProperties.sound || trackProperties), {
-                            loop: Infinity,
-                            volume: trackProperties.fade ? 0 : (typeof trackProperties.volume === 'number' ? trackProperties.volume : 1),
-                            initialVolume: typeof trackProperties.volume === 'number' ? trackProperties.volume : 1
-                        });
-                    }
+            for (let j = 0; j < length; j++) {
+                const
+                    key = keys[j],
+                    fadeOut = fadeOuts.indexOf(key),
+                    trackProperties = tracks[key];
+                let sound = tracks[key],
+                    tween = null;
 
-                    if (trackProperties.fade) {
-                        tween = new Tween(sound);
-                        tween.to({
-                            volume: (typeof trackProperties.volume === 'number' ? trackProperties.volume : 1) * this.player.volume
-                        }, trackProperties.fade);
-                        tween.start();
+                if (fadeOut >= 0) {
+                    greenSplice(fadeOuts, fadeOut);
+                } else { // gotta load it because it's not there!
+                    sound = tracks[key] = this.player.play(platypus.assetCache.getFileId(trackProperties.sound || trackProperties), {
+                        loop: Infinity,
+                        volume: trackProperties.fade ? 0 : (typeof trackProperties.volume === 'number' ? trackProperties.volume : 1),
+                        initialVolume: typeof trackProperties.volume === 'number' ? trackProperties.volume : 1
+                    });
+                }
 
-                        // default to what is being used for defined sounds to handle undefined sounds.
-                        fade = trackProperties.fade;
-                    }
+                if (trackProperties.fade) {
+                    tween = new Tween(sound);
+                    tween.to({
+                        volume: (typeof trackProperties.volume === 'number' ? trackProperties.volume : 1) * this.player.volume
+                    }, trackProperties.fade);
+                    tween.start();
+
+                    // default to what is being used for defined sounds to handle undefined sounds.
+                    fade = trackProperties.fade;
                 }
             }
         }
@@ -113,17 +118,22 @@ export default createComponentClass(/** @lends platypus.components.AudioMusic.pr
     },
 
     getAssetList: function (component, props, defaultProps) {
-        var key = '',
+        const
             preload = arrayCache.setUp(),
-            tracks = component.tracks || props.tracks || defaultProps.tracks;
+            tracks = component?.tracks ?? props?.tracks ?? defaultProps?.tracks;
         
         if (tracks) {
-            for (key in tracks) {
-                if (tracks.hasOwnProperty(key)) {
-                    const item = formatPath(tracks[key].sound || tracks[key]);
-                    if (preload.indexOf(item) === -1) {
-                        preload.push(item);
-                    }
+            const
+                keys = Object.keys(tracks),
+                {length} = keys;
+
+            for (let i = 0; i < length; i++) {
+                const
+                    track = tracks[keys[i]],
+                    item = formatPath(track.sound ?? track);
+
+                if (preload.indexOf(item) === -1) {
+                    preload.push(item);
                 }
             }
         }

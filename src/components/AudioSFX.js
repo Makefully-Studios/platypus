@@ -25,21 +25,6 @@ const
         playthrough: false
     },
     playSound = function (soundDefinition) {
-        const
-            completed = function (data/*, cancelled*/) {
-                if (data.audio && !this.owner.destroyed && this.activeAudioClips) {
-                    //clean up active clips
-                    this.removeClip(data.audio);
-                    
-                    /**
-                     * When a sound effect is finished playing, this event is triggered.
-                     *
-                     * @event platypus.Entity#clip-complete
-                     */
-                    this.owner.triggerEvent('clip-complete');
-                }
-                data.recycle();
-            };
         let sound = '',
             attributes = null;
         
@@ -49,39 +34,24 @@ const
         } else {
             sound      = soundDefinition.sound;
             attributes = {
-                interrupt: soundDefinition.interrupt,
-                delay: soundDefinition.delay,
-                start: soundDefinition.start,
-                loop: soundDefinition.loop,
-                volume: soundDefinition.volume,
-                pan: soundDefinition.pan,
-                duration: soundDefinition.duration,
-                muted: soundDefinition.muted,
-                speed: soundDefinition.speed,
-                playthrough: soundDefinition.playthrough
+                ...soundDefinition
             };
+            delete attributes.sound;
         }
 
         sound = platypus.assetCache.getFileId(sound);
 
         return function (value) {
             const
-                soundInstance = Sound.exists(sound) ? Sound.find(sound) : Sound.add(sound);
-            let data = null;
+                soundInstance = Sound.exists(sound) ? Sound.find(sound) : Sound.add(sound),
+                data = Data.setUp({
+                    ...defaultSettings,
+                    ...attributes,
+                    ...value
+                });
 
-            value = value || attributes;
-            
-            data = Data.setUp(
-                "interrupt", value.interrupt || attributes.interrupt || defaultSettings.interrupt,
-                "delay",     value.delay     || attributes.delay  || defaultSettings.delay,
-                "loop",      value.loop      || attributes.loop   || defaultSettings.loop,
-                "start",    value.start    || attributes.start || defaultSettings.start,
-                "volume", ((typeof value.volume !== 'undefined') ? value.volume : ((typeof attributes.volume !== 'undefined') ? attributes.volume : defaultSettings.volume)) * this.volume,
-                "pan",       value.pan       || attributes.pan    || defaultSettings.pan,
-                "muted",      value.muted      || attributes.muted   || defaultSettings.muted,
-                "speed",    (typeof value.speed !== 'undefined') ? value.speed : ((typeof attributes.speed !== 'undefined') ? attributes.speed : defaultSettings.speed),
-                "playthrough", value.playthrough || attributes.playthrough || defaultSettings.playthrough
-            );
+            data.volume *= this.volume;
+
             if (data.pan) {
                 if (soundInstance.panFilter) {
                     soundInstance.panFilter.pan = data.pan;
@@ -113,7 +83,20 @@ const
             } else {
                 data.audio.playthrough = false;
             }
-            data.audio.on('end', completed.bind(this, data));
+            data.audio.on('end', () => {
+                if (data.audio && !this.owner.destroyed && this.activeAudioClips) {
+                    //clean up active clips
+                    this.removeClip(data.audio);
+                    
+                    /**
+                     * When a sound effect is finished playing, this event is triggered.
+                     *
+                     * @event platypus.Entity#clip-complete
+                     */
+                    this.owner.triggerEvent('clip-complete');
+                }
+                data.recycle();
+            });
             
             data.audio.soundId = sound;
             this.activeAudioClips.push(data.audio);
@@ -131,18 +114,6 @@ const
                 Sound.on('fileload', wait);
             }
         };
-    },
-    stateAudioPlay = function (checkData, audioId, play, state) {
-        var active = state.includes(checkData.states);
-
-        if (active !== checkData.playing) {
-            if (active) {
-                play();
-            } else {
-                this.stopAudio(audioId, this.forcePlaythrough);
-            }
-            checkData.playing = active;
-        }
     };
 
 export default createComponentClass(/** @lends platypus.components.AudioSFX.prototype */{
@@ -268,9 +239,8 @@ export default createComponentClass(/** @lends platypus.components.AudioSFX.prot
      * @fires platypus.Entity#set-volume
      */
     initialize: function () {
-        var key      = '',
-            playClip = null,
-            sound    = null;
+        const
+            audioMap = this.audioMap;
         
         this.activeAudioClips = arrayCache.setUp();
 
@@ -281,24 +251,26 @@ export default createComponentClass(/** @lends platypus.components.AudioSFX.prot
 
         this.volume = 1;
 
-        if (this.audioMap) {
+        if (audioMap) {
+            const
+                keys = Object.keys(audioMap),
+                {length} = keys;
+
             if (this.stateBased) {
                 this.checkStates = arrayCache.setUp();
             }
-            for (key in this.audioMap) {
-                if (this.audioMap.hasOwnProperty(key)) {
-                    sound = this.audioMap[key];
+
+            for (let i = 0; i < length; i++) {
+                const
+                    key = keys[i],
+                    sound = audioMap[key],
                     playClip = playSound(sound);
-                    if (sound.sound) {
-                        sound = sound.sound;
-                    }
-                    
-                    if (this.eventBased) {
-                        this.addEventListener(key, playClip);
-                    }
-                    if (this.stateBased) {
-                        this.addStateCheck(key, sound, playClip);
-                    }
+
+                if (this.eventBased) {
+                    this.addEventListener(key, playClip);
+                }
+                if (this.stateBased) {
+                    this.addStateCheck(key, sound.sound ?? sound, playClip);
                 }
             }
         }
@@ -359,8 +331,7 @@ export default createComponentClass(/** @lends platypus.components.AudioSFX.prot
 
     events: {
         "handle-render": function () {
-            var i = 0,
-                cs = null,
+            const
                 state = this.state;
             
             if (this.paused) {
@@ -368,8 +339,10 @@ export default createComponentClass(/** @lends platypus.components.AudioSFX.prot
             }
             
             if (this.stateBased && this.stateChange) {
-                cs = this.checkStates;
-                i = cs.length;
+                const
+                    cs = this.checkStates;
+                let i = cs.length;
+
                 while (i--) {
                     cs[i].check(state);
                 }
@@ -476,34 +449,34 @@ export default createComponentClass(/** @lends platypus.components.AudioSFX.prot
          * @param pan {Number} A number from -1 to 1 that sets the pan.
          * @param [soundId] {String} If an soundId is provided, that particular sound instance's pan is set.
          */
-        "set-pan": function (pan, soundId) {
-            var id = soundId || '',
-                handler = function (pan, clip) {
+        "set-pan": function (pan, soundId = '') {
+            const
+                handler = (clip) => {
                     if (clip) {
                         clip.pan = pan;
                     }
                 };
 
             if (soundId) {
-                this.handleClip(id, handler.bind(null, pan));
+                this.handleClip(soundId, handler);
             } else {
-                this.getAllClips(handler.bind(null, pan));
+                this.getAllClips(handler);
             }
         },
             
-        "set-volume": function (volume, soundId) {
-            var id = soundId || '',
-                handler = (vol, clip) => {
+        "set-volume": function (volume, soundId = '') {
+            const
+                handler = (clip) => {
                     if (clip) {
-                        clip.volume = vol * this.player.volume;
+                        clip.volume = volume * this.player.volume;
                     }
                 };
             
             if (soundId) {
-                this.handleClip(id, handler.bind(null, volume));
+                this.handleClip(soundId, handler);
             } else {
                 this.volume = volume;
-                this.getAllClips(handler.bind(null, volume));
+                this.getAllClips(handler);
             }
         },
 
@@ -514,18 +487,18 @@ export default createComponentClass(/** @lends platypus.components.AudioSFX.prot
          * @param speed {Number} A number that sets the speed.
          * @param [soundId] {String} If an soundId is provided, that particular sound instance's speed is set. Otherwise all audio speed is changed.
          */
-        "set-speed": function (speed, soundId) {
-            var id = soundId || '',
-                handler = function (spd, clip) {
+        "set-speed": function (speed, soundId = '') {
+            const
+                handler = function (clip) {
                     if (clip) {
-                        clip.speed = spd;
+                        clip.speed = speed;
                     }
                 };
 
             if (soundId) {
-                this.handleClip(id, handler.bind(null, speed));
+                this.handleClip(soundId, handler);
             } else {
-                this.getAllClips(handler.bind(null, speed));
+                this.getAllClips(handler);
             }
         }
     },
@@ -539,47 +512,42 @@ export default createComponentClass(/** @lends platypus.components.AudioSFX.prot
             }
         },
         
-        getClipById: function (id, onGet) {
-            var i     = 0,
+        getClipById: function (id, onGet = () => {}) {
+            const
                 clips = this.activeAudioClips;
             
-            for (i = 0; i < clips.length; i++) {
+            for (let i = 0; i < clips.length; i++) {
                 if (clips[i].soundId === id) {
-                    if (onGet) {
-                        onGet(clips[i]);
-                    }
+                    onGet(clips[i]);
                     return clips[i];
                 }
             }
             
-            if (onGet) {
-                onGet(null);
-            }
+            onGet(null);
 
             return null;
         },
         
-        getAllClips: function (onGet) {
-            var i     = 0,
+        getAllClips: function (onGet = () => {}) {
+            const
                 clips = this.activeAudioClips;
-            
-            if (onGet) {
-                for (i = 0; i < clips.length; i++) {
-                    onGet(clips[i]);
-                }
+        
+            for (let i = 0; i < clips.length; i++) {
+                onGet(clips[i]);
             }
 
             return clips;
         },
         
         stopAudio: function (audioId, playthrough) {
-            var clips = this.activeAudioClips,
-                i = clips.length;
+            const
+                clips = this.activeAudioClips;
+            let i = clips.length;
             
             if (audioId) {
                 while (i--) {
                     if (clips[i].soundId === audioId) {
-                        if (clips[i].playthrough || playthrough) {
+                        if (clips[i].playthrough ?? playthrough) {
                         } else {
                             this.player.stop(clips[i]);
                             greenSplice(clips, i);
@@ -588,7 +556,7 @@ export default createComponentClass(/** @lends platypus.components.AudioSFX.prot
                 }
             } else {
                 while (i--) {
-                    if (playthrough || clips[i].playthrough) {
+                    if (clips[i].playthrough ?? playthrough) {
                     } else {
                         this.player.stop(clips[i]);
                     }
@@ -598,28 +566,41 @@ export default createComponentClass(/** @lends platypus.components.AudioSFX.prot
         },
         
         removeClip: function (audioClip) {
-            var i = this.activeAudioClips.indexOf(audioClip);
+            const
+                i = this.activeAudioClips.indexOf(audioClip);
 
             if (i >= 0) {
                 greenSplice(this.activeAudioClips, i);
             }
         },
         
-        addStateCheck: function (key, value, play) {
-            var states = StateMap.setUp(key),
+        addStateCheck: function (key, audioId, play) {
+            const
+                states = StateMap.setUp(key),
                 checkData = Data.setUp(
                     "states", states,
                     "playing", false
                 );
             
-            checkData.check = stateAudioPlay.bind(this, checkData, value, play.bind(this));
+            checkData.check = (state) => {
+                const
+                    active = state.includes(checkData.states);
+        
+                if (active !== checkData.playing) {
+                    if (active) {
+                        play.call(this);
+                    } else {
+                        this.stopAudio(audioId, this.forcePlaythrough);
+                    }
+                    checkData.playing = active;
+                }
+            };
             this.checkStates.push(checkData);
         },
         
         destroy: function () {
-            var c = this.checkStates,
-                ci = null,
-                i = 0;
+            const
+                c = this.checkStates;
             
             this.stopAudio();
             arrayCache.recycle(this.activeAudioClips);
@@ -628,9 +609,12 @@ export default createComponentClass(/** @lends platypus.components.AudioSFX.prot
             this.state = null;
 
             if (c) {
-                i = c.length;
+                let i = c.length;
+
                 while (i--) {
-                    ci = c[i];
+                    const
+                        ci = c[i];
+
                     ci.states.recycle();
                     ci.recycle();
                 }
@@ -641,13 +625,20 @@ export default createComponentClass(/** @lends platypus.components.AudioSFX.prot
     },
     
     getAssetList: function (component, props, defaultProps) {
-        var key = '',
+        const
             preload = arrayCache.setUp(),
-            audioMap = component.audioMap || props.audioMap || defaultProps.audioMap;
+            audioMap = component?.audioMap ?? props?.audioMap ?? defaultProps?.audioMap;
         
-        for (key in audioMap) {
-            if (audioMap.hasOwnProperty(key)) {
-                const item = formatPath(audioMap[key].sound || audioMap[key]);
+        if (audioMap) {
+            const
+                keys = Object.keys(audioMap),
+                {length} = keys;
+
+            for (let i = 0; i < length; i++) {
+                const
+                    audio = audioMap[keys[i]],
+                    item = formatPath(audio.sound ?? audio);
+
                 if (preload.indexOf(item) === -1) {
                     preload.push(item);
                 }
