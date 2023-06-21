@@ -92,26 +92,28 @@ const
             },
 
             "handle-logic": function () {
-                var adding = null,
+                const
                     adds = this.newAdds,
-                    l = adds.length,
-                    i = 0,
-                    removals = null;
+                    l = adds.length;
 
                 if (l) {
-                    removals = arrayCache.setUp();
+                    const
+                        removals = arrayCache.setUp();
+                    let j = 0;
 
                     //must go in order so entities are added in the expected order.
-                    for (i = 0; i < l; i++) {
-                        adding = adds[i];
+                    for (let i = 0; i < l; i++) {
+                        const
+                            adding = adds[i];
+
                         if (adding.destroyed || !adding.loadingComponents || adding.loadingComponents.attemptResolution()) {
                             removals.push(i);
                         }
                     }
 
-                    i = removals.length;
-                    while (i--) {
-                        greenSplice(adds, removals[i]);
+                    j = removals.length;
+                    while (j--) {
+                        greenSplice(adds, removals[j]);
                     }
 
                     arrayCache.recycle(removals);
@@ -121,11 +123,9 @@ const
         
         methods: {
             addNewPublicEvent: function (event) {
-                var i = 0;
-                
                 this.addNewPrivateEvent(event);
                 
-                for (i = 0; i < this.childEvents.length; i++) {
+                for (let i = 0; i < this.childEvents.length; i++) {
                     if (this.childEvents[i] === event) {
                         return false;
                     }
@@ -138,9 +138,6 @@ const
             },
             
             addNewPrivateEvent: function (event) {
-                var x = 0,
-                    y = 0;
-                
                 if (this._listeners[event]) {
                     return false; // event is already added.
                 }
@@ -148,9 +145,9 @@ const
                 this._listeners[event] = arrayCache.setUp(); //to signify it's been added even if not used
                 
                 //Listen for message on children
-                for (x = 0; x < this.entities.length; x++) {
+                for (let x = 0; x < this.entities.length; x++) {
                     if (this.entities[x]._listeners[event]) {
-                        for (y = 0; y < this.entities[x]._listeners[event].length; y++) {
+                        for (let y = 0; y < this.entities[x]._listeners[event].length; y++) {
                             this.addChildEventListener(this.entities[x], event, this.entities[x]._listeners[event][y]);
                         }
                     }
@@ -165,28 +162,30 @@ const
             },
             
             addChildEventListeners: function (entity) {
-                var y     = 0,
-                    event = '';
-                
-                for (event in this._listeners) {
-                    if (this._listeners.hasOwnProperty(event) && entity._listeners[event]) {
-                        for (y = 0; y < entity._listeners[event].length; y++) {
-                            this.addChildEventListener(entity, event, entity._listeners[event][y]);
+                const
+                    {_listeners} = entity,
+                    keys = Object.keys(_listeners),
+                    {length} = keys;
+        
+                for (let i = 0; i < length; i++) {
+                    const
+                        key = keys[i],
+                        listener = _listeners[key];
+
+                    if (listener) {
+                        for (let i = 0; i < listener.length; i++) {
+                            this.addChildEventListener(entity, key, listener[i]);
                         }
                     }
                 }
             },
             
             removeChildEventListeners: function (entity) {
-                var i        = 0,
-                    events   = null,
-                    messages = null;
-                
                 if (entity.containerListener) {
-                    events   = entity.containerListener.events;
-                    messages = entity.containerListener.messages;
+                    const
+                        {events, messages} = entity.containerListener;
 
-                    for (i = 0; i < events.length; i++) {
+                    for (let i = 0; i < events.length; i++) {
                         this.removeChildEventListener(entity, events[i], messages[i]);
                     }
                     arrayCache.recycle(events);
@@ -209,11 +208,10 @@ const
             },
             
             removeChildEventListener: function (entity, event, callback) {
-                var i        = 0,
-                    events   = entity.containerListener.events,
-                    messages = entity.containerListener.messages;
+                const
+                    {events, messages} = entity.containerListener;
                 
-                for (i = 0; i < events.length; i++) {
+                for (let i = 0; i < events.length; i++) {
                     if ((events[i] === event) && (!callback || (messages[i] === callback))) {
                         this.off(event, messages[i]);
                     }
@@ -221,12 +219,14 @@ const
             },
 
             destroy: function () {
-                var entities = greenSlice(this.entities), // Make a copy to handle entities being destroyed while processing list.
-                    i = entities.length,
-                    entity = null;
+                const
+                    entities = greenSlice(this.entities); // Make a copy to handle entities being destroyed while processing list.
+                let i = entities.length;
                 
                 while (i--) {
-                    entity = entities[i];
+                    const
+                        entity = entities[i];
+
                     this.removeChildEventListeners(entity);
                     entity.destroy();
                 }
@@ -250,15 +250,14 @@ const
              * @return {Entity}
              */
             getEntityById: function (id) {
-                var i         = 0,
-                    selection = null;
-                
-                for (i = 0; i < this.entities.length; i++) {
+                for (let i = 0; i < this.entities.length; i++) {
                     if (this.entities[i].id === id) {
                         return this.entities[i];
                     }
                     if (this.entities[i].getEntityById) {
-                        selection = this.entities[i].getEntityById(id);
+                        const
+                            selection = this.entities[i].getEntityById(id);
+
                         if (selection) {
                             return selection;
                         }
@@ -275,16 +274,17 @@ const
              * @return {Array}
              */
             getEntitiesByType: function (type) {
-                var i         = 0,
-                    selection = null,
+                const
                     entities  = arrayCache.setUp();
                 
-                for (i = 0; i < this.entities.length; i++) {
+                for (let i = 0; i < this.entities.length; i++) {
                     if (this.entities[i].type === type) {
                         entities.push(this.entities[i]);
                     }
                     if (this.entities[i].getEntitiesByType) {
-                        selection = this.entities[i].getEntitiesByType(type);
+                        const
+                            selection = this.entities[i].getEntitiesByType(type);
+
                         union(entities, selection);
                         arrayCache.recycle(selection);
                     }
@@ -305,12 +305,13 @@ const
              * @fires platypus.Entity#entity-created
              * @fires platypus.Entity#peer-entity-added
              */
-            addEntity: (function () {
-                var
-                    whenReady = function (callback, entity) {
-                        var owner = this.owner,
-                            entities = this.entities,
-                            i = entities.length;
+            addEntity (newEntity, callback) {
+                const
+                    {owner} = this,
+                    whenReady = (entity) => {
+                        const
+                            {owner, entities} = this;
+                        let i = entities.length;
 
                         entity.triggerEvent('adopted', entity);
                         
@@ -342,38 +343,34 @@ const
                             callback(entity);
                         }
                     };
-
-                return function (newEntity, callback) {
-                    var entity = null,
-                        owner = this.owner;
-                    
-                    if (newEntity instanceof Entity) {
-                        entity = newEntity;
-                        entity.parent = owner;
-                        whenReady.call(this, callback, entity);
+                let entity = null;
+                
+                if (newEntity instanceof Entity) {
+                    entity = newEntity;
+                    entity.parent = owner;
+                    whenReady.call(this, callback, entity);
+                } else {
+                    if (typeof newEntity === 'string') {
+                        entity = new Entity(platypus.game.settings.entities[newEntity], null, whenReady, owner);
+                    } else if (newEntity.id) {
+                        entity = new Entity(newEntity, null, whenReady, owner);
                     } else {
-                        if (typeof newEntity === 'string') {
-                            entity = new Entity(platypus.game.settings.entities[newEntity], null, whenReady.bind(this, callback), owner);
-                        } else if (newEntity.id) {
-                            entity = new Entity(newEntity, null, whenReady.bind(this, callback), owner);
-                        } else {
-                            entity = new Entity(platypus.game.settings.entities[newEntity.type], newEntity, whenReady.bind(this, callback), owner);
-                        }
-
-                        /**
-                         * Called when this entity spawns a new entity, this event links the newly created entity to this entity.
-                         *
-                         * @event platypus.Entity#entity-created
-                         * @param entity {platypus.Entity} The entity to link.
-                         */
-                        this.owner.triggerEvent('entity-created', entity);
+                        entity = new Entity(platypus.game.settings.entities[newEntity.type], newEntity, whenReady, owner);
                     }
 
-                    this.newAdds.push(entity);
+                    /**
+                     * Called when this entity spawns a new entity, this event links the newly created entity to this entity.
+                     *
+                     * @event platypus.Entity#entity-created
+                     * @param entity {platypus.Entity} The entity to link.
+                     */
+                    this.owner.triggerEvent('entity-created', entity);
+                }
 
-                    return entity;
-                };
-            }()),
+                this.newAdds.push(entity);
+
+                return entity;
+            },
             
             /**
              * Removes the provided entity from the layer and destroys it. Returns `false` if the entity is not found in the layer.
@@ -385,7 +382,8 @@ const
              * @fires platypus.Entity#peer-entity-removed
              */
             removeEntity: function (entity) {
-                var i = this.entities.indexOf(entity);
+                const
+                    i = this.entities.indexOf(entity);
 
                 if (i >= 0) {
                     this.removeChildEventListeners(entity);
@@ -453,10 +451,9 @@ const
         },
         
         getAssetList: function (def, props, defaultProps, data) {
-            var i = 0,
+            const
                 assets = arrayCache.setUp(),
-                entities = arrayCache.setUp(),
-                arr = null;
+                entities = arrayCache.setUp();
             
             if (def.entities) {
                 union(entities, def.entities);
@@ -468,8 +465,10 @@ const
                 union(entities, defaultProps.entities);
             }
 
-            for (i = 0; i < entities.length; i++) {
-                arr = Entity.getAssetList(entities[i], null, data);
+            for (let i = 0; i < entities.length; i++) {
+                const
+                    arr = Entity.getAssetList(entities[i], null, data);
+
                 union(assets, arr);
                 arrayCache.recycle(arr);
             }

@@ -177,15 +177,20 @@ export default createComponentClass(/** @lends platypus.components.HandlerContro
         if (!gameWideReady) { // Need info at the game level to handle missed control input across layers
             gameWideReady = true;
             platypus.game.on('tick', function () {
-                for (const key in detectInvalids) {
-                    if (detectInvalids.hasOwnProperty(key)) {
-                        if (detectInvalids[key] === 0) {
-                            this.triggerOnChildren('invalid-input', key);
-                        } else {
-                            this.triggerOnChildren('valid-input', key);
-                        }
-                        delete detectInvalids[key];
+                const
+                    keys = Object.keys(detectInvalids),
+                    {length} = keys;
+
+                for (let i = 0; i < length; i++) {
+                    const
+                        key = keys[i];
+
+                    if (detectInvalids[key] === 0) {
+                        this.triggerOnChildren('invalid-input', key);
+                    } else {
+                        this.triggerOnChildren('valid-input', key);
                     }
+                    delete detectInvalids[key];
                 }
             }.bind(platypus.game));
         }
