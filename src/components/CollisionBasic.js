@@ -537,7 +537,7 @@ export default createComponentClass(/** @lends platypus.components.CollisionBasi
                     key = keys[i];
 
                 if (softCollisions[key]) { // To make sure it's not an empty string.
-                    this.addEventListener(`hit-by-${key}`, entityBroadcast(this, softCollisions[key], 'solid'));
+                    this.addEventListener(`hit-by-${key}`, entityBroadcast(this, softCollisions[key], 'soft'));
                 }
             }
             owner.softCollisionMap.set(this.collisionType, keys);
@@ -553,7 +553,7 @@ export default createComponentClass(/** @lends platypus.components.CollisionBasi
                     key = keys[i];
 
                 if (solidCollisions[key]) { // To make sure it's not an empty string.
-                    this.addEventListener(`hit-by-${key}`, entityBroadcast(this, solidCollisions[key], 'soft'));
+                    this.addEventListener(`hit-by-${key}`, entityBroadcast(this, solidCollisions[key], 'solid'));
                 }
             }
             owner.solidCollisionMap.set(this.collisionType, keys);
