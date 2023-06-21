@@ -160,7 +160,7 @@ export default createComponentClass(/** @lends platypus.components.HandlerCollis
                     type = types[i],
                     arr = list.get(type);
 
-                if (arr && arr.length) {
+                if (arr?.length) {
                     const tList = data[type];
                     if (!tList) {
                         data[type] = union(arrayCache.setUp(), arr);
@@ -222,11 +222,8 @@ export default createComponentClass(/** @lends platypus.components.HandlerCollis
                         while (i--) {
                             const
                                 type = collisionTypes[i],
-                                arr = list.get(type);
+                                arr = list.get(type) ?? list.set(type, arrayCache.setUp());
 
-                            if (!arr) {
-                                arr = list.set(type, arrayCache.setUp());
-                            }
                             arr.push(entity);
                         }
                         entityAgainstGrid.push(list);
