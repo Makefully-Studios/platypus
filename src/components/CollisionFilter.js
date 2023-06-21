@@ -51,24 +51,23 @@ export default createComponentClass(/** @lends platypus.components.CollisionFilt
      * @constructs
      */
     initialize: function () {
-        var event      = "",
-            collisions = this.collisions,
-            state      = this.state;
+        const
+            collisions = this.collisions;
         
         if (collisions) {
-            if (state[0] === '!') {
-                state = state.substring(1);
-                for (event in collisions) {
-                    if (collisions.hasOwnProperty(event)) {
-                        this.addEventListener(event, collideNeg.bind(this.owner, state, collisions[event]));
-                    }
-                }
-            } else {
-                for (event in collisions) {
-                    if (collisions.hasOwnProperty(event)) {
-                        this.addEventListener(event, collidePos.bind(this.owner, state, collisions[event]));
-                    }
-                }
+            const
+                {state, owner} = this,
+                negative = state[0] === '!',
+                resolveState = negative ? state.substring[1] : state,
+                resolveCollision = negative ? collideNeg : collidePos,
+                keys = Object.keys(collisions),
+                {length} = keys;
+
+            for (let i = 0; i < length; i++) {
+                const
+                    key = keys[i];
+
+                this.addEventListener(key, resolveCollision.bind(owner, resolveState, collisions[key]));
             }
         }
     }

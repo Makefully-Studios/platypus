@@ -8,7 +8,8 @@ import createComponentClass from '../factory.js';
 
 const
     entityBroadcast = (function () {
-        var stringBroadcast = function (event, collisionType, solidOrSoft, value) {
+        const
+            stringBroadcast = function (event, collisionType, solidOrSoft, value) {
                 if (value.myType === collisionType) {
                     if (value.hitType === solidOrSoft) {
                         this.owner.triggerEvent(event, value);
@@ -16,18 +17,16 @@ const
                 }
             },
             arrayBroadcast = function (event, collisionType, solidOrSoft, value) {
-                var i = 0;
-                
                 if (value.myType === collisionType) {
                     if (value.hitType === solidOrSoft) {
-                        for (i = 0; i < event.length; i++) {
+                        for (let i = 0; i < event.length; i++) {
                             this.owner.triggerEvent(event[i], value);
                         }
                     }
                 }
             },
             directionalBroadcast = function (event, collisionType, solidOrSoft, collisionInfo) {
-                var dx = collisionInfo.x,
+                let dx = collisionInfo.x,
                     dy = collisionInfo.y;
 
                 if (collisionInfo.entity && !(dx || dy)) {
@@ -65,19 +64,22 @@ const
         };
     }()),
     setupCollisionFunctions = (function () {
-        var entityGetAABB = function (aabb, colFuncs, collisionType) {
-                var keys = colFuncs.keys,
-                    i = keys.length,
-                    funcs = null;
-
+        const
+            entityGetAABB = function (aabb, colFuncs, collisionType) {
                 if (!collisionType) {
+                    const
+                        {keys} = colFuncs;
+                    let i = keys.length
+
                     aabb.reset();
                     while (i--) {
                         aabb.include(colFuncs.get(keys[i]).getAABB());
                     }
                     return aabb;
                 } else {
-                    funcs = colFuncs.get(collisionType);
+                    const
+                        funcs = colFuncs.get(collisionType);
+
                     if (funcs) {
                         return funcs.getAABB();
                     } else {
@@ -86,7 +88,8 @@ const
                 }
             },
             entityGetPreviousAABB = function (colFuncs, collisionType) {
-                var colFunc = colFuncs.get(collisionType);
+                const
+                    colFunc = colFuncs.get(collisionType);
                 
                 if (colFunc) {
                     return colFunc.getPreviousAABB();
@@ -95,7 +98,8 @@ const
                 }
             },
             entityGetShapes = function (colFuncs, collisionType) {
-                var colFunc = colFuncs.get(collisionType);
+                const
+                    colFunc = colFuncs.get(collisionType);
                 
                 if (colFunc) {
                     return colFunc.getShapes();
@@ -104,7 +108,8 @@ const
                 }
             },
             entityGetPrevShapes = function (colFuncs, collisionType) {
-                var colFunc = colFuncs.get(collisionType);
+                const
+                    colFunc = colFuncs.get(collisionType);
                 
                 if (colFunc) {
                     return colFunc.getPrevShapes();
@@ -113,20 +118,23 @@ const
                 }
             },
             entityPrepareCollision = function (colFuncs, x, y) {
-                var keys = colFuncs.keys,
-                    i = keys.length;
+                const
+                    keys = colFuncs.keys;
+                let i = keys.length;
                 
                 while (i--) {
                     colFuncs.get(keys[i]).prepareCollision(x, y);
                 }
             },
             entityRelocateEntity = (function () {
-                var handleStuck = function (position, data, owner) {
-                        var m = 0,
-                            s = data.stuck;
+                const
+                    handleStuck = function (position, data, owner) {
+                        let s = data.stuck;
 
                         if (s) {
-                            m = position.magnitude();
+                            const
+                                m = position.magnitude();
+
                             if (data.thatShape.owner && (Math.abs(s) > 1)) {
                                 s *= 0.05;
                             }
@@ -152,10 +160,11 @@ const
                     };
                 
                 return function (vector, collisionData) {
-                    var colX = collisionData.xData[0],
+                    const
+                        colX = collisionData.xData[0],
                         colY = collisionData.yData[0],
-                        msg = message,
-                        v = null;
+                        msg = message;
+                    let v = null;
 
                     if (colX) {
                         v = Vector.setUp(0, 0, 0);
@@ -163,7 +172,7 @@ const
                     }
 
                     if (colY) {
-                        v = v || Vector.setUp(0, 0, 0);
+                        v = v ?? Vector.setUp(0, 0, 0);
                         handleStuck(v, colY, this);
                     }
 
@@ -188,8 +197,9 @@ const
                 };
             }()),
             entityMovePreviousX = function (colFuncs, x) {
-                var keys = colFuncs.keys,
-                    i = keys.length;
+                const
+                    {keys} = colFuncs;
+                let i = keys.length;
                 
                 while (i--) {
                     colFuncs.get(keys[i]).movePreviousX(x);
@@ -221,7 +231,7 @@ const
             };
         
         return function (self, entity) {
-            var colFuncs = entity.collisionFunctions;
+            let colFuncs = entity.collisionFunctions;
             
             // This allows the same component type to be added multiple times.
             if (!colFuncs) {
@@ -448,40 +458,22 @@ export default createComponentClass(/** @lends platypus.components.CollisionBasi
      * @fires platypus.Entity#remove-collision-entity
      */
     initialize: function (definition) {
-        var arr = null,
-            x            = 0,
-            key          = '',
-            shapes       = null,
-            regX         = this.regX,
-            regY         = this.regY,
-            width        = this.width,
-            height       = this.height,
-            radius       = this.radius,
-            marginLeft   = 0,
-            marginRight  = 0,
-            marginTop    = 0,
-            marginBottom = 0;
+        const
+            {
+                height,
+                margin = 0,
+                owner,
+                radius,
+                regX = this.width / 2,
+                regY = this.height / 2,
+                width
+            } = this,
+            marginLeft = margin.left ?? margin,
+            marginRight = margin.right ?? margin,
+            marginTop = margin.top ?? margin,
+            marginBottom = margin.bottom ?? margin;
+        let shapes = null;
 
-        if (typeof this.margin === "number") {
-            marginLeft   = this.margin;
-            marginRight  = this.margin;
-            marginTop    = this.margin;
-            marginBottom = this.margin;
-        } else {
-            marginLeft   = this.margin.left || 0;
-            marginRight  = this.margin.right || 0;
-            marginTop    = this.margin.top || 0;
-            marginBottom = this.margin.bottom || 0;
-        }
-        
-        if (regX === null) {
-            regX = this.regX = width / 2;
-        }
-        
-        if (regY === null) {
-            regY = this.regY = height / 2;
-        }
-        
         Vector.assign(this.owner, 'position', 'x', 'y', 'z');
         Vector.assign(this.owner, 'previousPosition', 'previousX', 'previousY', 'previousZ');
         this.owner.previousX = this.owner.previousX || this.owner.x;
@@ -493,11 +485,13 @@ export default createComponentClass(/** @lends platypus.components.CollisionBasi
         if (this.shapes) {
             shapes = this.shapes;
         } else if (this.shapeType === 'circle') {
-            radius = radius || (((width || 0) + (height || 0)) / 4);
+            const
+                shapeRadius = radius || (((width || 0) + (height || 0)) / 4);
+
             shapes = [{
-                regX: (isNaN(regX) ? radius : regX) - (marginRight - marginLeft) / 2,
-                regY: (isNaN(regY) ? radius : regY) - (marginBottom - marginTop) / 2,
-                radius: radius,
+                regX: (isNaN(regX) ? shapeRadius : regX) - (marginRight - marginLeft) / 2,
+                regY: (isNaN(regY) ? shapeRadius : regY) - (marginBottom - marginTop) / 2,
+                radius: shapeRadius,
                 type: this.shapeType
             }];
         } else {
@@ -519,7 +513,7 @@ export default createComponentClass(/** @lends platypus.components.CollisionBasi
         this.shapes = arrayCache.setUp();
         this.prevShapes = arrayCache.setUp();
         this.entities = null;
-        for (x = 0; x < shapes.length; x++) {
+        for (let x = 0; x < shapes.length; x++) {
             this.shapes.push(CollisionShape.setUp(this.owner, shapes[x], this.collisionType));
             this.prevShapes.push(CollisionShape.setUp(this.owner, shapes[x], this.collisionType));
             this.prevAABB.include(this.prevShapes[x].aABB);
@@ -530,30 +524,39 @@ export default createComponentClass(/** @lends platypus.components.CollisionBasi
 
         setupCollisionFunctions(this, this.owner);
         
-        this.owner.solidCollisionMap = this.owner.solidCollisionMap || DataMap.setUp();
-        arr = this.owner.solidCollisionMap.set(this.collisionType, arrayCache.setUp());
-        if (this.solidCollisions) {
-            for (key in this.solidCollisions) {
-                if (this.solidCollisions.hasOwnProperty(key)) {
-                    arr.push(key);
-                    if (this.solidCollisions[key]) { // To make sure it's not an empty string.
-                        this.addEventListener('hit-by-' + key, entityBroadcast(this, this.solidCollisions[key], 'solid'));
-                    }
-                }
-            }
-        }
+        owner.softCollisionMap = owner.softCollisionMap ?? DataMap.setUp();
+        owner.solidCollisionMap = owner.solidCollisionMap ?? DataMap.setUp();
+        {
+            const
+                softCollisions = this.softCollisions,
+                keys = softCollisions ? Object.keys(softCollisions) : arrayCache.setUp(),
+                {length} = keys;
 
-        this.owner.softCollisionMap = this.owner.softCollisionMap || DataMap.setUp();
-        arr = this.owner.softCollisionMap.set(this.collisionType, arrayCache.setUp());
-        if (this.softCollisions) {
-            for (key in this.softCollisions) {
-                if (this.softCollisions.hasOwnProperty(key)) {
-                    arr.push(key);
-                    if (this.softCollisions[key]) { // To make sure it's not an empty string.
-                        this.addEventListener('hit-by-' + key, entityBroadcast(this, this.softCollisions[key], 'soft'));
-                    }
+            for (let i = 0; i < length; i++) {
+                const
+                    key = keys[i];
+
+                if (softCollisions[key]) { // To make sure it's not an empty string.
+                    this.addEventListener(`hit-by-${key}`, entityBroadcast(this, softCollisions[key], 'solid'));
                 }
             }
+            owner.softCollisionMap.set(this.collisionType, keys);
+        }
+        {
+            const
+                solidCollisions = this.solidCollisions,
+                keys = solidCollisions ? Object.keys(solidCollisions) : arrayCache.setUp(),
+                {length} = keys;
+
+            for (let i = 0; i < length; i++) {
+                const
+                    key = keys[i];
+
+                if (solidCollisions[key]) { // To make sure it's not an empty string.
+                    this.addEventListener(`hit-by-${key}`, entityBroadcast(this, solidCollisions[key], 'soft'));
+                }
+            }
+            owner.solidCollisionMap.set(this.collisionType, keys);
         }
         
         this.active = true;
@@ -568,9 +571,9 @@ export default createComponentClass(/** @lends platypus.components.CollisionBasi
          * @param type {String} If specified, only collision components of this type are added to the collision list.
          */
         "collide-on": function (type) {
-            var owner = this.owner,
-                colType = this.collisionType,
-                colTypes = owner.collisionTypes;
+            const
+                {collisionType, owner} = this,
+                {collisionTypes} = owner;
             
             /**
              * On receiving 'collide-on', this message is triggered on the parent to turn on collision.
@@ -578,10 +581,10 @@ export default createComponentClass(/** @lends platypus.components.CollisionBasi
              * @event platypus.Entity#add-collision-entity
              * @param {platypus.Entity} entity The entity this component is attached to.
              */
-            if (!this.active && ((typeof type !== 'string') || (type === colType))) {
+            if (!this.active && ((typeof type !== 'string') || (type === collisionType))) {
                 owner.parent.triggerEvent('remove-collision-entity', owner);
-                if (colTypes.indexOf(colType) === -1) {
-                    colTypes.push(colType);
+                if (collisionTypes.indexOf(collisionType) === -1) {
+                    collisionTypes.push(collisionType);
                 }
                 owner.parent.triggerEvent('add-collision-entity', owner);
                 this.active = true;
@@ -596,11 +599,9 @@ export default createComponentClass(/** @lends platypus.components.CollisionBasi
          * @param type {String} If specified, only collision components of this type are removed from the collision list.
          */
         "collide-off": function (type) {
-            var index = 0,
-                owner = this.owner,
-                parent = owner.parent,
-                colType = this.collisionType,
-                colTypes = owner.collisionTypes;
+            const
+                {collisionType, owner} = this,
+                {collisionTypes, parent} = owner;
             
             /**
              * On receiving 'collide-off', this message is triggered on the parent to turn off collision.
@@ -608,36 +609,32 @@ export default createComponentClass(/** @lends platypus.components.CollisionBasi
              * @event platypus.Entity#remove-collision-entity
              * @param {platypus.Entity} entity The entity this component is attached to.
              */
-            if (this.active && ((typeof type !== 'string') || (type === colType))) {
+            if (this.active && ((typeof type !== 'string') || (type === collisionType))) {
                 parent.triggerEvent('remove-collision-entity', owner);
-                index = colTypes.indexOf(colType);
+                const
+                    index = collisionTypes.indexOf(collisionType);
+
                 if (index >= 0) {
-                    greenSplice(colTypes, index);
+                    greenSplice(collisionTypes, index);
                 }
                 this.active = false;
 
-                if (colTypes.length) {
+                if (collisionTypes.length) {
                     parent.triggerEvent('add-collision-entity', owner);
                 }
             }
         },
         
         "relocate-entity": function (location, relative) {
-            var unstick = location.unstick,
-                um      = 0,
-                i       = 0,
-                x       = 0,
-                y       = 0,
-                aabb    = this.aabb,
-                owner   = this.owner,
-                shape   = null,
-                shapes  = this.shapes,
-                v = location.position || location;
-            
-            if (unstick) {
-                um = unstick.magnitude();
-            }
-            
+            const
+                {aabb, owner, shapes} = this,
+                unstick = location.unstick,
+                um = unstick?.magnitude() ?? 0,
+                v = location.position ?? location;
+            let i = shapes.length,
+                x = 0,
+                y = 0;
+        
             if (this.move) {
                 this.move.recycle();
                 this.move = null;
@@ -663,7 +660,9 @@ export default createComponentClass(/** @lends platypus.components.CollisionBasi
             aabb.reset();
             i = shapes.length;
             while (i--) {
-                shape = shapes[i];
+                const
+                    shape = shapes[i];
+
                 shape.update(x, y);
                 aabb.include(shape.aABB);
             }
@@ -685,10 +684,8 @@ export default createComponentClass(/** @lends platypus.components.CollisionBasi
         },
         
         "orientation-updated": function (matrix) {
-            var i = 0;
-            
             if (!this.ignoreOrientation) {
-                for (i = 0; i < this.shapes.length; i++) {
+                for (let i = 0; i < this.shapes.length; i++) {
                     this.shapes[i].multiply(matrix);
                 }
                 this.updateShapes = updateShapesFull;
@@ -737,21 +734,19 @@ export default createComponentClass(/** @lends platypus.components.CollisionBasi
         },
         
         movePreviousX: function (x) {
-            var i = 0;
-            
             this.prevAABB.moveX(x);
-            for (i = 0; i < this.prevShapes.length; i++) {
+            for (let i = 0; i < this.prevShapes.length; i++) {
                 this.prevShapes[i].setXWithEntityX(x);
             }
         },
         
         destroy: function () {
-            var colFuncs = this.owner.collisionFunctions,
-                collisionType = this.collisionType,
-                i = this.owner.collisionTypes ? this.owner.collisionTypes.indexOf(collisionType) : -1,
-                owner = this.owner;
+            const
+                {collisionType, owner} = this,
+                {collisionFunctions, collisionTypes, parent, softCollisionMap, solidCollisionMap} = owner;
+            let i = collisionTypes ? collisionTypes.indexOf(collisionType) : -1;
             
-            owner.parent.triggerEvent('remove-collision-entity', owner);
+            parent.triggerEvent('remove-collision-entity', owner);
 
             this.aabb.recycle();
             delete this.aabb;
@@ -759,18 +754,18 @@ export default createComponentClass(/** @lends platypus.components.CollisionBasi
             delete this.prevAABB;
             
             if (i >= 0) {
-                greenSplice(owner.collisionTypes, i);
+                greenSplice(collisionTypes, i);
             }
             
-            if (owner.collisionTypes) {
-                if (owner.solidCollisionMap.has(collisionType)) {
-                    arrayCache.recycle(owner.solidCollisionMap.delete(collisionType));
+            if (collisionTypes) {
+                if (solidCollisionMap.has(collisionType)) {
+                    arrayCache.recycle(solidCollisionMap.delete(collisionType));
                 }
-                if (owner.softCollisionMap.has(collisionType)) {
-                    arrayCache.recycle(owner.softCollisionMap.delete(collisionType));
+                if (softCollisionMap.has(collisionType)) {
+                    arrayCache.recycle(softCollisionMap.delete(collisionType));
                 }
 
-                colFuncs.delete(collisionType).recycle();
+                collisionFunctions.delete(collisionType).recycle();
             }
             
             i = this.shapes.length;
@@ -785,19 +780,19 @@ export default createComponentClass(/** @lends platypus.components.CollisionBasi
 
             this.entities = null;
 
-            if (owner.collisionTypes) {
-                if (owner.collisionTypes.length) {
-                    owner.parent.triggerEvent('add-collision-entity', owner);
+            if (collisionTypes) {
+                if (collisionTypes.length) {
+                    parent.triggerEvent('add-collision-entity', owner);
                 } else { //remove collision functions
-                    colFuncs.recycle();
+                    collisionFunctions.recycle();
                     owner.collisionFunctions = null;
-                    owner.solidCollisionMap.recycle();
+                    solidCollisionMap.recycle();
                     owner.solidCollisionMap = null;
-                    owner.softCollisionMap.recycle();
+                    softCollisionMap.recycle();
                     owner.softCollisionMap = null;
                     owner.aabb.recycle();
                     owner.aabb = null;
-                    arrayCache.recycle(owner.collisionTypes);
+                    arrayCache.recycle(collisionTypes);
                     owner.collisionTypes = null;
                 }
             }
