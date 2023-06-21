@@ -37,6 +37,13 @@ export default class Component {
     }
 
     /**
+     * Called by constructor once the component is ready.
+     * 
+     * @method platypus.Component#initialize
+     */
+    initialize () {}
+
+    /**
      * Returns a string describing the component.
      *
      * @method platypus.Component#toString
@@ -53,19 +60,20 @@ export default class Component {
      * @private
      */
     destroy () {
-        var func = '';
-        
         if (this.listener) {
+            const
+                publicMethods = this.publicMethods,
+                keys = Object.keys(publicMethods);
+            let i = keys.length;
+
             // Handle component's destroy method before removing messaging and methods.
             if (this._destroy) {
                 this._destroy();
             }
             
             // Now remove event listeners and methods.
-            for (func in this.publicMethods) {
-                if (this.publicMethods.hasOwnProperty(func)) {
-                    this.removeMethod(func);
-                }
+            while (i--) {
+                this.removeMethod(publicMethods[keys[i]]);
             }
             this.publicMethods.recycle();
             
@@ -85,20 +93,19 @@ export default class Component {
      * @private
      */
     removeEventListeners (listeners) {
-        var i = 0,
-            events   = null,
-            messages = null;
-        
         if (!listeners) {
-            events   = this.listener.events;
-            messages = this.listener.messages;
-            for (i = 0; i < events.length; i++) {
-                this.owner.off(events[i], messages[i]);
+            const
+                {listener, owner} = this,
+                {events, messages} = listener,
+                {length} = events;
+
+            for (let i = 0; i < length; i++) {
+                owner.off(events[i], messages[i]);
             }
             events.length = 0;
             messages.length = 0;
         } else {
-            for (i = 0; i < listeners.length; i++) {
+            for (let i = 0; i < listeners.length; i++) {
                 this.removeEventListener(listeners[i]);
             }
         }
@@ -114,7 +121,8 @@ export default class Component {
      * @private
      */
     addEventListener (event, callback, priority) {
-        var handler = callback.bind(this); // <-- I think we need to stop doing this
+        const
+            handler = callback.bind(this); // <-- I think we need to stop doing this
         
         this.listener.events.push(event);
         this.listener.messages.push(handler);
@@ -135,9 +143,7 @@ export default class Component {
         if (this.owner[name]) {
             platypus.debug.warn(this.owner.type + ': Entity already has a method called "' + name + '". Method not added.');
         } else {
-            this.owner[name] = function () {
-                return func.apply(this, arguments);
-            }.bind(this);
+            this.owner[name] = func.bind(this);
             this.publicMethods[name] = func;
         }
     }
@@ -151,15 +157,15 @@ export default class Component {
      * @private
      */
     removeEventListener (event, callback) {
-        var i = 0,
-            events   = this.listener.events,
-            messages = this.listener.messages;
+        const
+            {listener, owner} = this,
+            {events, messages} = listener;
         
-        for (i = events.length - 1; i >= 0; i--) {
+        for (let i = events.length - 1; i >= 0; i--) {
             if ((events[i] === event) && (!callback || (messages[i] === callback))) {
-                this.owner.off(event, messages[i]);
-                greenSplice(this.listener.events, i);
-                greenSplice(this.listener.messages, i);
+                owner.off(event, messages[i]);
+                greenSplice(events, i);
+                greenSplice(messages, i);
             }
         }
     }

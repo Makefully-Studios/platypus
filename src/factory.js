@@ -14,89 +14,111 @@
 import {arrayCache, greenSlice} from './utils/array.js';
 import Component from './Component.js';
 
-var priority = 0,
-    doNothing = function () {},
-    setupProperty = function (property, component, owner) {
-        Object.defineProperty(component, property, {
-            get: function () {
-                return owner[property];
-            },
-            set: function (value) {
-                owner[property] = value;
-            },
-            enumerable: true
-        });
-    };
+var priority = 0;
     
-export default function (componentDefinition) {
+export default function (componentDefinition = {}) {
     const
-        {id} = componentDefinition,
+        {events, getAssetList, id, initialize, methods, properties, publicMethods, publicProperties} = componentDefinition,
 
         // Not sure if this is future-proof, but putting in object to create dynamic name.
         NewComponent = ({[id]: class extends Component {
-            constructor (owner, definition, callback) {
-                super(componentDefinition.id, owner);
+            constructor (owner, definition = {}, callback) {
+                const
+                    {aliases} = definition;
+
+                super(id, owner);
     
                 // Set up properties, prioritizing component settings, entity settings, and finally defaults.
-                if (componentDefinition.properties) {
-                    for (const prop in componentDefinition.properties) {
-                        if (componentDefinition.properties.hasOwnProperty(prop)) {
-                            if (definition && (typeof definition[prop] !== 'undefined')) {
-                                this[prop] = definition[prop];
-                            } else if (typeof this.owner[prop] !== 'undefined') {
-                                this[prop] = this.owner[prop];
-                            } else {
-                                this[prop] = componentDefinition.properties[prop];
-                            }
-                        }
+                if (properties) {
+                    const
+                        keys = Object.keys(properties),
+                        {length} = keys;
+
+                    for (let i = 0; i < length; i++) {
+                        const
+                            key = keys[i];
+
+                        this[key] = definition[key] ?? owner[key] ?? properties[key];
                     }
                 }
     
                 // These component properties are equivalent with `entity.property`
-                if (componentDefinition.publicProperties) {
-                    for (const prop in componentDefinition.publicProperties) {
-                        if (componentDefinition.publicProperties.hasOwnProperty(prop)) {
-                            setupProperty(prop, this, owner);
-                            if (definition && (typeof definition[prop] !== 'undefined')) {
-                                this[prop] = definition[prop];
-                            } else if (typeof this.owner[prop] !== 'undefined') {
-                                this[prop] = this.owner[prop];
-                            } else {
-                                this[prop] = componentDefinition.publicProperties[prop];
-                            }
-                        }
+                if (publicProperties) {
+                    const
+                        keys = Object.keys(publicProperties),
+                        {length} = keys;
+
+                    for (let i = 0; i < length; i++) {
+                        const
+                            key = keys[i];
+
+                        Object.defineProperty(this, key, {
+                            get: function () {
+                                return owner[key];
+                            },
+                            set: function (value) {
+                                owner[key] = value;
+                            },
+                            enumerable: true
+                        });
+                        this[key] = definition[key] ?? owner[key] ?? publicProperties[key];
                     }
                 }
     
-                if (componentDefinition.events) {
+                if (events) {
+                    const
+                        keys = Object.keys(events),
+                        {length} = keys;
+
                     priority -= 1; // So event priority remains in order of component addition.
-                    for (const func in componentDefinition.events) {
-                        if (componentDefinition.events.hasOwnProperty(func)) {
-                            this.addEventListener(func, componentDefinition.events[func], priority);
-                            if (definition && definition.aliases) {
-                                for (const alias in definition.aliases) {
-                                    if (definition.aliases.hasOwnProperty(alias) && (definition.aliases[alias] === func)) {
-                                        this.addEventListener(alias, componentDefinition.events[func], priority);
-                                    }
+
+                    for (let i = 0; i < length; i++) {
+                        const
+                            key = keys[i];
+
+                        this.addEventListener(key, events[key], priority);
+                        if (aliases) {
+                            const
+                                aliasKeys = Object.keys(aliases),
+                                {length} = keys;
+        
+                            for (let j = 0; j < length; j++) {
+                                const
+                                    alias = aliasKeys[j];
+        
+                                if (aliases[alias] === key) {
+                                    this.addEventListener(alias, events[key], priority);
                                 }
                             }
                         }
                     }
                 }
     
-                if (componentDefinition.publicMethods) {
-                    for (const func in componentDefinition.publicMethods) {
-                        if (componentDefinition.publicMethods.hasOwnProperty(func)) {
-                            let name = func;
-                            if (definition && definition.aliases) {
-                                for (const alias in definition.aliases) {
-                                    if (definition.aliases.hasOwnProperty(alias) && (definition.aliases[alias] === func)) {
-                                        name = alias;
-                                    }
+                if (publicMethods) {
+                    const
+                        keys = Object.keys(publicMethods),
+                        {length} = keys;
+
+                    for (let i = 0; i < length; i++) {
+                        const
+                            key = keys[i];
+                        let name = key;
+
+                        if (aliases) {
+                            const
+                                aliasKeys = Object.keys(aliases),
+                                {length} = keys;
+        
+                            for (let j = 0; j < length; j++) {
+                                const
+                                    alias = aliasKeys[j];
+        
+                                if (aliases[alias] === key) {
+                                    name = alias;
                                 }
                             }
-                            this.addMethod(name, componentDefinition.publicMethods[func]);
                         }
+                        this.addMethod(name, publicMethods[key]);
                     }
                 }
     
@@ -107,18 +129,24 @@ export default function (componentDefinition) {
         }})[id],
         proto = NewComponent.prototype;
 
-    proto.initialize = componentDefinition.initialize || doNothing;
+    if (initialize) {
+        proto.initialize = initialize;
+    }
     
-    // This can be overridden by a "toJSON" method in the component definition. This is by design.
+    /**
+     * Returns a JSON structure describing this componet. This can be overridden by a "toJSON" method in the component definition. This is by design.
+     * 
+     * @method toJSON
+     * @return {Object}
+     */
     proto.toJSON = (function () {
-        var validating = false,
+        const
             valid = function (value, depthArray) {
-                var depth = null,
-                    root = false,
-                    key = '',
-                    invalid = false,
-                    i = 0,
+                const
                     type = typeof value;
+                let depth = null,
+                    root = false,
+                    invalid = false;
                 
                 if (!validating) { // prevents endless validation during recursion.
                     validating = true;
@@ -135,32 +163,41 @@ export default function (componentDefinition) {
                             invalid = true;
                         }
                     } else if (Array.isArray(value)) {
-                        i = value.length;
+                        let i = value.length;
+
                         while (i--) {
-                            if (depthArray && depthArray.indexOf(value[i]) >= 0) {
+                            const
+                                propValue = value[i];
+
+                            if (depthArray && depthArray.indexOf(propValue) >= 0) {
                                 invalid = true;
                                 break;
                             }
                             depth = depthArray ? greenSlice(depthArray) : arrayCache.setUp();
-                            depth.push(value[i]);
-                            if (!valid(value[i], depth)) {
+                            depth.push(propValue);
+                            if (!valid(propValue, depth)) {
                                 invalid = true;
                                 break;
                             }
                         }
                     } else {
-                        for (key in value) {
-                            if (value.hasOwnProperty(key)) {
-                                if (depthArray && depthArray.indexOf(value[key]) >= 0) {
-                                    invalid = true;
-                                    break;
-                                }
-                                depth = depthArray ? greenSlice(depthArray) : arrayCache.setUp();
-                                depth.push(value[key]);
-                                if (!valid(value[key], depth)) {
-                                    invalid = true;
-                                    break;
-                                }
+                        const
+                            keys = Object.keys(value),
+                            {length} = keys;
+
+                        for (let i = 0; i < length; i++) {
+                            const
+                                propValue = value[keys[i]];
+
+                            if (depthArray && depthArray.indexOf(propValue) >= 0) {
+                                invalid = true;
+                                break;
+                            }
+                            depth = depthArray ? greenSlice(depthArray) : arrayCache.setUp();
+                            depth.push(propValue);
+                            if (!valid(propValue, depth)) {
+                                invalid = true;
+                                break;
                             }
                         }
                     }
@@ -176,30 +213,47 @@ export default function (componentDefinition) {
 
                 return !invalid;
             };
+        let validating = false;
 
         return function (propertiesDefinition, debug) {
-            var properties = componentDefinition.properties,
-                publicProperties = componentDefinition.publicProperties,
+            const
                 component = {
                     type: this.type
-                },
-                key = '';
+                };
             
-            for (key in properties) {
-                if (properties.hasOwnProperty(key) && (properties[key] !== this[key])) {
-                    if (debug && !validating && !valid(this[key])) {
-                        platypus.debug.warn('Component "' + this.type + '" includes a non-JSON property value for "' + key + '" (type "' + (typeof this[key]) + '"). You may want to create a custom `toJSON` method for this component.', this[key]);
+            if (properties) {
+                const
+                    keys = Object.keys(properties),
+                    {length} = keys;
+
+                for (let i = 0; i < length; i++) {
+                    const
+                        key = keys[i];
+
+                    if (properties[key] !== this[key]) {
+                        if (debug && !validating && !valid(this[key])) {
+                            platypus.debug.warn('Component "' + this.type + '" includes a non-JSON property value for "' + key + '" (type "' + (typeof this[key]) + '"). You may want to create a custom `toJSON` method for this component.', this[key]);
+                        }
+                        component[key] = this[key];
                     }
-                    component[key] = this[key];
                 }
             }
 
-            for (key in publicProperties) {
-                if (publicProperties.hasOwnProperty(key) && (publicProperties[key] !== this.owner[key]) && (typeof propertiesDefinition[key] === 'undefined')) {
-                    if (debug && !validating && !valid(this.owner[key])) {
-                        platypus.debug.warn('Component "' + this.type + '" includes a non-JSON public property value for "' + key + '" (type "' + (typeof this.owner[key]) + '"). You may want to create a custom `toJSON` method for this component.', this.owner[key]);
+            if (publicProperties) {
+                const
+                    keys = Object.keys(publicProperties),
+                    {length} = keys;
+
+                for (let i = 0; i < length; i++) {
+                    const
+                        key = keys[i];
+
+                    if ((publicProperties[key] !== this.owner[key]) && (typeof propertiesDefinition[key] === 'undefined')) {
+                        if (debug && !validating && !valid(this.owner[key])) {
+                            platypus.debug.warn('Component "' + this.type + '" includes a non-JSON public property value for "' + key + '" (type "' + (typeof this.owner[key]) + '"). You may want to create a custom `toJSON` method for this component.', this.owner[key]);
+                        }
+                        propertiesDefinition[key] = this.owner[key];
                     }
-                    propertiesDefinition[key] = this.owner[key];
                 }
             }
 
@@ -207,27 +261,37 @@ export default function (componentDefinition) {
         };
     }());
 
-    if (componentDefinition.methods) {
-        for (const func in componentDefinition.methods) {
-            if (componentDefinition.methods.hasOwnProperty(func)) {
-                if (func === 'destroy') {
-                    proto._destroy = componentDefinition.methods[func];
-                } else {
-                    proto[func] = componentDefinition.methods[func];
-                }
+    if (methods) {
+        const
+            keys = Object.keys(methods),
+            {length} = keys;
+
+        for (let i = 0; i < length; i++) {
+            const
+                key = keys[i];
+
+            if (key === 'destroy') {
+                proto._destroy = methods[key];
+            } else {
+                proto[key] = methods[key];
             }
         }
     }
-    if (componentDefinition.publicMethods) {
-        for (const func in componentDefinition.publicMethods) {
-            if (componentDefinition.publicMethods.hasOwnProperty(func)) {
-                proto[func] = componentDefinition.publicMethods[func];
-            }
+    if (publicMethods) {
+        const
+            keys = Object.keys(publicMethods),
+            {length} = keys;
+
+        for (let i = 0; i < length; i++) {
+            const
+                key = keys[i];
+
+            proto[key] = publicMethods[key];
         }
     }
 
-    if (componentDefinition.getAssetList) {
-        NewComponent.getAssetList = componentDefinition.getAssetList;
+    if (getAssetList) {
+        NewComponent.getAssetList = getAssetList;
     }
 
     return NewComponent;
