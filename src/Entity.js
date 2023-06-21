@@ -1,5 +1,5 @@
 /* global platypus */
-import {arrayCache, greenSplice, union} from './utils/array.js';
+import {arrayCache, greenSlice, greenSplice, union} from './utils/array.js';
 import Data from './Data.js';
 import Messenger from './Messenger.js';
 import StateMap from './StateMap.js';
@@ -8,11 +8,14 @@ import createComponentClass from './factory.js';
 const
     entityIds = {},
     getComponentClass = function (componentDefinition) {
-        if (componentDefinition.type) {
-            if (typeof componentDefinition.type === 'function') {
-                return componentDefinition.type;
-            } else if (platypus.components[componentDefinition.type]) {
-                return platypus.components[componentDefinition.type];
+        const
+            {type} = componentDefinition;
+
+        if (type) {
+            if (typeof type === 'function') {
+                return type;
+            } else if (platypus.components[type]) {
+                return platypus.components[type];
             }
         } else if (componentDefinition.id) { // "type" not specified, so we create the component directly.
             return createComponentClass(componentDefinition);
@@ -55,8 +58,8 @@ const
 export default class Entity extends Messenger {
     /**
      * @param {Object} [definition] Base definition for the entity.
-     * @param {Object} [definition.id] This declares the type of entity and will be stored on the Entity as `entity.type` after instantiation.
      * @param {Object} [definition.components] This lists the components that should be attached to this entity.
+     * @param {Object} [definition.id] This declares the type of entity and will be stored on the Entity as `entity.type` after instantiation.
      * @param {Object} [definition.properties] [definition.properties] This is a list of key/value pairs that are added directly to the Entity as `entity.key = value`.
      * @param {Object} [instanceDefinition] Specific instance definition including properties that override the base definition properties.
      * @param {Object} [instanceDefinition.properties] This is a list of key/value pairs that are added directly to the Entity as `entity.key = value`.
@@ -65,30 +68,32 @@ export default class Entity extends Messenger {
      * @return {Entity} Returns the new entity made up of the provided components.
      * @fires platypus.Entity#load
      */
-    constructor (definition, instanceDefinition, callback, parent) {
-        const
-            componentInit = (Component, componentDefinition) => new Promise((resolve) => this.addComponent(new Component(this, componentDefinition, resolve)));
-    
-        var i                    = 0,
-            componentDefinition  = null,
-            componentInits       = arrayCache.setUp(),
-            def                  = Data.setUp(definition),
-            componentDefinitions = def.components,
-            defaultProperties    = Data.setUp(def.properties),
-            instance             = Data.setUp(instanceDefinition),
-            instanceProperties   = Data.setUp(instance.properties),
-            savedEvents          = arrayCache.setUp();
-
+    constructor ({
+        components: componentDefinitions,
+        properties: defaultProperties = {},
+        id: type
+    }, {
+        id,
+        properties: instanceProperties = {}
+    }, callback, parent) {
         // Set properties of messenger on this entity.
         super();
 
+        const
+            componentInit = (Component, componentDefinition) => new Promise((resolve) => this.addComponent(new Component(this, componentDefinition, resolve))),
+            componentInits = arrayCache.setUp(),
+            savedEvents = arrayCache.setUp(),
+            trigger = this.trigger; // trigger reference for saved events
+    
         this.components  = arrayCache.setUp();
-        this.type = def.id || 'none';
+        this.type = type || 'none';
 
-        this.id = instance.id || instanceProperties.id;
+        this.id = id ?? instanceProperties.id;
         if (this.id) { // check to make sure auto-ids don't overlap.
             if (this.id.search(this.type + '-') === 0) {
-                i = parseInt(this.id.substring(this.id.search('-') + 1), 10);
+                const
+                    i = parseInt(this.id.substring(this.id.search('-') + 1), 10);
+
                 if (!isNaN(i) && (!entityIds[this.type] || (entityIds[this.type] <= i))) {
                     entityIds[this.type] = i + 1;
                 }
@@ -103,9 +108,9 @@ export default class Entity extends Messenger {
 
         this.setProperty(defaultProperties); // This takes the list of properties in the JSON definition and appends them directly to the object.
         this.setProperty(instanceProperties); // This takes the list of options for this particular instance and appends them directly to the object.
-        this.on('set-property', function (keyValuePairs) {
+        this.on('set-property', (keyValuePairs) => {
             this.setProperty(keyValuePairs);
-        }.bind(this));
+        });
 
         this.state = StateMap.setUp(this.state); //starts with no state information. This expands with boolean value properties entered by various logic components.
         this.lastState = StateMap.setUp(); //This is used to determine if the state of the entity has changed.
@@ -114,15 +119,17 @@ export default class Entity extends Messenger {
             this.parent = parent;
         }
 
-        this.trigger = this.triggerEvent = function (trigger, ...args) {
+        this.trigger = this.triggerEvent = (...args) => {
             savedEvents.push(trigger.bind(this, ...args));
 
             return -1; // Message has not been delivered yet.
-        }.bind(this, this.trigger);
+        };
         
         if (componentDefinitions) {
-            for (i = 0; i < componentDefinitions.length; i++) {
-                componentDefinition = componentDefinitions[i];
+            for (let i = 0; i < componentDefinitions.length; i++) {
+                const
+                    componentDefinition = componentDefinitions[i];
+
                 if (componentDefinition) {
                     if (componentDefinition.type) {
                         const
@@ -134,9 +141,9 @@ export default class Entity extends Messenger {
                             platypus.debug.warn('Entity "' + this.type + '": Component "' + componentDefinition.type + '" is not defined.', componentDefinition);
                         }
                     } else if (componentDefinition.id) { // "type" not specified, so we create the component directly.
-                        componentInits.push(componentInit(createComponentClass(componentDefinition), null));
+                        componentInits.push(componentInit(createComponentClass(componentDefinition)));
                     } else if (typeof componentDefinition === 'function') {
-                        componentInits.push(componentInit(componentDefinition, null));
+                        componentInits.push(componentInit(componentDefinition));
                     } else {
                         platypus.debug.warn('Entity "' + this.type + '": Component must have an `id` or `type` value.', componentDefinition);
                     }
@@ -167,10 +174,6 @@ export default class Entity extends Messenger {
         });
         
         arrayCache.recycle(componentInits);
-        def.recycle();
-        defaultProperties.recycle();
-        instance.recycle();
-        instanceProperties.recycle();
     }
 
     /**
@@ -189,26 +192,27 @@ export default class Entity extends Messenger {
     * @return {Object} Returns a JSON definition that can be used to recreate the entity.
     **/
     toJSON (includeComponents) {
-        var components = this.components,
-            definition = {
-                properties: {
-                    id: this.id,
-                    state: this.state.toJSON()
-                }
+        const
+            {components, type} = this,
+            properties = {
+                id: this.id,
+                state: this.state.toJSON()
             },
-            i = 0,
-            json = null,
-            properties = definition.properties;
+            definition = {
+                properties
+            };
         
         if (includeComponents) {
-            definition.id = this.type;
+            definition.id = type;
             definition.components = [];
         } else {
-            definition.type = this.type;
+            definition.type = type;
         }
 
-        for (i = 0; i < components.length; i++) {
-            json = components[i].toJSON(properties);
+        for (let i = 0; i < components.length; i++) {
+            const
+                json = components[i].toJSON(properties);
+
             if (includeComponents && json) {
                 definition.components.push(json);
             }
@@ -246,8 +250,6 @@ export default class Entity extends Messenger {
      * @fires platypus.Entity#component-removed
     **/
     removeComponent (component) {
-        var i = 0;
-        
         /**
          * The entity triggers `component-removed` on itself once a component has been removed, notifying other components of their peer component's removal.
          *
@@ -256,7 +258,7 @@ export default class Entity extends Messenger {
          * @param {String} component.type The type of component.
          **/
         if (typeof component === 'string') {
-            for (i = 0; i < this.components.length; i++) {
+            for (let i = 0; i < this.components.length; i++) {
                 if (this.components[i].type === component) {
                     component = this.components[i];
                     greenSplice(this.components, i);
@@ -266,7 +268,7 @@ export default class Entity extends Messenger {
                 }
             }
         } else {
-            for (i = 0; i < this.components.length; i++) {
+            for (let i = 0; i < this.components.length; i++) {
                 if (this.components[i] === component) {
                     greenSplice(this.components, i);
                     this.triggerEvent('component-removed', component);
@@ -285,12 +287,15 @@ export default class Entity extends Messenger {
     * @param {Object} properties A list of key/value pairs to set as properties on the entity.
     **/
     setProperty (properties) {
-        var index = '';
+        const
+            keys = Object.keys(properties);
         
-        for (index in properties) { // This takes a list of properties and appends them directly to the object.
-            if (properties.hasOwnProperty(index)) {
-                this[index] = properties[index];
-            }
+        // This takes a list of properties and appends them directly to the object.
+        for (let i = 0; i < keys.length; i++) {
+            const
+                key = keys[i];
+
+            this[key] = properties[key];
         }
     }
     
@@ -299,7 +304,8 @@ export default class Entity extends Messenger {
     *
     **/
     destroy () {
-        var components = this.components;
+        const
+            components = this.components;
         
         if (!this._destroyed) {
             while (components.length) {
@@ -328,32 +334,37 @@ export default class Entity extends Messenger {
      * @return {Array} A list of the necessary assets to load.
      */
     static getAssetList (def, props, data) {
-        var i = 0,
-            component = null,
-            arr = null,
-            assets = null,
-            definition = null;
-        
-        if (def.type) {
-            definition = platypus.game.settings.entities[def.type];
+        const
+            {components, preload, properties, type} = def ?? {};
+
+        if (type) {
+            const
+                definition = platypus.game.settings.entities[type];
+
             if (!definition) {
-                platypus.debug.warn('Entity "' + def.type + '": This entity is not defined.', def);
+                platypus.debug.warn(`Entity "${type}": This entity is not defined.`, def);
                 return arrayCache.setUp();
             }
-            return Entity.getAssetList(definition, def.properties, data);
-        }
-        
-        assets = union(arrayCache.setUp(), def.preload);
+            return Entity.getAssetList(definition, properties, data);
+        } else {
+            const
+                assets = union(arrayCache.setUp(), preload),
+                {length} = components;
 
-        for (i = 0; i < def.components.length; i++) {
-            component = getComponentClass(def.components[i]);
-            if (component) {
-                arr = component.getAssetList(def.components[i], def.properties, props, data);
-                union(assets, arr);
-                arrayCache.recycle(arr);
+            for (let i = 0; i < length; i++) {
+                const
+                    component = getComponentClass(components[i]);
+
+                if (component) {
+                    const
+                        arr = component.getAssetList(components[i], properties, props, data);
+
+                    union(assets, arr);
+                    arrayCache.recycle(arr);
+                }
             }
+            
+            return assets;
         }
-        
-        return assets;
     }
 }

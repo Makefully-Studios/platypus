@@ -20,16 +20,21 @@ class Storage {
             keys = options.storageKeys || null,
             handleData = (resp) => {
                 const
-                    data = resp && resp.data ? resp.data : resp;
+                    data = resp?.data ?? resp;
 
                 if (data) {
-                    for (const key in data) {
-                        if (data.hasOwnProperty(key)) {
-                            if (this.map.has(key)) {
-                                this.map.set(key, data[key]);
-                            } else {
-                                this.addKey(key, data[key]);
-                            }
+                    const
+                        keys = Object.keys(data),
+                        {length} = keys;
+            
+                    for (let i = 0; i < length; i++) {
+                        const
+                            key = keys[i];
+            
+                        if (this.map.has(key)) {
+                            this.map.set(key, data[key]);
+                        } else {
+                            this.addKey(key, data[key]);
                         }
                     }
                 }

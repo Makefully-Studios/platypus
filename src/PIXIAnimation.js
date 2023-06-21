@@ -11,25 +11,26 @@ const
     emptyFrame = Texture.EMPTY,
     regex = /[\[\]{},-]/g,
     getBaseTextures = function (images) {
-        var i = 0,
-            bts = arrayCache.setUp(),
-            asset = null,
+        const
             assetCache = platypus.assetCache,
-            btCache = baseTextureCache,
-            path = null;
+            bts = arrayCache.setUp();
         
-        for (i = 0; i < images.length; i++) {
-            path = images[i];
+        for (let i = 0; i < images.length; i++) {
+            const
+                path = images[i];
+
             if (typeof path === 'string') {
-                if (!btCache[path]) {
-                    asset = assetCache.get(path);
+                if (!baseTextureCache[path]) {
+                    const
+                        asset = assetCache.get(path);
+
                     if (!asset) {
-                        platypus.debug.warn('"' + path + '" is not a loaded asset.');
+                        platypus.debug.warn(`PIXIAnimation: "${path}" is not a loaded asset.`);
                         break;
                     }
-                    btCache[path] = asset.baseTexture;
+                    baseTextureCache[path] = asset.baseTexture;
                 }
-                bts.push(btCache[path]);
+                bts.push(baseTextureCache[path]);
             } else {
                 bts.push(new BaseTexture(path));
             }
@@ -38,13 +39,11 @@ const
         return bts;
     },
     getTexturesCacheId = function (spriteSheet) {
-        var i = 0;
-        
         if (spriteSheet.id) {
             return spriteSheet.id;
         }
         
-        for (i = 0; i < spriteSheet.images.length; i++) {
+        for (let i = 0; i < spriteSheet.images.length; i++) {
             if (typeof spriteSheet.images[i] !== 'string') {
                 return '';
             }
@@ -55,11 +54,11 @@ const
         return spriteSheet.id;
     },
     getDefaultAnimation = function (length, textures) {
-        var frames = arrayCache.setUp(),
-            i = 0;
+        const
+            frames = arrayCache.setUp();
         
-        for (i = 0; i < length; i++) {
-            frames.push(textures[i] || emptyFrame);
+        for (let i = 0; i < length; i++) {
+            frames.push(textures[i] ?? emptyFrame);
         }
         return Data.setUp(
             "id", "default",
@@ -69,27 +68,28 @@ const
         );
     },
     standardizeAnimations = function (def, textures) {
-        var animation = '',
+        const
             anims = Data.setUp(),
-            i = 0,
-            frames = null,
-            key = '';
-        
-        for (key in def) {
-            if (def.hasOwnProperty(key)) {
-                animation = def[key];
+            keys = Object.keys(def),
+            {length} = keys;
+
+        for (let i = 0; i < length; i++) {
+            const
+                key = keys[i],
+                animation = def[key],
                 frames = greenSlice(animation.frames);
-                i = frames.length;
-                while (i--) {
-                    frames[i] = textures[frames[i]] || emptyFrame;
-                }
-                anims[key] = Data.setUp(
-                    "id", key,
-                    "frames", frames,
-                    "next", animation.next,
-                    "speed", animation.speed
-                );
+            let j = frames.length;
+
+            while (j--) {
+                frames[j] = textures[frames[j]] || emptyFrame;
             }
+
+            anims[key] = Data.setUp(
+                'id', key,
+                'frames', frames,
+                'next', animation.next,
+                'speed', animation.speed
+            );
         }
 
         if (!anims.default) {
@@ -99,23 +99,12 @@ const
         
         return anims;
     },
-    getAnimations = function (spriteSheet) {
-        var i = 0,
-            anims    = null,
-            frame    = null,
-            frames   = spriteSheet.frames,
-            images   = spriteSheet.images,
-            textures = arrayCache.setUp(),
-            bases    = getBaseTextures(images);
-
-        // Set up texture for each frame
-        for (i = 0; i < frames.length; i++) {
-            frame = frames[i];
-            textures.push(new Texture(bases[frame[4]], new Rectangle(frame[0], frame[1], frame[2], frame[3]), null, null, 0, new Point((frame[5] || 0) / frame[2], (frame[6] || 0) / frame[3])));
-        }
-
-        // Set up animations
-        anims = standardizeAnimations(spriteSheet.animations, textures);
+    getAnimations = function (spriteSheet = {}) {
+        const
+            {frames, images} = spriteSheet,
+            bases = getBaseTextures(images),
+            textures = frames.map((frame) => new Texture(bases[frame[4]], new Rectangle(frame[0], frame[1], frame[2], frame[3]), null, null, 0, new Point((frame[5] || 0) / frame[2], (frame[6] || 0) / frame[3]))), // Set up texture for each frame
+            anims = standardizeAnimations(spriteSheet.animations, textures); // Set up animations
 
         // Set up a default animation that plays through all frames
         if (!anims.default) {
@@ -130,22 +119,11 @@ const
         );
     },
     cacheAnimations = function (spriteSheet, cacheId) {
-        var i = 0,
-            anims    = null,
-            frame    = null,
-            frames   = spriteSheet.frames,
-            images   = spriteSheet.images,
-            textures = arrayCache.setUp(),
-            bases    = getBaseTextures(images);
-
-        // Set up texture for each frame
-        for (i = 0; i < frames.length; i++) {
-            frame = frames[i];
-            textures.push(new Texture(bases[frame[4]], new Rectangle(frame[0], frame[1], frame[2], frame[3]), null, null, 0, new Point((frame[5] || 0) / frame[2], (frame[6] || 0) / frame[3])));
-        }
-
-        // Set up animations
-        anims = standardizeAnimations(spriteSheet.animations, textures);
+        const
+            {frames, images} = spriteSheet,
+            bases = getBaseTextures(images),
+            textures = frames.map((frame) => new Texture(bases[frame[4]], new Rectangle(frame[0], frame[1], frame[2], frame[3]), null, null, 0, new Point((frame[5] || 0) / frame[2], (frame[6] || 0) / frame[3]))), // Set up texture for each frame
+            anims = standardizeAnimations(spriteSheet.animations, textures); // Set up animations
 
         arrayCache.recycle(bases);
         
@@ -188,25 +166,37 @@ const
             * @private
             */
             this._animations = {};
-            for (const key in cache.animations) {
-                if (cache.animations[key].frames.length === 1) {
-                    this._animations[key] = new Sprite(cache.animations[key].frames[0]);
-                } else {
-                    const anim = this._animations[key] = new AnimatedSprite(cache.animations[key].frames);
+            {
+                const
+                    _animations = this._animations,
+                    {animations} = cache,
+                    keys = Object.keys(animations),
+                    {length} = keys;
 
-                    anim.animationSpeed = speed * cache.animations[key].speed;
-                    anim.onComplete = anim.onLoop = function (animation, properties) {
-                        if (this.onComplete) {
-                            this.onComplete(animation);
-                        }
-                        if (properties.next) {
-                            this.gotoAndPlay(properties.next);
-                        }
-                    }.bind(this, key, cache.animations[key]);
-                    anim.updateAnchor = true;
+                for (let i = 0; i < length; i++) {
+                    const
+                        key = keys[i],
+                        animation = animations[key];
+
+                    if (animation.frames.length === 1) {
+                        _animations[key] = new Sprite(animation.frames[0]);
+                    } else {
+                        const anim = _animations[key] = new AnimatedSprite(animation.frames);
+
+                        anim.animationSpeed = speed * animation.speed;
+                        anim.onComplete = anim.onLoop = (key, animation) => {
+                            if (this.onComplete) {
+                                this.onComplete(key);
+                            }
+                            if (animation.next) {
+                                this.gotoAndPlay(animation.next);
+                            }
+                        };
+                        anim.updateAnchor = true;
+                    }
                 }
             }
-            
+                
             this._animation = null;
         
             /**
@@ -356,21 +346,29 @@ const
          * @method platypus.PIXIAnimation#destroy
          */
         destroy () {
-            var key = '';
-            
             this.stop();
-            if (this._animation && this._animation.stop) {
+            if (this._animation?.stop) {
                 this._animation.stop();
             }
             super.destroy();
             if (this.cacheId) {
-                animationCache[this.cacheId].viable -= 1;
-                if (animationCache[this.cacheId].viable <= 0) {
-                    arrayCache.recycle(animationCache[this.cacheId].textures);
-                    for (key in animationCache[this.cacheId].animations) {
-                        if (animationCache[this.cacheId].animations.hasOwnProperty(key)) {
-                            arrayCache.recycle(animationCache[this.cacheId].animations[key].frames);
-                        }
+                const
+                    cachedAnimation = animationCache[this.cacheId];
+
+                cachedAnimation.viable -= 1;
+                if (cachedAnimation.viable <= 0) {
+                    arrayCache.recycle(cachedAnimation.textures);
+                    
+                    const
+                        animations = cachedAnimation.animations,
+                        keys = Object.keys(animations),
+                        {length} = keys;
+            
+                    for (let i = 0; i < length; i++) {
+                        const
+                            key = keys[i];
+        
+                        arrayCache.recycle(animations[key].frames);
                     }
                     delete animationCache[this.cacheId];
                 }
@@ -399,50 +397,46 @@ const
         static formatSpriteSheet (spriteSheet) {
             const
                 imageParts = /([\w-\.]+)\.(\w+)$/,
-                addAnimations = function (source, destination, speedRatio, firstFrameIndex, id) {
-                    var key = '';
-                    
-                    for (key in source) {
-                        if (source.hasOwnProperty(key)) {
-                            if (destination[key]) {
-                                arrayCache.recycle(destination[key].frames);
-                                destination[key].recycle();
-                                platypus.debug.log('PIXIAnimation "' + id + '": Overwriting duplicate animation for "' + key + '".');
-                            }
-                            destination[key] = formatAnimation(key, source[key], speedRatio, firstFrameIndex);
+                addAnimations = function (source = {}, destination, speedRatio, firstFrameIndex, id) {
+                    const
+                        keys = Object.keys(source),
+                        {length} = keys;
+            
+                    for (let i = 0; i < length; i++) {
+                        const
+                            key = keys[i];
+            
+                        if (destination[key]) {
+                            arrayCache.recycle(destination[key].frames);
+                            destination[key].recycle();
+                            platypus.debug.log('PIXIAnimation "' + id + '": Overwriting duplicate animation for "' + key + '".');
                         }
+                        destination[key] = formatAnimation(key, source[key], speedRatio, firstFrameIndex);
                     }
                 },
                 addFrameObject = function (source, destination, firstImageIndex, bases) {
-                    var i = 0,
-                        fw = source.width,
-                        fh = source.height,
-                        rx = source.regX || 0,
-                        ry = source.regY || 0,
-                        w = 0,
-                        h = 0,
-                        x = 0,
-                        y = 0;
+                    const
+                        {width, height, regX = 0, regY = 0} = source;
                     
-                    for (i = 0; i < bases.length; i++) {
-                        
+                    for (let i = 0; i < bases.length; i++) {
                         // Subtract the size of a frame so that margin slivers aren't returned as frames.
-                        w = bases[i].realWidth - fw;
-                        h = bases[i].realHeight - fh;
+                        const
+                            base = bases[i],
+                            w = base.realWidth - width,
+                            h = base.realHeight - height;
                         
-                        for (y = 0; y <= h; y += fh) {
-                            for (x = 0; x <= w; x += fw) {
-                                destination.push([x, y, fw, fh, i + firstImageIndex, rx, ry]);
+                        for (let y = 0; y <= h; y += height) {
+                            for (let x = 0; x <= w; x += width) {
+                                destination.push([x, y, width, height, i + firstImageIndex, regX, regY]);
                             }
                         }
                     }
                 },
                 addFrameArray = function (source, destination, firstImageIndex) {
-                    var frame = null,
-                        i = 0;
-                    
-                    for (i = 0; i < source.length; i++) {
-                        frame = source[i];
+                    for (let i = 0; i < source.length; i++) {
+                        const
+                            frame = source[i];
+
                         destination.push(arrayCache.setUp(
                             frame[0],
                             frame[1],
@@ -454,53 +448,44 @@ const
                         ));
                     }
                 },
-                createId = function (images) {
-                    var i = images.length,
-                        id = '',
-                        segment = '',
-                        separator = '';
-
-                    while (i--) {
-                        segment = images[i].src || images[i];
-                        id += separator + segment.substring(0, MAX_KEY_LENGTH_PER_IMAGE);
-                        separator = ',';
-                    }
-
-                    return id;
-                },
+                createId = (images) => images.map((image) => (image.src ?? image).substring(0, MAX_KEY_LENGTH_PER_IMAGE)).join(','),
                 format = function (source, destination) {
-                    var bases = null,
-                        dAnims = destination.animations,
-                        dImages = destination.images,
-                        dFR = destination.framerate || 60,
-                        dFrames = destination.frames,
-                        i = 0,
-                        images = arrayCache.setUp(),
+                    const
+                        {
+                            animations: sAnims,
+                            id: sID,
+                            images: sImages,
+                            framerate: sFR = 60,
+                            frames: sFrames
+                        } = source,
+                        {
+                            animations: dAnims,
+                            id: dID,
+                            images: dImages,
+                            framerate: dFR = 60,
+                            frames: dFrames
+                        } = destination,
+                        images = sImages.map((image) => formatImages(image)),
                         firstImageIndex = dImages.length,
-                        firstFrameIndex = dFrames.length,
-                        sAnims = source.animations,
-                        sImages = source.images,
-                        sFR = source.framerate || 60,
-                        sFrames = source.frames;
+                        firstFrameIndex = dFrames.length;
                     
                     // Set up id
-                    if (destination.id) {
-                        destination.id += ';' + (source.id || createId(source.images));
+                    if (dID) {
+                        destination.id = `${dID};${sID ?? createId(sImages)}`;
                     } else {
-                        destination.id = source.id || createId(source.images);
+                        destination.id = sID ?? createId(sImages);
                     }
                     
                     // Set up images array
-                    for (i = 0; i < sImages.length; i++) {
-                        images.push(formatImages(sImages[i]));
-                        dImages.push(images[i]);
-                    }
+                    dImages.push(...images);
 
                     // Set up frames array
                     if (Array.isArray(sFrames)) {
                         addFrameArray(sFrames, dFrames, firstImageIndex);
                     } else {
-                        bases = getBaseTextures(images);
+                        const
+                            bases = getBaseTextures(images);
+
                         addFrameObject(sFrames, dFrames, firstImageIndex, bases);
                         arrayCache.recycle(bases);
                     }
@@ -513,10 +498,8 @@ const
                     return destination;
                 },
                 formatAnimation = function (key, animation, speedRatio, firstFrameIndex) {
-                    var i = 0,
-                        first = 0,
-                        frames = arrayCache.setUp(),
-                        last = 0;
+                    const
+                        frames = arrayCache.setUp();
                     
                     if (typeof animation === 'number') {
                         frames.push(animation + firstFrameIndex);
@@ -526,10 +509,12 @@ const
                             "speed", speedRatio
                         );
                     } else if (Array.isArray(animation)) {
-                        first = animation[0] || 0;
-                        last = (animation[1] || first) + 1 + firstFrameIndex;
-                        first += firstFrameIndex;
-                        for (i = first; i < last; i++) {
+                        const
+                            first = animation[0] ?? 0,
+                            last = (animation[1] ?? first) + 1 + firstFrameIndex,
+                            offsetFirst = first + firstFrameIndex;
+
+                        for (let i = offsetFirst; i < last; i++) {
                             frames.push(i);
                         }
                         return Data.setUp(
@@ -538,7 +523,7 @@ const
                             "speed", (animation[3] || 1) * speedRatio
                         );
                     } else {
-                        for (i = 0; i < animation.frames.length; i++) {
+                        for (let i = 0; i < animation.frames.length; i++) {
                             frames.push(animation.frames[i] + firstFrameIndex);
                         }
                         return Data.setUp(
@@ -549,10 +534,9 @@ const
                     }
                 },
                 formatImages = function (name) {
-                    var match = false;
-                    
                     if (typeof name === 'string') {
-                        match = name.match(imageParts);
+                        const
+                            match = name.match(imageParts);
 
                         if (match) {
                             return match[1];
@@ -562,13 +546,16 @@ const
                     return name;
                 },
                 recycle = function () {
-                    var animations = this.animations,
-                        key = '';
-                    
-                    for (key in animations) {
-                        if (animations.hasOwnProperty(key)) {
-                            arrayCache.recycle(animations[key].frames);
-                        }
+                    const
+                        animations = this.animations,
+                        keys = Object.keys(animations),
+                        {length} = keys;
+            
+                    for (let i = 0; i < length; i++) {
+                        const
+                            key = keys[i];
+            
+                        arrayCache.recycle(animations[key].frames);
                         animations[key].recycle();
                     }
                     
@@ -579,11 +566,11 @@ const
                     this.recycle();
                 },
                 merge = function (spriteSheets, destination) {
-                    var i = spriteSheets.length,
-                        ss = null;
+                    let i = spriteSheets.length;
                     
                     while (i--) {
-                        ss = spriteSheets[i];
+                        let ss = spriteSheets[i];
+
                         if (typeof ss === 'string') {
                             ss = platypus.game.settings.spriteSheets[ss];
                         }
