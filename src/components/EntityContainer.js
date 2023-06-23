@@ -348,7 +348,7 @@ const
                 if (newEntity instanceof Entity) {
                     entity = newEntity;
                     entity.parent = owner;
-                    whenReady.call(this, callback, entity);
+                    whenReady(entity);
                 } else {
                     if (typeof newEntity === 'string') {
                         entity = new Entity(platypus.game.settings.entities[newEntity], null, whenReady, owner);

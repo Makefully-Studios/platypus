@@ -2,38 +2,28 @@
 import {arrayCache, greenSlice, greenSplice, union} from '../utils/array.js';
 import createComponentClass from '../factory.js';
 import {inflate} from 'pako';
+import TiledLoader from './TiledLoader.js';
 
 const
     maskXFlip = 0x80000000,
-    decodeBase64 = (function () {
-        var decodeString = function (str, index) {
-                return (((str.charCodeAt(index)) + (str.charCodeAt(index + 1) << 8) + (str.charCodeAt(index + 2) << 16) + (str.charCodeAt(index + 3) << 24 )) >>> 0);
-            },
-            decodeArray = function (arr, index) {
-                return ((arr[index] + (arr[index + 1] << 8) + (arr[index + 2] << 16) + (arr[index + 3] << 24 )) >>> 0);
-            };
-        
-        return function (data, compression) {
-            var index = 4,
-                arr   = [],
-                step1 = atob(data.replace(/\\/g, ''));
-                
-            if (compression === 'zlib') {
-                step1 = inflate(step1);
-                while (index <= step1.length) {
-                    arr.push(decodeArray(step1, index - 4));
-                    index += 4;
-                }
-            } else {
-                while (index <= step1.length) {
-                    arr.push(decodeString(step1, index - 4));
-                    index += 4;
-                }
-            }
+    decodeString = (str, index) => (((str.charCodeAt(index)) + (str.charCodeAt(index + 1) << 8) + (str.charCodeAt(index + 2) << 16) + (str.charCodeAt(index + 3) << 24 )) >>> 0),
+    decodeArray = (arr, index) => ((arr[index] + (arr[index + 1] << 8) + (arr[index + 2] << 16) + (arr[index + 3] << 24 )) >>> 0),
+    decodeBase64 = (data, compression) => {
+        const
+            arr   = [],
+            compressed = compression === 'zlib',
+            step1 = window.atob(data.replace(/\\/g, '')),
+            step2 = compressed ? inflate(step1) : step1,
+            decode = compressed ? decodeArray : decodeString;
+        let index = 4;
             
-            return arr;
-        };
-    }()),
+        while (index <= step2.length) {
+            arr.push(decode(step2, index - 4));
+            index += 4;
+        }
+        
+        return arr;
+    },
     decodeLayer = function (layer) {
         if (layer.encoding === 'base64') {
             layer.data = decodeBase64(layer.data, layer.compression);
@@ -42,14 +32,12 @@ const
         return layer;
     },
     mergeData = function (levelData, levelMergeAxisLength, segmentData, segmentMergeAxisLength, nonMergeAxisLength, mergeAxis) {
-        var x        = 0,
-            y        = 0,
-            z        = 0,
+        const
             combined = greenSlice(levelData);
 
         if (mergeAxis === 'horizontal') {
-            for (y = nonMergeAxisLength - 1; y >= 0; y--) {
-                for (x = y * segmentMergeAxisLength, z = 0; x < (y + 1) * segmentMergeAxisLength; x++, z++) {
+            for (let y = nonMergeAxisLength - 1; y >= 0; y--) {
+                for (let x = y * segmentMergeAxisLength, z = 0; x < (y + 1) * segmentMergeAxisLength; x++, z++) {
                     combined.splice(((y + 1) * levelMergeAxisLength) + z, 0, segmentData[x]);
                 }
             }
@@ -61,18 +49,15 @@ const
         return null;
     },
     mergeObjects  = function (obj1s, obj2s, mergeAxisLength, mergeAxis) {
-        var i    = 0,
-            j    = '',
-            list = greenSlice(obj1s),
-            obj  = null;
+        const
+            list = greenSlice(obj1s);
 
-        for (i = 0; i < obj2s.length; i++) {
-            obj = {};
-            for (j in obj2s[i]) {
-                if (obj2s[i].hasOwnProperty(j)) {
-                    obj[j] = obj2s[i][j];
-                }
-            }
+        for (let i = 0; i < obj2s.length; i++) {
+            const
+                obj = {
+                    ...obj2s[i]
+                };
+
             if (mergeAxis === 'horizontal') {
                 obj.x += mergeAxisLength;
             } else if (mergeAxis === 'vertical') {
@@ -83,9 +68,6 @@ const
         return list;
     },
     mergeSegment  = function (level, segment, mergeAxis) {
-        var i = 0,
-            j = '';
-
         if (!level.tilewidth && !level.tileheight) {
             //set level tile size data if it's not already set.
             level.tilewidth  = segment.tilewidth;
@@ -108,18 +90,15 @@ const
             }
         }
 
-        for (i = 0; i < segment.layers.length; i++) {
+        for (let i = 0; i < segment.layers.length; i++) {
             if (!level.layers[i]) {
-                const layer = level.layers[i] = {};
-
                 //if the level doesn't have a layer yet, we're creating it and then copying it from the segment.
                 decodeLayer(segment.layers[i]);
                 
-                for (j in segment.layers[i]) {
-                    if (segment.layers[i].hasOwnProperty(j)) {
-                        layer[j] = segment.layers[i][j];
-                    }
-                }
+                const
+                    layer = level.layers[i] = {
+                        ...segment.layers[i]
+                    };
 
                 // If we're adding objects, make sure that they're offset correctly.
                 if (layer.objects) {
@@ -161,34 +140,39 @@ const
         }
 
         //Go through all the STUFF in segment and copy it to the level if it's not already there.
-        for (j in segment) {
-            if (segment.hasOwnProperty(j) && !level[j]) {
-                level[j] = segment[j];
+        {
+            const
+                keys = Object.keys(segment),
+                {length} = keys;
+
+            for (let i = 0; i < length; i++) {
+                const
+                    key = keys[i];
+
+                if (!level[key]) {
+                    level[key] = segment[key];
+                }
             }
         }
     },
     mergeLevels = function (levelSegments) {
-        var i = 0,
-            j = 0,
+        const
             levelDefinitions = platypus.game.settings.levels,
-            row = {
-                height: 0,
-                width: 0,
-                layers: []
-            },
             level = {
                 height: 0,
                 width: 0,
                 layers: []
             };
 
-        for (i = 0; i < levelSegments.length; i++) {
-            row = {
-                height: 0,
-                width: 0,
-                layers: []
-            };
-            for (j = 0; j < levelSegments[i].length; j++) {
+        for (let i = 0; i < levelSegments.length; i++) {
+            const
+                row = {
+                    height: 0,
+                    width: 0,
+                    layers: []
+                };
+
+            for (let j = 0; j < levelSegments[i].length; j++) {
                 //Merge horizontally
                 if (typeof levelSegments[i][j] === 'string') {
                     const
@@ -223,28 +207,25 @@ const
             width = segment.width * segment.tilewidth;
 
         for (let i = 0; i < segment.layers.length; i++) {
-            const
-                toLayer = newSegment.layers[i] = {},
-                fromLayer = segment.layers[i];
-
             decodeLayer(fromLayer);
-            
-            for (const key in fromLayer) {
-                if (fromLayer.hasOwnProperty(key)) {
-                    toLayer[key] = fromLayer[key];
-                }
-            }
+
+            const
+                fromLayer = segment.layers[i],
+                toLayer = newSegment.layers[i] = {
+                    ...fromLayer
+                };
 
             if (fromLayer.data) {
-                const fromData = fromLayer.data,
-                    toData = toLayer.data = [],
+                const
+                    fromData = fromLayer.data,
                     segmentWidth = segment.width;
 
-                for (let j = 0; j < fromData.length; j++) {
-                    const cell = fromData[segmentWidth * ((j / segmentWidth) >> 0) + segmentWidth - 1 - (j % segmentWidth)];
+                toLayer.data = fromData.map((value, index) => {
+                    const
+                        cell = fromData[segmentWidth * ((index / segmentWidth) >> 0) + segmentWidth - 1 - (index % segmentWidth)];
 
-                    toData[j] = cell ? maskXFlip ^ cell : 0;
-                }
+                    return cell ? maskXFlip ^ cell : 0;
+                });
             }
 
             // If we're adding objects, make sure that they're mirrored correctly.
@@ -256,13 +237,10 @@ const
                 for (let j = 0; j < fromObjects.length; j++) {
                     const
                         fromObject = fromObjects[j],
-                        toObject = toObjects[j] = {};
+                        toObject = toObjects[j] = {
+                            ...fromObject
+                        };
 
-                    for (const key in fromObject) {
-                        if (fromObject.hasOwnProperty(key)) {
-                            toObject[key] = fromObject[key];
-                        }
-                    }
                     toObject.x = width - fromObject.x - (fromObject.width || 0); // subtract object width since its top-left corner is the origin.
                     if (fromObject.rotation) {
                         toObject.rotation = -fromObject.rotation;
@@ -278,9 +256,18 @@ const
         }
 
         //Go through all the STUFF in segment and copy it to the level if it's not already there.
-        for (const key in segment) {
-            if (segment.hasOwnProperty(key) && !newSegment[key]) {
-                newSegment[key] = segment[key];
+        {
+            const
+                keys = Object.keys(segment),
+                {length} = keys;
+
+            for (let i = 0; i < length; i++) {
+                const
+                    key = keys[i];
+
+                if (!newSegment[key]) {
+                    newSegment[key] = segment[key];
+                }
             }
         }
 
@@ -364,32 +351,30 @@ export default createComponentClass(/** @lends platypus.components.LevelBuilder.
 
     events: {
         "layer-loaded": function (data) {
-            var templateRow  = null,
-                piecesToCopy = null,
-                x            = '',
-                y            = 0,
-                i            = 0,
-                j            = 0;
+            const
+                piecesToCopy = data?.levelPieces ?? this.levelPieces;
             
             this.levelMessage.persistentData = data;
-
-            this.levelTemplate = (data && data.levelTemplate) || this.levelTemplate;
-            this.useUniques = (data && data.useUniques) || this.useUniques;
-            piecesToCopy = (data && data.levelPieces) || this.levelPieces;
+            this.levelTemplate = data?.levelTemplate ?? this.levelTemplate;
+            this.useUniques = data?.useUniques ?? this.useUniques;
             this.levelPieces = {};
             if (piecesToCopy) {
-                for (x in piecesToCopy) {
-                    if (piecesToCopy.hasOwnProperty(x)) {
-                        if (typeof piecesToCopy[x] === "string") {
-                            this.levelPieces[x] = piecesToCopy[x];
-                        } else if (piecesToCopy[x].length) {
-                            this.levelPieces[x] = [];
-                            for (y = 0; y < piecesToCopy[x].length; y++) {
-                                this.levelPieces[x].push(piecesToCopy[x][y]);
-                            }
-                        } else {
-                            throw ('Level Builder: Level pieces of incorrect type: ' + piecesToCopy[x]);
-                        }
+                const
+                    keys = Object.keys(piecesToCopy),
+                    {length} = keys;
+        
+                for (let i = 0; i < length; i++) {
+                    const
+                        key = keys[i];
+
+                    if (typeof piecesToCopy[key] === "string") {
+                        this.levelPieces[key] = piecesToCopy[key];
+                    } else if (Array.isArray(piecesToCopy[key])) {
+                        this.levelPieces[key] = [
+                            ...piecesToCopy[key]
+                        ];
+                    } else {
+                        throw ('Level Builder: Level pieces of incorrect type: ' + piecesToCopy[key]);
                     }
                 }
             }
@@ -397,13 +382,15 @@ export default createComponentClass(/** @lends platypus.components.LevelBuilder.
             if (this.levelTemplate) {
                 if (this.levelTemplate) {
                     this.levelMessage.level = [];
-                    for (i = 0; i < this.levelTemplate.length; i++) {
-                        templateRow = this.levelTemplate[i];
+                    for (let i = 0; i < this.levelTemplate.length; i++) {
+                        const
+                            templateRow = this.levelTemplate[i];
+
                         if (typeof templateRow === "string") {
                             this.levelMessage.level[i] = this.getLevelPiece(templateRow);
                         } else if (templateRow.length) {
                             this.levelMessage.level[i] = [];
-                            for (j = 0; j < templateRow.length; j++) {
+                            for (let j = 0; j < templateRow.length; j++) {
                                 this.levelMessage.level[i][j] = this.getLevelPiece(templateRow[j]);
                             }
                         } else {
@@ -450,31 +437,29 @@ export default createComponentClass(/** @lends platypus.components.LevelBuilder.
     
     methods: {// These are methods that are called by this component.
         getLevelPiece: function (type) {
-            var pieces = this.levelPieces[type] || type,
-                temp   = null,
-                random = 0;
+            const
+                pieces = this.levelPieces[type] ?? type;
             
             if (pieces) {
                 if (typeof pieces === "string") {
                     if (this.useUniques) {
-                        temp = pieces;
                         this.levelPieces[type] = null;
-                        return temp;
-                    } else {
-                        return pieces;
                     }
+                    return pieces;
                 } else if (pieces.length) {
-                    random = Math.floor(Math.random() * pieces.length);
+                    const
+                        random = Math.floor(Math.random() * pieces.length);
+
                     if (this.useUniques) {
                         return greenSplice(this.levelPieces[type], random);
                     } else {
                         return pieces[random];
                     }
                 } else {
-                    throw ('Level Builder: There are no MORE level pieces of type: ' + type);
+                    throw new Error(`Level Builder: There are no MORE level pieces of type: ${type}`);
                 }
             } else {
-                throw ('Level Builder: There are no level pieces of type: ' + type);
+                throw new Error(`Level Builder: There are no level pieces of type: ${type}`);
             }
         },
         destroy: function () {
@@ -498,39 +483,38 @@ export default createComponentClass(/** @lends platypus.components.LevelBuilder.
     },
     
     getAssetList: function (def, props, defaultProps) {
-        var i = 0,
-            arr = null,
+        const
             assets = arrayCache.setUp(),
-            key = '',
-            levels = null;
-        
-        if (def && def.levelPieces) {
-            levels = def.levelPieces;
-        } else if (props && props.levelPieces) {
-            levels = props.levelPieces;
-        } else if (defaultProps && defaultProps.levelPieces) {
-            levels = defaultProps.levelPieces;
-        }
+            levels = def?.levelPieces ?? props?.levelPieces ?? defaultProps?.levelPieces;
         
         if (levels) {
-            for (key in levels) {
-                if (levels.hasOwnProperty(key)) {
-                    // Offload to TiledLoader since it has level-parsing handling
-                    if (Array.isArray(levels[key])) {
-                        for (i = 0; i < levels[key].length; i++) {
-                            arr = platypus.components.TiledLoader.getAssetList({
-                                level: levels[key][i]
+            const
+                keys = Object.keys(levels),
+                {length} = keys;
+
+            for (let i = 0; i < length; i++) {
+                const
+                    key = keys[i];
+
+                // Offload to TiledLoader since it has level-parsing handling
+                if (Array.isArray(levels[key])) {
+                    for (let j = 0; j < levels[key].length; j++) {
+                        const
+                            arr = TiledLoader.getAssetList({
+                                level: levels[key][j]
                             }, props, defaultProps);
-                            union(assets, arr);
-                            arrayCache.recycle(arr);
-                        }
-                    } else {
-                        arr = platypus.components.TiledLoader.getAssetList({
-                            level: levels[key]
-                        }, props, defaultProps);
+
                         union(assets, arr);
                         arrayCache.recycle(arr);
                     }
+                } else {
+                    const
+                        arr = TiledLoader.getAssetList({
+                            level: levels[key]
+                        }, props, defaultProps);
+
+                    union(assets, arr);
+                    arrayCache.recycle(arr);
                 }
             }
         }

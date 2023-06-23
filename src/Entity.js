@@ -1,6 +1,5 @@
 /* global platypus */
-import {arrayCache, greenSlice, greenSplice, union} from './utils/array.js';
-import Data from './Data.js';
+import {arrayCache, greenSplice, union} from './utils/array.js';
 import Messenger from './Messenger.js';
 import StateMap from './StateMap.js';
 import createComponentClass from './factory.js';
