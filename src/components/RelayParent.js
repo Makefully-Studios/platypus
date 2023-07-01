@@ -38,15 +38,20 @@ export default (function () {
         },
 
         initialize: function () {
-            var event = '',
+            const
                 events = this.events;
             
             // Messages that this component listens for and then broadcasts to parent.
             if (events) {
-                for (event in events) {
-                    if (events.hasOwnProperty(event)) {
-                        this.addEventListener(event, broadcast.bind(this, events[event]));
-                    }
+                const
+                    keys = Object.keys(events),
+                    {length} = keys;
+        
+                for (let i = 0; i < length; i++) {
+                    const
+                        key = keys[i];
+
+                    this.addEventListener(key, broadcast.bind(this, events[key]));
                 }
             }
         }

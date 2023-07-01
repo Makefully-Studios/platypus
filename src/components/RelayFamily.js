@@ -33,13 +33,19 @@ export default (function () {
          * @fires platypus.Entity#link-family
          */
         initialize: function () {
-            var event = '';
+            const
+                events = this.events;
             
-            if (this.events) {
-                for (event in this.events) {
-                    if (this.events.hasOwnProperty(event)) {
-                        this.addEventListener(event, this.broadcast.bind(this, null, this.events[event]));
-                    }
+            if (events) {
+                const
+                    keys = Object.keys(events),
+                    {length} = keys;
+
+                for (let i = 0; i < length; i++) {
+                    const
+                        key = keys[i];
+
+                    this.addEventListener(key, this.broadcast.bind(this, null, events[key]));
                 }
             }
     

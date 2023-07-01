@@ -34,15 +34,20 @@ export default (function () {
         },
 
         initialize: function () {
-            var event = '',
+            const
                 events = this.events;
             
             // Messages that this component listens for and then triggers on itself as a renamed message - useful as a logic place-holder for simple entities.
             if (events) {
-                for (event in events) {
-                    if (events.hasOwnProperty(event)) {
-                        this.addEventListener(event, trigger.bind(this, events[event]));
-                    }
+                const
+                    keys = Object.keys(events),
+                    {length} = keys;
+        
+                for (let i = 0; i < length; i++) {
+                    const
+                        key = keys[i];
+                        
+                    this.addEventListener(key, trigger.bind(this, events[key]));
                 }
             }
         }

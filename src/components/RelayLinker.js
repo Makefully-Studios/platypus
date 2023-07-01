@@ -49,23 +49,28 @@ export default createComponentClass(/** @lends platypus.components.RelayLinker.p
      * @listens platypus.Entity#load
      */
     initialize: function () {
-        if (this.events) {
-            for (const event in this.events) {
-                if (this.events.hasOwnProperty(event)) {
-                    this.addEventListener(event, broadcast.bind(this, this.events[event]));
-                }
+        const
+            {events, linkId} = this;
+
+        if (events) {
+            const
+                keys = Object.keys(events),
+                {length} = keys;
+
+            for (let i = 0; i < length; i++) {
+                const
+                    key = keys[i];
+
+                this.addEventListener(key, broadcast.bind(this, events[key]));
             }
         }
         
         if (!this.owner.linkId) {
-            this.owner.linkId = this.linkId;
+            this.owner.linkId = linkId;
         }
         
         // Connect channel, or create if it doesn't exist.
-        this.channel = channels[this.linkId];
-        if (!this.channel) {
-            this.channel = channels[this.linkId] = [];
-        }
+        this.channel = channels[linkId] = channels[linkId] ?? [];
     },
     
     events: {
