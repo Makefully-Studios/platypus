@@ -42,7 +42,8 @@ const
     createGateway = function (nodeDefinition, map, gateway) {
         return function () {
             // ensure it's a node if one is available at this gateway
-            var node = map.getNode(nodeDefinition);
+            const
+                node = map.getNode(nodeDefinition);
 
             if (this.isPassable(node)) {
                 this.destinationNodes.length = 0;
@@ -63,22 +64,26 @@ const
         };
     },
     distance = function (origin, destination) {
-        var x = destination.x - origin.x,
+        const
+            x = destination.x - origin.x,
             y = destination.y - origin.y,
             z = destination.z - origin.z;
 
         return Math.sqrt(x * x + y * y + z * z);
     },
     angle = function (origin, destination, distance, ratio) {
-        var x = destination.x - origin.x,
-            y = destination.y - origin.y,
-            a = 0;
-
         if (origin.rotation && destination.rotation) {
-            x = (origin.rotation + 180) % 360;
-            y = (destination.rotation + 180) % 360;
+            const
+                x = (origin.rotation + 180) % 360,
+                y = (destination.rotation + 180) % 360;
+
             return (x * (1 - ratio) + y * ratio + 180) % 360;
         } else {
+            const
+                x = destination.x - origin.x,
+                y = destination.y - origin.y;
+            let a = 0;
+
             if (!distance) {
                 return a;
             }
@@ -94,24 +99,21 @@ const
         return o * (1 - r) + d * r + f;
     },
     isFriendly = function (entities, kinds) {
-        var x = 0,
-            y = 0,
-            found = false;
 
-        if (kinds === null) {
-            return true;
-        }
+        if (kinds !== null) {
+            let found = false;
 
-        for (x = 0; x < entities.length; x++) {
-            for (y = 0; y < kinds.length; y++) {
-                if (entities[x].type === kinds[y]) {
-                    found = true;
+            for (let x = 0; x < entities.length; x++) {
+                for (let y = 0; y < kinds.length; y++) {
+                    if (entities[x].type === kinds[y]) {
+                        found = true;
+                    }
                 }
-            }
-            if (!found) {
-                return false;
-            } else {
-                found = false;
+                if (!found) {
+                    return false;
+                } else {
+                    found = false;
+                }
             }
         }
 
@@ -206,14 +208,13 @@ export default createComponentClass(/** @lends platypus.components.NodeResident.
             this.algorithm = algorithm || distance;
         },
         "handle-logic": function (resp) {
-            var i = 0,
-                ratio    = 0,
-                momentum = 0,
-                node     = null,
-                arr = null;
+            let ratio = 0,
+                momentum = 0;
             
             if (!this.owner.node) {
-                arr = arrayCache.setUp(this.owner.x, this.owner.y);
+                const
+                    arr = arrayCache.setUp(this.owner.x, this.owner.y);
+
                 this.owner.node = this.owner.parent.getClosestNode(arr);
                 arrayCache.recycle(arr);
                 
@@ -227,7 +228,9 @@ export default createComponentClass(/** @lends platypus.components.NodeResident.
             }
 
             if (this.followEntity) {
-                node = this.followEntity.node || this.followEntity;
+                const
+                    node = this.followEntity.node || this.followEntity;
+
                 if (node && node.isNode && (node !== this.node)) {
                     this.lag = 0;
                     this.state.set('moving', this.gotoNode());
@@ -263,14 +266,16 @@ export default createComponentClass(/** @lends platypus.components.NodeResident.
                 }
                 
                 if (this.snapToNodes) {
-                    for (i = 0; i < this.destinationNodes.length; i++) {
+                    for (let i = 0; i < this.destinationNodes.length; i++) {
                         this.owner.node = this.destinationNodes[i];
                     }
                     this.destinationNodes.length = 0;
                 } else {
                     while (this.destinationNodes.length && momentum) {
                         if ((this.progress + momentum) >= this.distance) {
-                            node = this.destinationNodes[0];
+                            const
+                                node = this.destinationNodes[0];
+
                             momentum -= (this.distance - this.progress);
                             this.progress = 0;
                             this.destinationNodes.shift();
@@ -308,57 +313,35 @@ export default createComponentClass(/** @lends platypus.components.NodeResident.
             }
         },
         "goto-closest-node": (function () {
-            var checkList = function (here, list) {
-                    var i = 0;
-
-                    for (i = 0; i < list.length; i++) {
-                        if (list[i] === here) {
-                            return true;
-                        }
-                    }
-
-                    return false;
-                },
-                checkType = function (here, type) {
-                    return (here.type === type);
-                },
-                checkObjectType = function (here, node) {
-                    return (here.type === node.type);
-                };
+            const
+                checkList = (here, list) => list.indexOf(here) >= 0,
+                checkType = (here, type) => here.type === type,
+                checkObjectType = (here, node) => here.type === node.type;
             
             return function (nodesOrNodeType) {
-                var travResp = null,
-                    depth    = 20, //arbitrary limit
-                    origin   = this.node || this.lastNode,
-                    test     = null,
-                    steps    = nodesOrNodeType.steps || 0,
-                    nodes    = null;
+                const
+                    origin   = this.node ?? this.lastNode,
+                    test     = (typeof nodesOrNodeType === 'string') ? checkType : (typeof nodesOrNodeType.type === 'string') ? checkObjectType : checkList,
+                    steps    = nodesOrNodeType.steps ?? 0;
 
                 this.goingToNode = nodesOrNodeType;
                 
-                if (typeof nodesOrNodeType === 'string') {
-                    test = checkType;
-                } else if (typeof nodesOrNodeType.type === 'string') {
-                    test = checkObjectType;
-                } else {
-                    test = checkList;
-                }
-                
                 if (origin && nodesOrNodeType && !test(origin, nodesOrNodeType)) {
-                    nodes = arrayCache.setUp();
-                    travResp = this.traverseNode({
-                        depth: depth,
-                        origin: origin,
-                        position: origin,
-                        test: test,
-                        destination: nodesOrNodeType,
-                        nodes: nodes,
-                        shortestPath: Infinity,
-                        distance: 0,
-                        found: false,
-                        algorithm: this.algorithm,
-                        blocked: false
-                    });
+                    const
+                        nodes = arrayCache.setUp(),
+                        travResp = this.traverseNode({
+                            depth: 20, //arbitrary limit
+                            origin: origin,
+                            position: origin,
+                            test,
+                            destination: nodesOrNodeType,
+                            nodes: nodes,
+                            shortestPath: Infinity,
+                            distance: 0,
+                            found: false,
+                            algorithm: this.algorithm,
+                            blocked: false
+                        });
                     
                     travResp.distance -= this.progress;
                     
@@ -385,108 +368,108 @@ export default createComponentClass(/** @lends platypus.components.NodeResident.
             };
         }()),
         "set-directions": function () {
-            var i = '',
-                j = 0,
-                entities = null,
-                node     = this.node,
-                nextNode = null;
+            const
+                node = this.node,
+                nodeNeighbors = node.neighbors,
+                keys = Object.keys(nodeNeighbors),
+                {length} = keys;
             
             this.owner.triggerEvent('remove-directions');
-            
-            for (i in node.neighbors) {
-                if (node.neighbors.hasOwnProperty(i)) {
-                    this.neighbors[i] = createGateway(node.neighbors[i], node.map, i);
-                    this.addEventListener(i, this.neighbors[i]);
 
-                    //trigger "next-to" events
-                    nextNode = node.map.getNode(node.neighbors[i]);
-                    if (nextNode) {
+            for (let i = 0; i < length; i++) {
+                const
+                    key = keys[i],
+                    nodeNeighbor = nodeNeighbors[key],
+                    nextNode = node.map.getNode(nodeNeighbor),
+                    gateway = this.neighbors[key] = createGateway(nodeNeighbor, node.map, i);
+
+                this.addEventListener(key, gateway);
+
+                //trigger "next-to" events
+                if (nextNode) {
+                    const
                         entities = nextNode.contains;
-                        for (j = 0; j < entities.length; j++) {
-                            entities[j].triggerEvent("next-to-" + this.owner.type, this.owner);
-                            this.owner.triggerEvent("next-to-" + entities[j].type, entities[j]);
-                        }
+
+                    for (let j = 0; j < entities.length; j++) {
+                        entities[j].triggerEvent("next-to-" + this.owner.type, this.owner);
+                        this.owner.triggerEvent("next-to-" + entities[j].type, entities[j]);
                     }
                 }
             }
         },
         "remove-directions": function () {
-            var i = '';
-            
-            for (i in this.neighbors) {
-                if (this.neighbors.hasOwnProperty(i)) {
-                    this.removeEventListener(i, this.neighbors[i]);
-                    delete this.neighbors[i];
-                }
+            const
+                neighbors = this.neighbors,
+                keys = Object.keys(neighbors),
+                {length} = keys;
+
+            for (let i = 0; i < length; i++) {
+                const
+                    key = keys[i];
+
+                this.removeEventListener(key, neighbors[key]);
+                delete neighbors[key];
             }
         }
     },
     
     methods: {
-        gotoNode: (function () {
-            var test = function (here, there) {
-                return (here === there);
-            };
+        gotoNode (node) {
+            const
+                origin = this.node ?? this.lastNode;
+            let moving = false;
             
-            return function (node) {
-                var travResp = null,
-                    depth = 20, //arbitrary limit
-                    origin = this.node || this.lastNode,
-                    nodes = null,
-                    moving = false;
-                
-                if (!node && this.followEntity) {
-                    node = this.followEntity.node || this.followEntity.lastNode || this.followEntity;
-                }
-                
-                if (origin && node && (this.node !== node)) {
-                    nodes = arrayCache.setUp();
-                    
+            if (!node && this.followEntity) {
+                node = this.followEntity.node ?? this.followEntity.lastNode ?? this.followEntity;
+            }
+            
+            if (origin && node && (this.node !== node)) {
+                const
+                    nodes = arrayCache.setUp(),
                     travResp = this.traverseNode({
-                        depth: depth,
-                        origin: origin,
+                        depth: 20, //arbitrary limit
+                        origin,
                         position: origin,
-                        test: test,
+                        test: (here, there) => here === there,
                         destination: node,
-                        nodes: nodes,
+                        nodes,
                         shortestPath: Infinity,
                         distance: 0,
                         found: false,
                         algorithm: this.algorithm,
                         blocked: false
                     });
-                    
-                    travResp.distance -= this.progress;
-                    
-                    if (travResp.found) {
-                        //TODO: should probably set this up apart from this containing function
-                        if (this.followEntity) {
-                            if (!this.followDistance) {
-                                this.setPath(travResp);
-                                moving = true;
-                            } else if ((travResp.distance + (this.followEntity.progress || 0)) > this.followDistance) {
-                                this.lag = travResp.distance + (this.followEntity.progress || 0) - this.followDistance;
-                                this.setPath(travResp);
-                                moving = true;
-                            } else {
-                                this.lag = 0;
-                            }
-                        } else {
+                
+                travResp.distance -= this.progress;
+                
+                if (travResp.found) {
+                    //TODO: should probably set this up apart from this containing function
+                    if (this.followEntity) {
+                        if (!this.followDistance) {
                             this.setPath(travResp);
                             moving = true;
+                        } else if ((travResp.distance + (this.followEntity.progress || 0)) > this.followDistance) {
+                            this.lag = travResp.distance + (this.followEntity.progress || 0) - this.followDistance;
+                            this.setPath(travResp);
+                            moving = true;
+                        } else {
+                            this.lag = 0;
                         }
-                    } else if (travResp.blocked) {
-                        this.blocked = true;
+                    } else {
+                        this.setPath(travResp);
+                        moving = true;
                     }
-                    
-                    arrayCache.recycle(nodes);
+                } else if (travResp.blocked) {
+                    this.blocked = true;
                 }
                 
-                return moving;
-            };
-        }()),
+                arrayCache.recycle(nodes);
+            }
+            
+            return moving;
+        },
 
-        getOnNode: function (node) {
+        getOnNode (node) {
             const
                 entities = node.contains;
             
@@ -543,68 +526,66 @@ export default createComponentClass(/** @lends platypus.components.NodeResident.
         },
         traverseNode: function (record) {
             //TODO: may want to make this use A*. Currently node traversal order is arbitrary and essentially searches entire graph, but does clip out paths that are too long.
-            
-            var i         = 1,
-                j         = '',
-                map       = record.position.map,
-                neighbors = null,
-                node      = null,
-                nodeList  = null,
-                resp      = null,
-                algorithm = record.algorithm || distance,
-                savedResp = {
-                    shortestPath: Infinity,
-                    found: false,
-                    blocked: false
-                },
-                blocked   = true,
-                hasNeighbor = false;
+            const
+                {position, test} = record;
 
             if ((record.depth === 0) || (record.distance > record.shortestPath)) {
                 // if we've reached our search depth or are following a path longer than our recorded successful distance, bail
                 return record;
-            } else if (record.test(record.position, record.destination)) {
+            } else if (test(position, record.destination)) {
                 // if we've reached our destination, set shortest path information and bail.
                 record.found = true;
                 record.shortestPath = record.distance;
                 return record;
+            } else if (record.nodes.includes(position, 1)) { //Make sure we do not trace an infinite node loop.
+                return record;
             } else {
-                //Make sure we do not trace an infinite node loop.
-                nodeList = record.nodes;
-                for (i = 1; i < nodeList.length - 1; i++) {
-                    if (nodeList[i] === record.position) {
-                        return record;
-                    }
-                }
-                    
-                neighbors = record.position.neighbors;
-                for (j in neighbors) {
-                    if (neighbors.hasOwnProperty(j)) {
-                        node = map.getNode(neighbors[j]);
-                        hasNeighbor = true;
-                        if (this.isPassable(node)) {
-                            nodeList = greenSlice(record.nodes);
-                            nodeList.push(node);
+                const
+                    algorithm = record.algorithm || distance,
+                    map       = position.map,
+                    neighbors = position.neighbors,
+                    keys = Object.keys(neighbors),
+                    {length} = keys,
+                    savedResp = {
+                        shortestPath: Infinity,
+                        found: false,
+                        blocked: false
+                    };
+                let blocked   = true,
+                    hasNeighbor = false;
+            
+                for (let i = 0; i < length; i++) {
+                    const
+                        key = keys[i],
+                        node = map.getNode(neighbors[key]);
+
+                    hasNeighbor = true;
+
+                    if (this.isPassable(node)) {
+                        const
+                            nodeList = [
+                                ...record.nodes,
+                                node
+                            ],
                             resp = this.traverseNode({
                                 depth: record.depth - 1,
                                 origin: record.origin,
                                 position: node,
                                 destination: record.destination,
-                                test: record.test,
+                                test,
                                 algorithm: algorithm,
                                 nodes: nodeList,
                                 shortestPath: record.shortestPath,
-                                distance: record.distance + algorithm(record.position, node),
-                                gateway: record.gateway || j,
+                                distance: record.distance + algorithm(position, node),
+                                gateway: record.gateway || key,
                                 found: false,
                                 blocked: false
                             });
-                            arrayCache.recycle(nodeList);
-                            if (resp.found && (savedResp.shortestPath > resp.shortestPath)) {
-                                savedResp = resp;
-                            }
-                            blocked = false;
+
+                        if (resp.found && (savedResp.shortestPath > resp.shortestPath)) {
+                            savedResp = resp;
                         }
+                        blocked = false;
                     }
                 }
                 savedResp.blocked = (hasNeighbor && blocked);
