@@ -13,20 +13,14 @@ export default (function () {
     const
         createTest = function (testStates, skin) {
             if (testStates === 'default') {
-                return defaultTest.bind(null, skin);
+                return () => skin;
             } else {
                 //TODO: Better clean-up: Create a lot of these without removing them later... DDD 2/5/2016
-                return stateTest.bind(null, skin, StateMap.setUp(testStates));
+                const
+                    states = StateMap.setUp(testStates);
+
+                return (ownerState) => ownerState.includes(states) ? skin : null;
             }
-        },
-        defaultTest = function (skin) {
-            return skin;
-        },
-        stateTest = function (skin, states, ownerState) {
-            if (ownerState.includes(states)) {
-                return skin;
-            }
-            return null;
         },
         getBaseTexture = function (path) {
             const
@@ -378,56 +372,14 @@ export default (function () {
                         return animationMap;
                     } else {
                         // Create 1-to-1 animation map since none was defined
-                        const
-                            map = {};
-
-                        for (const anim in animations) {
-                            if (animations.hasOwnProperty(anim)) {
-                                map[anim] = anim;
-                            }
-                        }
-                        return map;
+                        return Object.keys(animations).reduce((map, value) => {
+                            map[value] = value;
+                            return map;
+                        }, {});
                     }
-                },
-                imageCallback = function (loadFinished, line, callback) {
-                    // Not sure if this handles memory well - keeping it in for now.
-                    const
-                        baseTexture = getBaseTexture(line);
-
-                    callback(baseTexture);
-
-                    if (baseTexture.isLoading) {
-                        baseTexture.on('loaded', loadFinished);
-                    } else {
-                        loadFinished();
-                    }
-                },
-                animationEnded = function (animationData) {
-                    const
-                        animationName = animationData.animation.name;
-                        
-                    if (this.playSequence) {
-                        this.playIndex += 1;
-                        if (this.playIndex < this.playSequence.length || this.loopSequence) {
-                            this.playIndex = this.playIndex % this.playSequence.length;
-                            this.innerPlayAnimation(this.playSequence[this.playIndex], false);
-                        }
-                    }
-
-                    this.owner.triggerEvent('animation-ended', animationName);
-                },
-                handleSpineEvent = function (entry, event) {
-                    const
-                        eventName = event.data.name;
-
-                    if (this.playAnimation(eventName)) {
-                        this.spine.update(0.000001);
-                    }
-
-                    this.owner.trigger(eventName, event.data);
                 };
             
-            return function (def, callback) {
+            return function (def, loadFinished) {
                 // If PIXI.spine is unavailable, this component doesn't work.
                 if (!Spine) {
                     platypus.debug.error('RenderSpine requires `PIXI.spine` to function.');
@@ -437,7 +389,19 @@ export default (function () {
                         settings = platypus.game.settings,
                         atlas = settings.atlases[this.atlas],
                         skeleton = settings.skeletons[this.skeleton],
-                        spineAtlas = new TextureAtlas(atlas, imageCallback.bind(null, callback)),
+                        spineAtlas = new TextureAtlas(atlas, (line, callback) => {
+                            // Not sure if this handles memory well - keeping it in for now.
+                            const
+                                baseTexture = getBaseTexture(line);
+        
+                            callback(baseTexture);
+        
+                            if (baseTexture.isLoading) {
+                                baseTexture.on('loaded', loadFinished);
+                            } else {
+                                loadFinished();
+                            }
+                        }),
                         spineJsonParser = new SkeletonJson(new AtlasAttachmentLoader(spineAtlas)),
                         skeletonData = spineJsonParser.readSkeletonData(skeleton),
                         spine = this.spine = new Spine(skeletonData),
@@ -446,8 +410,30 @@ export default (function () {
                     let animation = '';
 
                     spine.state.addListener({
-                        event: handleSpineEvent.bind(this),
-                        complete: animationEnded.bind(this)
+                        event: (entry, event) => {
+                            const
+                                eventName = event.data.name;
+        
+                            if (this.playAnimation(eventName)) {
+                                this.spine.update(0.000001);
+                            }
+        
+                            this.owner.trigger(eventName, event.data);
+                        },
+                        complete: (animationData) => {
+                            const
+                                animationName = animationData.animation.name;
+                                
+                            if (this.playSequence) {
+                                this.playIndex += 1;
+                                if (this.playIndex < this.playSequence.length || this.loopSequence) {
+                                    this.playIndex = this.playIndex % this.playSequence.length;
+                                    this.innerPlayAnimation(this.playSequence[this.playIndex], false);
+                                }
+                            }
+        
+                            this.owner.triggerEvent('animation-ended', animationName);
+                        }
                     });
                     spine.autoUpdate = false;
     
@@ -489,7 +475,8 @@ export default (function () {
                     spine.scale.y = this.localScaleY;
     
                     if (this.skinMap) { // Set up skin map handling.
-                        const switchSkin = function (skin) {
+                        const
+                            switchSkin = (skin) => {
                                 if (this.currentSkin !== skin) {
                                     this.currentSkin = skin;
                                     this.spine.skeleton.setSkin(null);
@@ -510,25 +497,35 @@ export default (function () {
 
                         //Handle Events:
                         if (this.eventBased) {
-                            for (const state in map) {
-                                if (map.hasOwnProperty(state)) {
-                                    this.addEventListener(state, switchSkin.bind(this, map[state]));
-                                }
+                            const
+                                keys = Object.keys(map),
+                                {length} = keys;
+
+                            for (let i = 0; i < length; i++) {
+                                const
+                                    key = keys[i];
+
+                                this.addEventListener(key, () => switchSkin(map[key]));
                             }
                         }
         
                         //Handle States:
                         if (this.stateBased) {
+                            const
+                                keys = Object.keys(map),
+                                {length} = keys;
+
                             this.state = this.owner.state;
                             this.stateChange = true; //Check state against entity's prior state to update skin if necessary on instantiation.
                             this.checkStates = arrayCache.setUp();
                             this.skins = arrayCache.setUp();
 
-                            for (const state in map) {
-                                if (map.hasOwnProperty(state)) {
-                                    this.checkStates.push(createTest(state, map[state]));
-                                    this.skins.push(state);
-                                }
+                            for (let i = 0; i < length; i++) {
+                                const
+                                    key = keys[i];
+
+                                this.checkStates.push(createTest(key, map[key]));
+                                this.skins.push(key);
                             }
 
                             this.addEventListener('state-changed', () => {
@@ -540,7 +537,7 @@ export default (function () {
                                         const testCase = this.checkStates[i](this.state);
 
                                         if (testCase !== null) {
-                                            switchSkin.call(this, testCase);
+                                            switchSkin(testCase);
                                             break;
                                         }
                                     }
@@ -565,7 +562,7 @@ export default (function () {
                                 'skewX', this.skewX,
                                 'skewY', this.skewY
                             );
-                        this.owner.addComponent(new RenderContainer(this.owner, definition, this.addToContainer.bind(this)));
+                        this.owner.addComponent(new RenderContainer(this.owner, definition, () => this.addToContainer()));
                         definition.recycle();
                     } else {
                         this.addToContainer();
@@ -706,14 +703,17 @@ export default (function () {
                         }
                     }
                 } else {
-                    for (const key in mixTimes) {
-                        if (mixTimes.hasOwnProperty(key)) {
-                            const
-                                colon = key.indexOf(':');
+                    const
+                        keys = Object.keys(mixTimes),
+                        {length} = keys;
 
-                            if (colon >= 0) {
-                                stateData.setMix(key.substring(0, colon), key.substring(colon + 1), mixTimes[key]);
-                            }
+                    for (let i = 0; i < length; i++) {
+                        const
+                            key = keys[i],
+                            colon = key.indexOf(':');
+
+                        if (colon >= 0) {
+                            stateData.setMix(key.substring(0, colon), key.substring(colon + 1), mixTimes[key]);
                         }
                     }
                 }

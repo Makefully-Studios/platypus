@@ -88,7 +88,8 @@ export default createComponentClass(/** @lends platypus.components.RenderText.pr
      * @listens platypus.Entity#set-text
      */
     initialize: function (definition) {
-        var hAlign = alignments.horizontal[this.style.align],
+        const
+            hAlign = alignments.horizontal[this.style.align],
             vAlign = alignments.vertical[this.style.verticalAlign];
 
         this.sprite = new Text(this.text, this.style);
@@ -100,7 +101,7 @@ export default createComponentClass(/** @lends platypus.components.RenderText.pr
         this.sprite.zIndex = this.offsetZ;
 
         if (!this.owner.container) {
-            this.owner.addComponent(new RenderContainer(this.owner, definition, this.addToContainer.bind(this)));
+            this.owner.addComponent(new RenderContainer(this.owner, definition, () => this.addToContainer()));
         } else {
             this.addToContainer();
         }
@@ -118,11 +119,16 @@ export default createComponentClass(/** @lends platypus.components.RenderText.pr
                 this.sprite.text = text;
             } else {
                 if (text.style) {
-                    const textStyle = this.sprite.style;
-                    for (const key in text.style) {
-                        if (text.style.hasOwnProperty(key)) {
-                            textStyle[key] = text.style[key];
-                        }
+                    const
+                        textStyle = this.sprite.style,
+                        keys = Object.keys(text.style),
+                        {length} = keys;
+
+                    for (let i = 0; i < length; i++) {
+                        const
+                            key = keys[i];
+
+                        textStyle[key] = text.style[key];
                     }
                 }
                 if (typeof text.text === 'string') {
@@ -134,9 +140,7 @@ export default createComponentClass(/** @lends platypus.components.RenderText.pr
     
     methods: {
         addToContainer: function () {
-            var container = this.owner.container;
-
-            container.addChild(this.sprite);
+            this.owner.container.addChild(this.sprite);
         },
         
         destroy: function () {

@@ -329,10 +329,8 @@ export default createComponentClass(/** @lends platypus.components.RenderSprite.
      * @fires platypus.Entity#update-animation
      */
     initialize: (function () {
-        var createAnimationMap = function (animationMap, ss) {
-                var map  = null,
-                    anim = '';
-
+        const
+            createAnimationMap = function (animationMap, ss) {
                 if (animationMap) {
                     return animationMap;
                 } else if (Array.isArray(ss.frames) && (ss.frames.length === 1)) {
@@ -340,48 +338,36 @@ export default createComponentClass(/** @lends platypus.components.RenderSprite.
                     return null;
                 } else {
                     // Create 1-to-1 animation map since none was defined
-                    map = {};
-                    for (anim in ss.animations) {
-                        if (ss.animations.hasOwnProperty(anim)) {
-                            map[anim] = anim;
-                        }
-                    }
-                    return map;
+                    return Object.keys(ss.animations).reduce((map, value) => {
+                        map[value] = value;
+                        return map;
+                    }, {});
                 }
-            },
-            animationEnded = function (animation) {
-                /**
-                 * This event fires each time an animation completes.
-                 *
-                 * @event platypus.Entity#animation-ended
-                 * @param animation {String} The id of the animation that ended.
-                 */
-                this.owner.triggerEvent('animation-ended', animation);
             };
         
         return function () {
-            var animation = '',
-                definition = null,
+            const
                 ss = PIXIAnimation.formatSpriteSheet(this.spriteSheet),
-                map  = null;
+                map = createAnimationMap(this.animationMap, ss),
+                animation = map?.default ?? '';
 
             if (ss === PIXIAnimation.EmptySpriteSheet) {
                 platypus.debug.warn('Entity "' + this.owner.type + '": RenderSprite sprite sheet not defined.');
             }
             
-            map = createAnimationMap(this.animationMap, ss);
             this.stateBased = map && this.stateBased;
             this.eventBased = map && this.eventBased;
-            if (map) {
-                animation = map.default || '';
 
-                definition = Data.setUp(
-                    'animationEvents', this.eventBased ? this.animationEvents || map : null,
-                    'animationStates', this.stateBased ? this.animationStates || map : null,
-                    'forcePlayThrough', this.forcePlayThrough,
-                    'restart', this.restart,
-                    'component', this
-                );
+            if (map) {
+                const
+                    definition = Data.setUp(
+                        'animationEvents', this.eventBased ? this.animationEvents || map : null,
+                        'animationStates', this.stateBased ? this.animationStates || map : null,
+                        'forcePlayThrough', this.forcePlayThrough,
+                        'restart', this.restart,
+                        'component', this
+                    );
+                
                 this.owner.addComponent(new RenderAnimator(this.owner, definition));
                 definition.recycle();
             }
@@ -390,7 +376,15 @@ export default createComponentClass(/** @lends platypus.components.RenderSprite.
                 * PIXIAnimation created here:
                 */
             this.sprite = new PIXIAnimation(ss, animation);
-            this.sprite.onComplete = animationEnded.bind(this);
+            this.sprite.onComplete = (animation) => {
+                /**
+                 * This event fires each time an animation completes.
+                 *
+                 * @event platypus.Entity#animation-ended
+                 * @param animation {String} The id of the animation that ended.
+                 */
+                this.owner.triggerEvent('animation-ended', animation);
+            };
             this.sprite.x = this.offsetX;
             this.sprite.y = this.offsetY;
             this.sprite.zIndex = this.offsetZ;
@@ -411,7 +405,7 @@ export default createComponentClass(/** @lends platypus.components.RenderSprite.
                     'skewX', this.skewX,
                     'skewY', this.skewY
                 );
-                this.owner.addComponent(new RenderContainer(this.owner, definition, this.addToContainer.bind(this)));
+                this.owner.addComponent(new RenderContainer(this.owner, definition, () => this.addToContainer()));
                 definition.recycle();
             } else {
                 this.addToContainer();
@@ -453,7 +447,8 @@ export default createComponentClass(/** @lends platypus.components.RenderSprite.
         },
         
         playAnimation: function (animation, loop, restart) {
-            var sprite = this.sprite;
+            const
+                {sprite} = this;
 
             if (animation && sprite.has(animation)) {
                 sprite.gotoAndPlay(animation, loop, restart);
@@ -463,7 +458,8 @@ export default createComponentClass(/** @lends platypus.components.RenderSprite.
         },
 
         stopAnimation: function (animation) {
-            var sprite = this.sprite;
+            const
+                {sprite} = this;
 
             if (animation && sprite.has(animation)) {
                 sprite.gotoAndStop(animation);
@@ -480,7 +476,7 @@ export default createComponentClass(/** @lends platypus.components.RenderSprite.
     },
     
     getAssetList: (function () {
-        var
+        const
             getImages = function (ss, spriteSheets) {
                 if (ss) {
                     if (typeof ss === 'string') {
@@ -494,17 +490,19 @@ export default createComponentClass(/** @lends platypus.components.RenderSprite.
             };
         
         return function (component, props, defaultProps) {
-            var arr = null,
-                i = 0,
-                images = null,
+            const
                 spriteSheets = platypus.game.settings.spriteSheets,
-                ss = component.spriteSheet || props.spriteSheet || (defaultProps && defaultProps.spriteSheet) || null;
+                ss = component?.spriteSheet ?? props?.spriteSheet ?? defaultProps?.spriteSheet;
             
             if (Array.isArray(ss)) {
-                i = ss.length;
-                images = arrayCache.setUp();
+                const
+                    images = arrayCache.setUp();
+                let i = ss.length;
+
                 while (i--) {
-                    arr = getImages(ss[i], spriteSheets);
+                    const
+                        arr = getImages(ss[i], spriteSheets);
+                    
                     union(images, arr);
                     arrayCache.recycle(arr);
                 }
