@@ -21,40 +21,40 @@
 import RandomSet from '../RandomSet.js';
 import createComponentClass from '../factory.js';
 
-export default (function () {
-
-    var createTrigger = function (eventSet) {
-            return function (value, debug) {
-                this.owner.trigger(eventSet.get(), value, debug);
-            };
-        },
-        createTrueRandomTrigger = function (eventList) {
-            return function (value, debug) {
-                this.owner.trigger(eventList[Math.floor(Math.random() * eventList.length)], value, debug);
-            };
+const
+    createTrigger = function (eventSet) {
+        return function (value, debug) {
+            this.owner.trigger(eventSet.get(), value, debug);
         };
+    },
+    createTrueRandomTrigger = function (eventList) {
+        return function (value, debug) {
+            this.owner.trigger(eventList[Math.floor(Math.random() * eventList.length)], value, debug);
+        };
+    };
 
-    return createComponentClass(/** @lends platypus.components.RandomEvents.prototype */{
-        id: 'RandomEvents',
-        
-        initialize: function (definition) {
-            var event = '',
-                eventSet = null;
-            
-            
-            if (definition.events) {
-                for (event in definition.events) {
-                    if (definition.events.hasOwnProperty(event)) {
-                        if (definition.trueRandom) {
-                            this.addEventListener(event, createTrueRandomTrigger(definition.events[event]));
-                        } else {
-                            eventSet = RandomSet.setUp(definition.events[event]);
-                            this.addEventListener(event, createTrigger(eventSet));
-                        }
-                        
-                    }
+export default createComponentClass(/** @lends platypus.components.RandomEvents.prototype */{
+    id: 'RandomEvents',
+    
+    initialize: function () {
+        const
+            events = this.events;
+
+        if (events) {
+            const
+                keys = Object.keys(events),
+                {length} = keys;
+    
+            for (let i = 0; i < length; i++) {
+                const
+                    key = keys[i];
+
+                if (this.trueRandom) {
+                    this.addEventListener(key, createTrueRandomTrigger(events[key]));
+                } else {
+                    this.addEventListener(key, createTrigger(RandomSet.setUp(events[key])));
                 }
             }
         }
-    });
-}());
+    }
+});

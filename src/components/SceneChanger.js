@@ -105,13 +105,16 @@ export default (function () {
              * @param persistentData {Object} Any values that should be passed to the next scene via the "layer-loaded" and "layer-live" events.
              */
             "set-persistent-scene-data": function (data) {
-                var thisData = this.persistentData,
-                    key = '';
-                
-                for (key in data) {
-                    if (data.hasOwnProperty(key)) {
-                        thisData[key] = data[key];
-                    }
+                const
+                    thisData = this.persistentData,
+                    keys = Object.keys(thisData),
+                    {length} = keys;
+        
+                for (let i = 0; i < length; i++) {
+                    const
+                        key = keys[i];
+                        
+                    thisData[key] = data[key];
                 }
             }
         },
