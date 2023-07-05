@@ -14,8 +14,6 @@
 import {arrayCache, greenSlice} from './utils/array.js';
 import Component from './Component.js';
 
-var priority = 0;
-    
 export default function (componentDefinition = {}) {
     const
         {events, getAssetList, id, initialize, methods, properties, publicMethods, publicProperties} = componentDefinition,
@@ -70,13 +68,11 @@ export default function (componentDefinition = {}) {
                         keys = Object.keys(events),
                         {length} = keys;
 
-                    priority -= 1; // So event priority remains in order of component addition.
-
                     for (let i = 0; i < length; i++) {
                         const
                             key = keys[i];
 
-                        this.addEventListener(key, events[key], priority);
+                        this.addEventListener(key, events[key]);
                         if (aliases) {
                             const
                                 aliasKeys = Object.keys(aliases),
@@ -87,7 +83,7 @@ export default function (componentDefinition = {}) {
                                     alias = aliasKeys[j];
         
                                 if (aliases[alias] === key) {
-                                    this.addEventListener(alias, events[key], priority);
+                                    this.addEventListener(alias, events[key]);
                                 }
                             }
                         }

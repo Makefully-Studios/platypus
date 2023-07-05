@@ -52,7 +52,8 @@ const
  * @return {Boolean} Whether the ActionState is triggered, pressed, or released.
  */
 proto.update = function (state) {
-    var ss = this.stateSummary;
+    const
+        ss = this.stateSummary;
     
     this.valid     = state.includes(this.states);
     this.active    = this.inputs.some(orArray);

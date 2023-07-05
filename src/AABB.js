@@ -186,14 +186,13 @@ proto.reset = function () {
  * @param height {number} The new height of the AABB
  * @chainable
  */
-proto.resize = function (width, height) {
-    var w = width || 0,
-        h = height || 0,
-        hw = w / 2,
-        hh = h / 2;
+proto.resize = function (width = 0, height = 0) {
+    const
+        hw = width / 2,
+        hh = height / 2;
     
-    this.width  = w;
-    this.height = h;
+    this.width  = width;
+    this.height = height;
     this.halfWidth = hw;
     this.halfHeight = hh;
     if (typeof this.x === 'number') {
@@ -397,14 +396,11 @@ proto.intersects = function (aabb) {
  * @return {Number} Returns the area of the intersected AABB's.
  */
 proto.getIntersectionArea = function (aabb) {
-    var max    = Math.max,
-        min    = Math.min;
+    const
+        max = Math.max,
+        min = Math.min;
     
-    if (this.intersects(aabb)) {
-        return (min(this.bottom, aabb.bottom) - max(this.top,  aabb.top)) * (min(this.right,  aabb.right) - max(this.left, aabb.left));
-    } else {
-        return 0;
-    }
+    return this.intersects(aabb) ? (min(this.bottom, aabb.bottom) - max(this.top,  aabb.top)) * (min(this.right,  aabb.right) - max(this.left, aabb.left)) : 0;
 };
 
 /**
