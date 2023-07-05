@@ -10,23 +10,27 @@ const
     Interpolation = TweenJS.Interpolation,
     Tween = TweenJS.Tween,
     eases = (function () {
-        const easing = {};
+        const
+            easing = {},
+            keys = Object.keys(Easing),
+            {length} = keys;
 
-        for (const key in Easing) {
-            if (Easing.hasOwnProperty(key)) {
-                for (const type in Easing[key]) {
-                    if (Easing[key].hasOwnProperty(type)) {
-                        easing[key + '.' + type] = Easing[key][type];
-                    }
-                }
+        for (let i = 0; i < length; i++) {
+            const
+                key = keys[i],
+                types = Object.keys(Easing[key]),
+                {length: typesLength} = types;
+    
+            for (let j = 0; j < typesLength; j++) {
+                const
+                    type = types[j];
+
+                easing[key + '.' + type] = Easing[key][type];
             }
         }
 
         return easing;
-    }()),
-    trigger = function () {
-        this.trigger.apply(this, arguments);
-    };
+    }());
 
 export default createComponentClass(/** @lends platypus.components.Tween.prototype */{
     id: 'Tween',
@@ -86,7 +90,7 @@ export default createComponentClass(/** @lends platypus.components.Tween.prototy
      * @listens platypus.Entity#unpause-tween
      */
     initialize: function () {
-        var event = '',
+        const
             events = this.events;
 
         this.group = new Group();
@@ -98,20 +102,25 @@ export default createComponentClass(/** @lends platypus.components.Tween.prototy
         this.paused = false;
         
         if (events) {
-            for (event in events) {
-                if (events.hasOwnProperty(event)) {
-                    const tween = this.tweens[event] = this.createTweens(events[event]);
-                    this.addEventListener(event, this.runTween.bind(this, event));
+            const
+                keys = Object.keys(events),
+                {length} = keys;
 
-                    if (this.waitingToChain[event]) {
-                        const waits = this.waitingToChain[event];
+            for (let i = 0; i < length; i++) {
+                const
+                    event = keys[i],
+                    tween = this.tweens[event] = this.createTweens(events[event]);
 
-                        for (let i = 0; i < waits.length; i++) {
-                            waits[i].chain(tween);
-                        }
-                        arrayCache.recycle(waits);
-                        delete this.waitingToChain[event];
+                this.addEventListener(event, () => this.runTween(event));
+
+                if (this.waitingToChain[event]) {
+                    const waits = this.waitingToChain[event];
+
+                    for (let i = 0; i < waits.length; i++) {
+                        waits[i].chain(tween);
                     }
+                    arrayCache.recycle(waits);
+                    delete this.waitingToChain[event];
                 }
             }
         }
@@ -165,7 +174,8 @@ export default createComponentClass(/** @lends platypus.components.Tween.prototy
 
     methods: {
         createTween: function (tweenDefinition, chainable) {
-            const owner = this.owner,
+            const
+                owner = this.owner,
                 entity = tweenDefinition.target ? (typeof tweenDefinition.target === 'string' ? owner.parent.getEntityById(tweenDefinition.target) : tweenDefinition.target) : owner;
 
             if (!entity) {
@@ -175,18 +185,19 @@ export default createComponentClass(/** @lends platypus.components.Tween.prototy
                 platypus.debug.warn('Component Tween: Both `time` and `to` must be specified to create tween.');
                 return null;
             } else {
-                const tween = new Tween(entity, this.group);
+                const
+                    tween = new Tween(entity, this.group);
 
                 tween.to(tweenDefinition.to, tweenDefinition.time);
 
                 if (tweenDefinition.onUpdate) {
-                    tween.onUpdate((typeof tweenDefinition.onUpdate !== 'function') ? trigger.bind(owner, tweenDefinition.onUpdate) : tweenDefinition.onUpdate);
+                    tween.onUpdate((typeof tweenDefinition.onUpdate !== 'function') ? (...args) => owner.trigger(tweenDefinition.onUpdate, ...args) : tweenDefinition.onUpdate);
                 }
                 if (tweenDefinition.onStart) {
-                    tween.onStart((typeof tweenDefinition.onStart !== 'function') ? trigger.bind(owner, tweenDefinition.onStart) : tweenDefinition.onStart);
+                    tween.onStart((typeof tweenDefinition.onStart !== 'function') ? (...args) => owner.trigger(tweenDefinition.onStart, ...args) : tweenDefinition.onStart);
                 }
                 if (tweenDefinition.onStop) {
-                    tween.onStop((typeof tweenDefinition.onStop !== 'function') ? trigger.bind(owner, tweenDefinition.onStop) : tweenDefinition.onStop);
+                    tween.onStop((typeof tweenDefinition.onStop !== 'function') ? (...args) => owner.trigger(tweenDefinition.onStop, ...args) : tweenDefinition.onStop);
                 }
                 if (tweenDefinition.onComplete || tweenDefinition.yoyo) { // need fix for repeating an event that yoyo's
                     tween.onComplete(() => {
@@ -196,7 +207,7 @@ export default createComponentClass(/** @lends platypus.components.Tween.prototy
                         }
                         if (tweenDefinition.onComplete) {
                             if (typeof tweenDefinition.onComplete !== 'function') {
-                                trigger.call(owner, tweenDefinition.onComplete);
+                                owner.trigger(tweenDefinition.onComplete);
                             } else {
                                 tweenDefinition.onComplete();
                             }
@@ -204,7 +215,7 @@ export default createComponentClass(/** @lends platypus.components.Tween.prototy
                     });
                 }
                 if (tweenDefinition.onRepeat) {
-                    tween.onRepeat((typeof tweenDefinition.onRepeat !== 'function') ? trigger.bind(owner, tweenDefinition.onRepeat) : tweenDefinition.onRepeat);
+                    tween.onRepeat((typeof tweenDefinition.onRepeat !== 'function') ? (...args) => owner.trigger(tweenDefinition.onRepeat, ...args) : tweenDefinition.onRepeat);
                 }
 
                 if (tweenDefinition.chain) {
@@ -253,16 +264,11 @@ export default createComponentClass(/** @lends platypus.components.Tween.prototy
                     } else if (eases[tweenDefinition.easing]) {
                         tween.easing(eases[tweenDefinition.easing]);
                     } else {
-                        let str = '".',
-                            join = '", or "';
+                        const
+                            joinEnd = '", or "',
+                            join = '", "';
 
-                        for (const key in eases) {
-                            if (eases.hasOwnProperty(key)) {
-                                str = join + key + str;
-                                join = '", "';
-                            }
-                        }
-                        platypus.debug.warn('Component Tween: "' + tweenDefinition.easing + '" is not a valid easing value; must be ' + str.substring(3));
+                        platypus.debug.warn(`Component Tween: "${tweenDefinition.easing}" is not a valid easing value; must be ${Object.keys(eases).reduce((str, value, index) => `${index === 0 ? joinEnd : join}${value}${str}`, '".').substring(3)}`);
                     }
                 }
 
@@ -295,14 +301,17 @@ export default createComponentClass(/** @lends platypus.components.Tween.prototy
         },
 
         runTween: function (tweenDefinition) {
-            var tween = typeof tweenDefinition === 'string' ? this.tweens[tweenDefinition] : this.createTweens(tweenDefinition);
+            const
+                tween = typeof tweenDefinition === 'string' ? this.tweens[tweenDefinition] : this.createTweens(tweenDefinition);
 
             if (tween) {
                 // Clean out old values
-                for (const key in tween._valuesStart) {
-                    if (tween._valuesStart.hasOwnProperty(key)) {
-                        delete tween._valuesStart[key];
-                    }
+                const
+                    keys = Object.keys(tween._valuesStart),
+                    {length} = keys;
+        
+                for (let i = 0; i < length; i++) {
+                    delete tween._valuesStart[keys[i]];
                 }
 
                 // Run
