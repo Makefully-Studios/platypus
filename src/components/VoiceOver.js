@@ -1,7 +1,6 @@
 /* global platypus */
 import {arrayCache, greenSlice} from '../utils/array.js';
 import AudioVO from './AudioVO.js';
-import RenderSprite from './RenderSprite.js';
 import createComponentClass from '../factory.js';
 
 const
@@ -13,63 +12,44 @@ const
         }
     },
     createAudioDefinition = function (sound, events, message, frameLength) {
-        var i          = 0,
-            key        = '',
-            definition = {},
-            time       = 0,
-            lastFrame  = '',
-            thisFrame  = '',
+        const
+            soundId = typeof sound === 'string' ? sound : typeof sound.sound === 'string' ? sound.sound : '',
+            soundObj = soundId ? {} : sound.sound,
+            definition = {
+                sound: soundId,
+                events: [...sound.events],
+                ...soundObj
+            },
             voice = sound.voice,
-            mouthCues = sound.mouthCues;
-
-        if (typeof sound === 'string') {
-            definition.sound = sound;
-            definition.events = arrayCache.setUp();
-        } else if (typeof sound.sound === 'string') {
-            definition.sound = sound.sound;
-            if (sound.events) {
-                definition.events = greenSlice(sound.events);
-            } else {
-                definition.events = arrayCache.setUp();
-            }
-        } else {
-            for (key in sound.sound) {
-                if (sound.sound.hasOwnProperty(key)) {
-                    definition[key] = sound.sound[key];
-                }
-            }
-
-            if (definition.events) {
-                definition.events = greenSlice(definition.events);
-            } else {
-                definition.events = arrayCache.setUp();
-            }
-        }
-
-        if (!voice && !mouthCues && platypus.game.settings.mouthCues) {
-            mouthCues = platypus.game.settings.mouthCues[definition.sound] || platypus.game.settings.mouthCues[definition.sound.substring(definition.sound.lastIndexOf('/') + 1)];
-        }
+            mouthCues = sound.mouthCues ?? platypus.game.settings.mouthCues?.[definition.sound] ?? platypus.game.settings.mouthCues?.[definition.sound.substring(definition.sound.lastIndexOf('/') + 1)];
+        let time = 0;
 
         if (voice) {
+            let lastFrame = null;
+
             voice += ' ';
 
-            for (i = 0; i < voice.length; i++) {
-                thisFrame = voice[i];
+            for (let i = 0; i < voice.length; i++) {
+                const
+                    thisFrame = voice[i];
+
                 if (thisFrame !== lastFrame) {
                     lastFrame = thisFrame;
                     definition.events.push({
-                        "time": time,
-                        "event": getEventName(message, thisFrame)
+                        time,
+                        event: getEventName(message, thisFrame)
                     });
                 }
                 time += frameLength;
             }
         } else if (mouthCues) {
-            for (i = 0; i < mouthCues.length; i++) {
-                thisFrame = mouthCues[i];
+            for (let i = 0; i < mouthCues.length; i++) {
+                const
+                    thisFrame = mouthCues[i];
+
                 definition.events.push({
-                    "time": thisFrame.start * 1000,
-                    "event": getEventName(message, thisFrame.value)
+                    time: thisFrame.start * 1000,
+                    event: getEventName(message, thisFrame.value)
                 });
                 time += frameLength;
             }
@@ -78,22 +58,18 @@ const
         return definition;
     },
     createVO = function (sound, events, message, frameLength) {
-        var i = 0,
-            definitions = arrayCache.setUp();
-
         if (!events[' ']) {
             events[' '] = events.default;
         }
 
         if (Array.isArray(sound)) {
-            for (i = 0; i < sound.length; i++) {
-                if (typeof sound[i] === 'number') {
-                    definitions.push(sound[i]);
+            return sound.map((clip) => {
+                if (typeof clip === 'number') {
+                    return clip;
                 } else {
-                    definitions.push(createAudioDefinition(sound[i], events, message, frameLength));
+                    return createAudioDefinition(clip, events, message, frameLength);
                 }
-            }
-            return definitions;
+            });
         } else {
             return createAudioDefinition(sound, events, message, frameLength);
         }
@@ -103,6 +79,8 @@ export default createComponentClass(/** @lends platypus.components.VoiceOver.pro
     id: 'VoiceOver',
     
     properties: {
+        aliases: null,
+
         /**
          * Sets the pairing between letters in the voice-over strings and the animation frame to play.
          *
@@ -199,8 +177,23 @@ export default createComponentClass(/** @lends platypus.components.VoiceOver.pro
          * @type Object[]
          * @default null
          */
-        generatedVoiceOverMaps: null
+        generatedVoiceOverMaps: null,
 
+        acceptInput: null,
+        animation: null,
+        flip: null,
+        hidden: null,
+        interactive: null,
+        mask: null,
+        mirror: null,
+        offsetZ: null,
+        regX: null,
+        regY: null,
+        restart: null,
+        scaleX: null,
+        scaleY: null,
+        spriteSheet: null,
+        stateBased: null,
     },
 
     /**
@@ -217,54 +210,50 @@ export default createComponentClass(/** @lends platypus.components.VoiceOver.pro
      */
     initialize: function (definition, callback) {
         const
-            owner = this.owner,
-            componentInit = (Component, definition) => new Promise((resolve) => owner.addComponent(new Component(owner, definition, resolve)));
-
-        var i = '',
-            x = 0,
-            y = 0,
+            {aliases, acceptInput, animation, animationMap, flip, hidden, interactive, mask, messagePrefix, mirror, offsetZ, owner, regX, regY, restart, scaleX, scaleY, spriteSheet, stateBased, voiceOverMap = {}} = this,
+            animationKeys = Object.keys(animationMap),
+            {length: animationLength} = animationKeys,
+            componentInit = (Component, definition) => new Promise((resolve) => owner.addComponent(new Component(owner, definition, resolve))),
+            voMapKeys = Object.keys(voiceOverMap),
+            {length: voMapLength} = voMapKeys,
             audioDefinition = {
                 audioMap: {},
-                aliases: definition.aliases
+                aliases
             },
             animationDefinition = {
-                acceptInput: definition.acceptInput,
-                aliases: definition.aliases,
-                animation: definition.animation,
+                acceptInput,
+                aliases,
+                animation,
                 animationMap: {},
                 eventBased: true, // VO triggers events for changing lip-sync frames.
-                flip: definition.flip,
-                hidden: definition.hidden,
-                interactive: definition.interactive,
-                mask: definition.mask,
-                mirror: definition.mirror,
-                offsetZ: definition.offsetZ,
-                regX: definition.regX,
-                regY: definition.regY,
-                restart: definition.restart,
-                scaleX: definition.scaleX,
-                scaleY: definition.scaleY,
-                spriteSheet: definition.spriteSheet,
-                stateBased: definition.stateBased || false
+                flip,
+                hidden,
+                interactive,
+                mask,
+                mirror,
+                offsetZ,
+                regX,
+                regY,
+                restart,
+                scaleX,
+                scaleY,
+                spriteSheet,
+                stateBased
             };
 
-        if (this.messagePrefix) {
-            this.message = this.messagePrefix + '-';
+        if (messagePrefix) {
+            this.message = `${messagePrefix}-`;
         } else {
             this.message = '';
         }
-        
-        for (i in this.animationMap) {
-            if (this.animationMap.hasOwnProperty(i)) {
-                animationDefinition.animationMap[getEventName(this.message, i)] = this.animationMap[i];
-            }
+
+        for (let i = 0; i < animationLength; i++) {
+            const
+                key = animationKeys[i];
+
+            animationDefinition.animationMap[getEventName(this.message, key)] = animationMap[key];
         }
         animationDefinition.animationMap.default = this.animationMap.default;
-        
-
-        if (!this.voiceOverMap) {
-            this.voiceOverMap = {};
-        }
 
         if (this.generatedVoiceOverMaps) {
             const
@@ -292,31 +281,30 @@ export default createComponentClass(/** @lends platypus.components.VoiceOver.pro
                     }
                 };
 
-            for (y = 0; y < this.generatedVoiceOverMaps.length; y++) {
+            for (let y = 0; y < this.generatedVoiceOverMaps.length; y++) {
                 const
                     voBatch = this.generatedVoiceOverMaps[y],
                     prefix = voBatch.eventPrefix || "vo-",
                     audios = voBatch.audio;
 
                 if (Array.isArray(audios)) {
-                    for (x = 0; x < audios.length; x++) {
-                        const audio = audios[x];
+                    for (let x = 0; x < audios.length; x++) {
+                        const
+                            audio = audios[x];
+
                         createMapping(`${prefix}${audio}`, audio, voBatch);
                     }
                 } else {
-                    for (const key in audios) {
-                        if (audios.hasOwnProperty(key)) {
-                            createMapping(`${prefix}${key}`, audios[key], voBatch);
-                        }
-                    }
+                    Object.keys(audios).forEach((key) => createMapping(`${prefix}${key}`, audios[key], voBatch));
                 }
             }
         }
 
-        for (i in this.voiceOverMap) {
-            if (this.voiceOverMap.hasOwnProperty(i)) {
-                audioDefinition.audioMap[i] = createVO(this.voiceOverMap[i], this.animationMap, this.message, this.frameLength);
-            }
+        for (let i = 0; i < voMapLength; i++) {
+            const
+                key = voMapKeys[i];
+
+            audioDefinition.audioMap[key] = createVO(voiceOverMap[key], animationMap, this.message, this.frameLength);
         }
         
         Promise.all([componentInit(platypus.components[this.renderComponent, componentInit(AudioVO, audioDefinition)], animationDefinition)]).then(callback);
@@ -331,7 +319,8 @@ export default createComponentClass(/** @lends platypus.components.VoiceOver.pro
     },
     
     getAssetList: function (component, props, defaultProps) {
-        var ss = component.spriteSheet || props.spriteSheet || (defaultProps && defaultProps.spriteSheet);
+        const
+            ss = component?.spriteSheet ?? props?.spriteSheet ?? defaultProps?.spriteSheet;
         
         if (typeof ss === 'string') {
             return greenSlice(platypus.game.settings.spriteSheets[ss].images);
