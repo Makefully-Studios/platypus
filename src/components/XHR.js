@@ -85,29 +85,13 @@ export default createComponentClass(/** @lends platypus.components.XHR.prototype
     },
     
     methods: {// These are methods that are called on the component
-        setProperties: function (properties) {
-            var key     = '',
-                divider = '',
-                props   = properties || this;
-            
-            this.method       = props.method       || this.method       || "GET";
-            this.path         = props.path         || this.path         || null;
-            this.responseType = props.responseType || this.responseType || "text";
-            this.withCredentials = props.withCredentials || this.withCredentials || false;
-            
-            if ((props !== this) && props.data) {
-                this.data = '';
-                for (key in props.data) {
-                    if (props.data.hasOwnProperty(key)) {
-                        this.data += divider + key + '=' + props.data[key];
-                        divider = '&';
-                    }
-                }
-            } else {
-                this.data = '';
-            }
-            
-            this.onload = props.onload || this.onload || function () {
+        setProperties: function (props = {}) {
+            this.method = props.method ?? this.method ?? "GET";
+            this.path = props.path ?? this.path ?? null;
+            this.responseType = props.responseType ?? this.responseType ?? "text";
+            this.withCredentials = props.withCredentials ?? this.withCredentials ?? false;
+            this.data = props.data ? (new URLSearchParams(props.data)).toString() : '';
+            this.onload = props.onload ?? this.onload ?? (() => {
                 if (this.status === 200) {
                     /**
                      * This message is triggered on receiving a response from the server (if "onload" is not set by the original "request" message).
@@ -117,15 +101,12 @@ export default createComponentClass(/** @lends platypus.components.XHR.prototype
                      */
                     this.owner.triggerEvent('response', this.responseText);
                 }
-            }.bind(this);
+            });
         },
         get: function () {
-            var xhr  = new XMLHttpRequest(),
-                path = this.path;
-            
-            if (this.data) {
-                path += '?' + this.data;
-            }
+            const
+                xhr  = new XMLHttpRequest(),
+                path = this.data ? `${this.path}?${this.data}` : this.path;
             
             xhr.open(this.method, path, true);
             xhr.withCredentials = this.withCredentials;
@@ -134,7 +115,8 @@ export default createComponentClass(/** @lends platypus.components.XHR.prototype
             xhr.send();
         },
         post: function () {
-            var xhr = new XMLHttpRequest();
+            const
+                xhr = new XMLHttpRequest();
             
             xhr.open(this.method, this.path, true);
             xhr.withCredentials = this.withCredentials;
