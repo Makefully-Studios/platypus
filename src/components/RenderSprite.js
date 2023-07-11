@@ -392,19 +392,21 @@ export default createComponentClass(/** @lends platypus.components.RenderSprite.
             this.sprite.scale.y = this.localScaleY;
 
             if (!this.owner.container) {
-                definition = Data.setUp(
-                    'interactive', this.interactive,
-                    'mask', this.mask,
-                    'mirror', this.mirror,
-                    'flip', this.flip,
-                    'visible', this.visible,
-                    'cache', this.cache,
-                    'ignoreOpacity', this.ignoreOpacity,
-                    'scaleX', this.scaleX,
-                    'scaleY', this.scaleY,
-                    'skewX', this.skewX,
-                    'skewY', this.skewY
-                );
+                const
+                    definition = Data.setUp(
+                        'interactive', this.interactive,
+                        'mask', this.mask,
+                        'mirror', this.mirror,
+                        'flip', this.flip,
+                        'visible', this.visible,
+                        'cache', this.cache,
+                        'ignoreOpacity', this.ignoreOpacity,
+                        'scaleX', this.scaleX,
+                        'scaleY', this.scaleY,
+                        'skewX', this.skewX,
+                        'skewY', this.skewY
+                    );
+                
                 this.owner.addComponent(new RenderContainer(this.owner, definition, () => this.addToContainer()));
                 definition.recycle();
             } else {
