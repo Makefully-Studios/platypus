@@ -94,7 +94,6 @@ const
             }
         }
 
-        keys = checks.keys;
         if (keys) {
             let i = keys.length;
 
