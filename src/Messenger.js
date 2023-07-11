@@ -201,7 +201,7 @@ class Messenger {
         
         if (!this._destroyed && _listeners.hasOwnProperty(type) && (_listeners[type])) {
             const
-                listeners = greenSlice(listeners[type]);
+                listeners = greenSlice(_listeners[type]);
             let args = null,
                 i = count = listeners.length;
 
