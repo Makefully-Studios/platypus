@@ -499,7 +499,9 @@ export default createComponentClass(/** @lends platypus.components.Interactive.p
             if (container.mouseTarget && container.parent) {
                 container.visible = false;
                 container.removeDisplayObject = () => {
-                    container.parent.removeChild(container);
+                    if (container.parent) {
+                        container.parent.removeChild(container);
+                    }
                     this.container = null;
                 };
             }
