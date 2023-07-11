@@ -106,7 +106,7 @@ const
                         const
                             adding = adds[i];
 
-                        if (adding.destroyed || !adding.loadingComponents || adding.loadingComponents.attemptResolution()) {
+                        if (adding.destroyed || !adding.loadingComponents) {
                             removals.push(i);
                         }
                     }
