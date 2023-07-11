@@ -175,6 +175,21 @@ export default (function () {
             "transitionAngle": 600,
 
             /**
+             * Provides access at the layer level to the camera's world viewport.
+             *
+             * ```javascript
+             *     {
+             *         viewport, //platypus.AABB
+             *         orientation
+             *     }
+             * ```
+             *
+             * @property worldCamera
+             * @type platypus.Data
+             */
+            worldCamera: null,
+
+            /**
              * Sets the z-order of this layer relative to other loaded layers.
              *
              * @property z
@@ -208,7 +223,8 @@ export default (function () {
          * @fires platypus.Entity#render-update
          */
         initialize: function (definition) {
-            var worldVP = AABB.setUp(this.x, this.y, this.width, this.height),
+            const
+                worldVP = AABB.setUp(this.x, this.y, this.width, this.height),
                 worldCamera = Data.setUp(
                     "viewport", worldVP,
                     "orientation", definition.orientation || 0
