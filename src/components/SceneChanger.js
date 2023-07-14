@@ -107,7 +107,7 @@ export default (function () {
             "set-persistent-scene-data": function (data) {
                 const
                     thisData = this.persistentData,
-                    keys = Object.keys(thisData),
+                    keys = Object.keys(data),
                     {length} = keys;
         
                 for (let i = 0; i < length; i++) {
