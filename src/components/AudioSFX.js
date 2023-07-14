@@ -43,7 +43,7 @@ const
 
         return function (value) {
             const
-                soundInstance = Sound.exists(sound) ? Sound.find(sound) : Sound.add(sound),
+                soundInstance = platypus.assetCache.get(sound),
                 data = Data.setUp({
                     ...defaultSettings,
                     ...attributes,
