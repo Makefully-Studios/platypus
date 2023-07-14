@@ -73,7 +73,7 @@ export default class Component {
             
             // Now remove event listeners and methods.
             while (i--) {
-                this.removeMethod(publicMethods[keys[i]]);
+                this.removeMethod(keys[i]);
             }
             this.publicMethods.recycle();
             
