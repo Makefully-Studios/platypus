@@ -2,7 +2,6 @@
 import {arrayCache, greenSlice, greenSplice} from './utils/array.js';
 import Data from './Data.js';
 import Messenger from './Messenger.js';
-import {Sound} from '@pixi/sound';
 
 /**
  * This class is used to create `platypus.game.voPlayer` and manages playback by only playing one at a time, playing a list, and even handling captions at the same time.
@@ -172,7 +171,7 @@ class VOPlayer extends Messenger {
 
         //active audio
         if (this._soundInstance) {
-            return Sound.duration(this._soundInstance.alias);
+            return this._soundInstance.duration;
         } else if (this._currentVO && this._captions) { //captions only
             return this._captions.currentDuration;
         } else { //silence timer
@@ -186,6 +185,8 @@ class VOPlayer extends Messenger {
      * @return {int} The elapsed time in milliseconds.
      */
     getElapsed () {
+        const
+            {assetCache} = platypus;
         let index = 0,
             total = 0;
 
@@ -197,7 +198,7 @@ class VOPlayer extends Messenger {
         for (let i = 0; i < this._listCounter; ++i) {
             const item = this.voList[i];
             if (typeof item === "string") {
-                total += Sound.duration(item) * 1000;
+                total += assetCache.get(assetCache.getFileId(item)).duration * 1000;
             }
             else if (typeof item === "number")
             {
@@ -309,7 +310,7 @@ class VOPlayer extends Messenger {
      * Callback for when audio/timer is finished to advance to the next item in the list.
      * @private
      */
-    _onSoundFinished () {
+    _onSoundFinished (audio) {
         if (this._listCounter >= 0) {
             const currentVO = this._currentVO;
 
@@ -320,7 +321,7 @@ class VOPlayer extends Messenger {
              */
             this.trigger("end", currentVO);
             if (typeof currentVO === "string") {
-                this.voList[0] += Sound.duration(currentVO) * 1000;
+                this.voList[0] += audio.duration * 1000;
                 this.unloadSound(currentVO);
                 greenSplice(this.voList, 1);
                 this._listCounter -= 1;
@@ -420,8 +421,10 @@ class VOPlayer extends Messenger {
     _playSound () {
         const
             play = () => {
-                this._soundInstance = Sound.play(this._currentVO, this._onSoundFinished);
-                this._soundInstance.volume = this.volume;
+                this._soundInstance = platypus.assetCache.get(soundId).play({
+                    complete: this._onSoundFinished,
+                    volume: this.volume
+                });
                 if (this._captions) {
                     this._captions.start(this._currentVO);
                     this.game.on("tick", this._syncCaptionToSound);
@@ -456,11 +459,12 @@ class VOPlayer extends Messenger {
                     }
                 }
             },
+            currentVO = this._currentVO,
+            soundId = platypus.assetCache.getFileId(currentVO),
             arr = arrayCache.setUp({
-                id: this._currentVO,
-                src: this._currentVO + '.mp3'
-            }),
-            currentVO = this._currentVO;
+                alias: [soundId],
+                src: `${currentVO}.mp3`
+            });
 
         this.currentlyLoadingAudio = true;
 
@@ -558,12 +562,7 @@ class VOPlayer extends Messenger {
      * @public
      */
     unloadSound (sound) {
-        const
-            assetCache = this.assetCache;
-
-        if (assetCache.delete(sound)) {
-            Sound.remove(sound);
-        }
+        this.assetCache.delete(sound);
     }
 
     /**

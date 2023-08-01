@@ -1,6 +1,5 @@
 /* global platypus */
 import {arrayCache, greenSplice} from './utils/array.js';
-import {Sound} from '@pixi/sound';
 
 /**
  * This class plays sfx audio and manages Springroll volume changes.
@@ -11,9 +10,7 @@ import {Sound} from '@pixi/sound';
  export default class SFXPlayer {
     constructor () {
         this.volume = 1;
-        this.player = Sound;
         this.playingAudio = arrayCache.setUp();
-        this.sounds = arrayCache.setUp();
     }
 
     /**
@@ -27,17 +24,16 @@ import {Sound} from '@pixi/sound';
      */
     play (sound, data) {
         const
-            audio = sound.play ? sound.play(data) : this.player.play(sound, data);
+            sfx = typeof sound === 'string' ? platypus.assetCache.get(platypus.assetCache.getFileId(sound)) : sound,
+            audio = sfx.play(data);
 
         audio.initialVolume = (typeof data.initialVolume === 'number' ? data.initialVolume : audio.volume);
         audio.set('volume', audio.volume * this.volume);
         this.playingAudio.push(audio);
-        this.sounds.push(sound);
         audio.on('end', () => {
             const index = this.playingAudio.indexOf(audio);
 
             greenSplice(this.playingAudio, index);
-            greenSplice(this.sounds, index);
         });
 
         return audio;
@@ -56,7 +52,6 @@ import {Sound} from '@pixi/sound';
         audio.stop();
         if (index >= 0) {
             greenSplice(this.playingAudio, index);
-            greenSplice(this.sounds, index);
         } else {
             platypus.debug.warn('SFXPlayer: Did not find "' + audio.soundId + '"');
         }
@@ -90,7 +85,5 @@ import {Sound} from '@pixi/sound';
     destroy () {
         arrayCache.recycle(this.playingAudio);
         this.playingAudio = null;
-        arrayCache.recycle(this.sounds);
-        this.sounds = null;
     }
 };
