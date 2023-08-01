@@ -11,7 +11,7 @@ import {Assets} from 'pixi.js';
 import {arrayCache} from './utils/array.js';
 
 const
-    fn = /^(?:\w+:\/{2}\w+(?:\.\w+)*\/?)?(?:[\/.]*?(?:[^?]+)?\/)?(?:([^\/?]+)\.(\w+|{\w+(?:,\w+)*}))(?:\?\S*)?$/,
+    fn = /^(?:\w+:\/{2}\w+(?:\.\w+)*\/?)?(?:[\/.]*?(?:[^?]+)?\/)?(?:([^\/?]+?)(?:\.(\w+|{\w+(?:,\w+)*}))?)(?:\?\S*)?$/,
     formatAsset = function (asset) { //TODO: Make this behavior less opaque.
         const
             path = asset.src ?? asset,
