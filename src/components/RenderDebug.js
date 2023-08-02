@@ -139,9 +139,10 @@ export default (function () {
          */
         initialize: function () {
             this.container = new Container();
+            this.container.cullable = true;
+
             this.parentContainer = this.owner.parent.worldContainer;
             this.parentContainer.addChild(this.container);
-            this.needsCameraCheck = true;
 
             this.shapes = arrayCache.setUp();
             this.isOutdated = true;
@@ -158,11 +159,6 @@ export default (function () {
                     this.owner.removeComponent(this);
                     return;
                 }
-            },
-
-            "camera-update": function () {
-                // Set visiblity of sprite if within camera bounds
-                this.needsCameraCheck = true;
             },
 
             "handle-render": function () {
@@ -216,18 +212,8 @@ export default (function () {
 
                 this.container.setTransform(x, y, 1, 1, 0, 0, 0);
                 
-                // Set isCameraOn of sprite if within camera bounds
-                if (!this.needsCameraCheck) {
-                    this.needsCameraCheck = (this.lastX !== this.owner.x) || (this.lastY !== this.owner.y);
-                }
-                if (this.needsCameraCheck) {
-                    this.isOnCamera = this.owner.parent.isOnCanvas(this.container.getBounds(false));
-                    this.needsCameraCheck = false;
-                }
-                
                 this.lastX = this.owner.x;
                 this.lastY = this.owner.y;
-                this.container.visible = this.isOnCamera;
             },
 
             updateSprites: function () {
