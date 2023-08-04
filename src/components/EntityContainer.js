@@ -351,11 +351,25 @@ const
                     whenReady(entity);
                 } else {
                     if (typeof newEntity === 'string') {
-                        entity = new Entity(platypus.game.settings.entities[newEntity], null, whenReady, owner);
+                        const
+                            entityDefinition = platypus.game.settings.entities[newEntity];
+
+                        if (entityDefinition) {
+                            entity = new Entity(entityDefinition, {}, whenReady, owner);
+                        } else {
+                            throw new Error(`EntityContainer: There is no entity defined for type "${newEntity}".`);
+                        }
                     } else if (newEntity.id) {
-                        entity = new Entity(newEntity, null, whenReady, owner);
+                        entity = new Entity(newEntity, {}, whenReady, owner);
                     } else {
-                        entity = new Entity(platypus.game.settings.entities[newEntity.type], newEntity, whenReady, owner);
+                        const
+                            entityDefinition = platypus.game.settings.entities[newEntity.type];
+
+                        if (entityDefinition) {
+                            entity = new Entity(entityDefinition, newEntity, whenReady, owner);
+                        } else {
+                            throw new Error(`EntityContainer: There is no entity defined for type "${newEntity.type}".`);
+                        }
                     }
 
                     /**

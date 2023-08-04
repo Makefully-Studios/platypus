@@ -74,7 +74,7 @@ export default class Entity extends Messenger {
     }, {
         id,
         properties: instanceProperties = {}
-    }, callback, parent) {
+    } = {}, callback, parent) {
         // Set properties of messenger on this entity.
         super();
 
