@@ -645,11 +645,15 @@ export default createComponentClass(/** @lends platypus.components.RenderContain
                     }
                 }
 
-                this.parentContainer = container;
-                this.parentContainer.addChild(this.container);
+                if (container instanceof Entity) { // wait for entity to get a container.
+                    container.on('load', () => this.addToParentContainer(container));
+                } else {
+                    this.parentContainer = container;
+                    this.parentContainer.addChild(this.container);
 
-                if (this.mask && !this.localMask) {
-                    this.setMask(this.mask);
+                    if (this.mask && !this.localMask) {
+                        this.setMask(this.mask);
+                    }
                 }
             }
         }
