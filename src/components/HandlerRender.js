@@ -117,10 +117,6 @@ export default (function () {
             },
 
             "child-entity-added": function (entity) {
-                if (entity.container) {
-                    this.setParentRenderContainer(entity, entity.renderParent);
-                }
-                
                 /**
                  * Triggered on an entity added to the parent.
                  *
@@ -207,31 +203,9 @@ export default (function () {
             },
 
             setParentRenderContainer: function (entity, newContainer) {
-                let container = null;
-
-                entity.removeFromParentContainer();
-
-                if (!newContainer) {
-                    container = this.worldContainer;
-
-                } else if (typeof newContainer === "string") {
-
-                    const otherEntity = this.owner.getEntityById(newContainer);
-                    if (otherEntity) {
-                        container = otherEntity.container;
-                    } else {
-                        //Didn't find group.
-                        platypus.debug.warn("Trying to add to non-existent entity, added to World container instead.");
-                        container = this.worldContainer;
-                    }
-                } else if (newContainer instanceof Container) {
-                    container = newContainer;
-                } else {
-                    container = newContainer.container;
-                }
-
-                entity.addToParentContainer(container);
-
+                platypus.debug.warn("HandlerRender: No longer required to call 'setParentRenderContainer' on layer - just call 'addToParentContainer' on entity.")
+                
+                entity.addToParentContainer(newContainer);
             },
             destroy: function () {
                 this.worldContainer = null;
