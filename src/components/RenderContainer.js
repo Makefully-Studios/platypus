@@ -2,6 +2,7 @@
 import {ColorMatrixFilter, Container, Graphics, Matrix} from 'pixi.js';
 import AABB from '../AABB.js';
 import Data from '../Data.js';
+import Entity from '../Entity.js';
 import Interactive from './Interactive.js';
 import {arrayCache} from '../utils/array.js';
 import createComponentClass from '../factory.js';
