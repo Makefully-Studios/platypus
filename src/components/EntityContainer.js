@@ -250,17 +250,19 @@ const
              * @return {Entity}
              */
             getEntityById: function (id) {
-                for (let i = 0; i < this.entities.length; i++) {
-                    if (this.entities[i].id === id) {
-                        return this.entities[i];
-                    }
-                    if (this.entities[i].getEntityById) {
-                        const
-                            selection = this.entities[i].getEntityById(id);
+                const
+                    entity = this.entities.filter((entity) => entity.id === id)[0] ?? this.newAdds.filter((entity) => entity.id === id)[0];
 
-                        if (selection) {
-                            return selection;
-                        }
+                if (entity) {
+                    return entity;
+                }
+
+                for (let i = 0; i < this.entities.length; i++) {
+                    const
+                        selection = this.entities[i].getEntityById?.(id);
+
+                    if (selection) {
+                        return selection;
                     }
                 }
                 return null;
