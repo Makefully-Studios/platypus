@@ -35,6 +35,10 @@ const
 
 export default createComponentClass(/** @lends platypus.components.RandomEvents.prototype */{
     id: 'RandomEvents',
+
+    properties: {
+        events: null
+    },
     
     initialize: function () {
         const
