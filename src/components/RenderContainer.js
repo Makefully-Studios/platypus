@@ -465,7 +465,6 @@ export default createComponentClass(/** @lends platypus.components.RenderContain
             const owner = this.owner;
 
             owner.triggerEvent('input-on');
-            this.updateSprite(true, owner.x, owner.y);
         },
         
         /**
@@ -631,7 +630,7 @@ export default createComponentClass(/** @lends platypus.components.RenderContain
 
             if (!this.cache) {
                 const
-                    {parent} = this.owner;
+                    {parent, x, y} = this.owner;
                 let container = newContainer === true ? parent.worldContainer : newContainer?.container ?? newContainer ?? parent.worldContainer;
 
                 if (typeof newContainer === "string") {
@@ -651,6 +650,7 @@ export default createComponentClass(/** @lends platypus.components.RenderContain
                 } else {
                     this.parentContainer = container;
                     this.parentContainer.addChild(this.container);
+                    this.updateSprite(true, x, y);
 
                     if (this.mask && !this.localMask) {
                         this.setMask(this.mask);
