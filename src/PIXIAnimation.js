@@ -184,7 +184,7 @@ const
                         const anim = _animations[key] = new AnimatedSprite(animation.frames);
 
                         anim.animationSpeed = speed * animation.speed;
-                        anim.onComplete = anim.onLoop = (key, animation) => {
+                        anim.onComplete = anim.onLoop = () => {
                             if (this.onComplete) {
                                 this.onComplete(key);
                             }
