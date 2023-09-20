@@ -65,7 +65,16 @@ export default createComponentClass(/** @lends platypus.components.Interactive.p
          * @type String
          * @default false
          */
-        "relativeToSelf": false
+        "relativeToSelf": false,
+
+        /**
+         * Whether camera updates should trigger "pointermove" and "pressmove" events.
+         *
+         * @property trackCameraUpdates
+         * @type Boolean
+         * @default false
+         */
+        "trackCameraUpdates": false
     },
     
     publicProperties: {
@@ -382,6 +391,32 @@ export default createComponentClass(/** @lends platypus.components.Interactive.p
                      * @param entity {platypus.Entity} The entity receiving this event.
                      */
                     trigger(this, 'pointerout', event);
+                });
+            }
+
+            if (this.trackCameraUpdates) {
+                const
+                    handlePositionUpdate = (event) => {
+                        if (over) {
+                            over = event;
+                        }
+                    },
+                    handleCameraUpdate = this.addEventListener('camera-update', () => {
+                        if (over) {
+                            trigger(this, 'pointermove', over);
+                        }
+                    });
+                let over = null;
+
+                addListener('pointerover', (event) => over = event);
+                addListener('pointerdown', handlePositionUpdate);
+                addListener('pointermove', handlePositionUpdate);
+                addListener('pointerout', () => over = null);
+                this.owner.parent.triggerEvent('child-entity-updated', this.owner);
+
+                removals.push(() => {
+                    this.removeEventListener('camera-update', handleCameraUpdate);
+                    this.owner.parent.triggerEvent('child-entity-updated', this.owner);
                 });
             }
 
