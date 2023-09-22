@@ -358,14 +358,14 @@ export default (function () {
                             while (i--) {
                                 entity = actives[i];
                                 entity.triggerEvent('handle-post-collision-logic', msg);
-                                if (entity.lastState.update(entity.state)) {
+                                if (entity.lastState?.update(entity.state)) {
                                     entity.triggerEvent('state-changed', entity.state);
                                 }
                             }
                         } else {
                             while (i--) {
                                 entity = actives[i];
-                                if (entity.lastState.update(entity.state)) {
+                                if (entity.lastState?.update(entity.state)) {
                                     entity.triggerEvent('state-changed', entity.state);
                                 }
                             }

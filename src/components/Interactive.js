@@ -414,15 +414,17 @@ export default createComponentClass(/** @lends platypus.components.Interactive.p
                 addListener('pointerout', () => over = null);
                 this.owner.parent.triggerEvent('child-entity-updated', this.owner);
 
-                removals.push(() => {
+                removals.push((entityIsBeingDestroyed) => {
                     this.removeEventListener('camera-update', handleCameraUpdate);
-                    this.owner.parent.triggerEvent('child-entity-updated', this.owner);
+                    if (!entityIsBeingDestroyed) {
+                        this.owner.parent.triggerEvent('child-entity-updated', this.owner);
+                    }
                 });
             }
 
-            this.removeInputListeners = () => {
+            this.removeInputListeners = (entityIsBeingDestroyed = false) => {
                 for (let i = 0; i < removals.length; i++) {
-                    removals[i]();
+                    removals[i](entityIsBeingDestroyed);
                 }
                 arrayCache.recycle(removals);
                 sprite.eventMode = 'auto';
@@ -459,7 +461,7 @@ export default createComponentClass(/** @lends platypus.components.Interactive.p
                 {container, removeInputListeners} = this;
 
             if (removeInputListeners) {
-                removeInputListeners();
+                removeInputListeners(true); // let removal methods know that entity is being destroyed to prevent "child-entity-updated" being called which reactivates events.
             }
             
             // This handles removal after the mouseup event to prevent weird input behaviors. If it's not currently a mouse target, we let the render component handle its removal from the parent container.
