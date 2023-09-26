@@ -120,6 +120,8 @@ export default createComponentClass(/** @lends platypus.components.Interactive.p
         if (this.buttonMode) {
             platypus.debug.warn('Interactive: "buttonMode" is deprecated. Set "cursor" to "pointer" on the entity instead.');
         }
+
+        this.dragOver = false;
     },
 
     events: {
@@ -131,6 +133,12 @@ export default createComponentClass(/** @lends platypus.components.Interactive.p
          */
         "dispatch-event": function (event) {
             this.sprite.dispatchEvent(this.sprite, event.event, event.data);
+        },
+
+        'camera-update': function () {
+            if (this.dragOver) {
+                this.dragOver();
+            }
         },
         
         "input-on": function () {
@@ -400,31 +408,29 @@ export default createComponentClass(/** @lends platypus.components.Interactive.p
                         if (over) {
                             over = event;
                         }
-                    },
-                    handleCameraUpdate = this.addEventListener('camera-update', () => {
-                        if (over) {
-                            trigger(this, 'pointermove', over);
-                        }
-                    });
+                    };
                 let over = null;
+
+                this.dragOver = () => {
+                    if (over) {
+                        trigger(this, 'pointermove', over);
+                    }
+                };
 
                 addListener('pointerover', (event) => over = event);
                 addListener('pointerdown', handlePositionUpdate);
                 addListener('pointermove', handlePositionUpdate);
                 addListener('pointerout', () => over = null);
-                this.owner.parent.triggerEvent('child-entity-updated', this.owner);
-
-                removals.push((entityIsBeingDestroyed) => {
-                    this.removeEventListener('camera-update', handleCameraUpdate);
-                    if (!entityIsBeingDestroyed) {
-                        this.owner.parent.triggerEvent('child-entity-updated', this.owner);
-                    }
+                
+                removals.push(() => {
+                    over = null;
+                    this.dragOver = null;
                 });
             }
 
-            this.removeInputListeners = (entityIsBeingDestroyed = false) => {
+            this.removeInputListeners = () => {
                 for (let i = 0; i < removals.length; i++) {
-                    removals[i](entityIsBeingDestroyed);
+                    removals[i]();
                 }
                 arrayCache.recycle(removals);
                 sprite.eventMode = 'auto';
@@ -461,7 +467,7 @@ export default createComponentClass(/** @lends platypus.components.Interactive.p
                 {container, removeInputListeners} = this;
 
             if (removeInputListeners) {
-                removeInputListeners(true); // let removal methods know that entity is being destroyed to prevent "child-entity-updated" being called which reactivates events.
+                removeInputListeners();
             }
             
             // This handles removal after the mouseup event to prevent weird input behaviors. If it's not currently a mouse target, we let the render component handle its removal from the parent container.
