@@ -298,9 +298,12 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
         this.layerWidth  = this.tilesWidth  * this.tileWidth;
         this.layerHeight = this.tilesHeight * this.tileHeight;
 
+        this.edgeBleed = EDGE_BLEED;
+        this.edgesBleed = EDGES_BLEED;
+
         // Set up buffer cache size
-        this.cacheWidth  = Math.min(getPowerOfTwo(this.layerWidth  + EDGES_BLEED), this.maximumBuffer);
-        this.cacheHeight = Math.min(getPowerOfTwo(this.layerHeight + EDGES_BLEED), this.maximumBuffer);
+        this.cacheWidth  = Math.min(getPowerOfTwo(this.layerWidth  + this.edgesBleed), this.maximumBuffer);
+        this.cacheHeight = Math.min(getPowerOfTwo(this.layerHeight + this.edgesBleed), this.maximumBuffer);
 
         if (!this.tileCache) {
             this.buffer = 0; // prevents buffer logic from running if tiles aren't being cached.
@@ -432,6 +435,9 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
                         sprite = new Sprite(cacheTexture);
 
                     this.cacheAll = true;
+                    this.edgeBleed = 0;
+                    this.edgesBleed = 0;
+                    this.updateRegion(0); // reassess since edge bleed is removed.
                     this.render = this.renderCache;
                     this.cacheTexture = cacheTexture;
 
@@ -704,12 +710,11 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
 
         createGrid: function (container) {
             const
+                {edgeBleed: extrusion, edgesBleed: outerMargin} = this,
                 ch = this.cacheHeight,
                 cw = this.cacheWidth,
                 cth = this.cacheTilesHeight,
                 ctw = this.cacheTilesWidth,
-                outerMargin = EDGES_BLEED,
-                extrusion = EDGE_BLEED,
                 sx = this.scaleX,
                 sy = this.scaleY,
                 th = this.tileHeight,
@@ -751,16 +756,17 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
         
         updateRegion: function (margin) {
             const
+                {edgesBleed} = this,
                 tw = this.tileWidth * this.scaleX,
                 th = this.tileHeight * this.scaleY,
-                ctw = Math.min(this.tilesWidth,  ((this.cacheWidth - EDGES_BLEED)  / tw)  >> 0),
-                cth = Math.min(this.tilesHeight, ((this.cacheHeight - EDGES_BLEED) / th) >> 0);
+                ctw = Math.min(this.tilesWidth,  ((this.cacheWidth - edgesBleed)  / tw)  >> 0),
+                cth = Math.min(this.tilesHeight, ((this.cacheHeight - edgesBleed) / th) >> 0);
 
             if (!ctw) {
-                platypus.debug.warn('"' + this.owner.type + '" RenderTiles: The tiles are ' + tw + 'px wide which is larger than ' + (this.cacheWidth - EDGES_BLEED) + 'px (maximum cache size of ' + this.cacheWidth + 'px minus a 2px edge bleed). Increase the maximum cache size or reduce tile size.');
+                platypus.debug.warn('"' + this.owner.type + '" RenderTiles: The tiles are ' + tw + 'px wide which is larger than ' + (this.cacheWidth - edgesBleed) + 'px (maximum cache size of ' + this.cacheWidth + 'px minus a 2px edge bleed). Increase the maximum cache size or reduce tile size.');
             }
             if (!cth) {
-                platypus.debug.warn('"' + this.owner.type + '" RenderTiles: The tiles are ' + th + 'px high which is larger than ' + (this.cacheHeight - EDGES_BLEED) + 'px (maximum cache size of ' + this.cacheHeight + 'px minus a 2px edge bleed). Increase the maximum cache size or reduce tile size.');
+                platypus.debug.warn('"' + this.owner.type + '" RenderTiles: The tiles are ' + th + 'px high which is larger than ' + (this.cacheHeight - edgesBleed) + 'px (maximum cache size of ' + this.cacheHeight + 'px minus a 2px edge bleed). Increase the maximum cache size or reduce tile size.');
             }
 
             this.cacheTilesWidth  = ctw;
