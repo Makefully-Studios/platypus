@@ -203,7 +203,7 @@ export default createComponentClass(/** @lends platypus.components.EntityControl
             
             j = resolution.length;
             while (j--) {
-                resolution[i].resolve();
+                resolution[j].resolve();
             }
             
             arrayCache.recycle(resolution);
