@@ -11,13 +11,13 @@ const
             return msg + VO;
         }
     },
-    createAudioDefinition = function (sound, events, message, frameLength) {
+    createAudioDefinition = function (sound, events = [], message, frameLength) {
         const
             soundId = typeof sound === 'string' ? sound : typeof sound.sound === 'string' ? sound.sound : '',
             soundObj = soundId ? {} : sound.sound,
             definition = {
                 sound: soundId,
-                events: [...sound.events],
+                events: [...sound.events ?? []],
                 ...soundObj
             },
             voice = sound.voice,
