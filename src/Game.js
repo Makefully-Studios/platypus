@@ -7,7 +7,7 @@ import Entity from './Entity.js';
 import Messenger from './Messenger.js';
 import Resize from './Resize.js';
 import SFXPlayer from './SFXPlayer.js';
-import {Sound} from '@pixi/sound';
+import {sound} from '@pixi/sound';
 import Storage from './Storage.js';
 import TickerClient from './TickerClient.js';
 import TweenJS from '@tweenjs/tween.js';
@@ -367,13 +367,13 @@ class Game extends Messenger {
                         if (!this.paused) {
                             this.ticker.remove(this.tickInstance);
                             this.paused = true;
-                            Sound.pauseAll();
+                            sound.pauseAll();
                         }
                     } else {
                         if (this.paused) {
                             this.ticker.add(this.tickInstance);
                             this.paused = false;
-                            Sound.resumeAll();
+                            sound.resumeAll();
                         }
                     }
                 });
