@@ -443,7 +443,7 @@ class VOPlayer extends Messenger {
                             const
                                 arr = arrayCache.setUp({
                                     id: this._currentVO,
-                                    src: this._currentVO + '.mp3'
+                                    src: this._currentVO
                                 });
         
                             this.assetCache.load(arr);
@@ -463,7 +463,7 @@ class VOPlayer extends Messenger {
             soundId = platypus.assetCache.getFileId(currentVO),
             arr = arrayCache.setUp({
                 alias: [soundId],
-                src: `${currentVO}.mp3`
+                src: `${currentVO}`
             });
 
         this.currentlyLoadingAudio = true;
