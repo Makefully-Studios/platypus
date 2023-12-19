@@ -64,7 +64,7 @@ const
 
         if (Array.isArray(sound)) {
             return sound.map((clip) => {
-                if (typeof clip === 'number') {
+                if (typeof clip === 'number' || typeof clip === 'function') {
                     return clip;
                 } else {
                     return createAudioDefinition(clip, events, message, frameLength);
@@ -313,8 +313,8 @@ export default createComponentClass(/** @lends platypus.components.VoiceOver.pro
     },
 
     events: {
-        "load": function () {
-            this.owner.removeComponent(this);
+        "play-voice-over-with-lip-sync": function (vo) {
+            this.owner.triggerEvent('play-voice-over', createVO(vo, this.animationMap, this.message, this.frameLength));
         }
     },
     
