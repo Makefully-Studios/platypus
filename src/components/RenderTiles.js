@@ -961,7 +961,7 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
             renderer.render(wrapper, {
                 renderTexture
             });
-            dest.requiresUpdate = true;
+            wrapper.requiresUpdate = true;
         },
         
         updateGrid: function () {
