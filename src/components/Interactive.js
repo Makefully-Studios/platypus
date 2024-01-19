@@ -257,6 +257,8 @@ export default createComponentClass(/** @lends platypus.components.Interactive.p
                         container && //TML - This is in case we do a scene change using an event and the container is destroyed.
                         event.data.originalEvent // This is a workaround for a bug in Pixi 3 where phantom hover events are triggered. - DDD 7/20/16
                         ) {
+
+                        container.getBounds();  //TML 1/19/24 - Temporary solution for when container transform scale values were unset for a frame. getBounds() calls _recursivePostUpdateTransform() internally which ensures that the transform is up-to-date for this call.
                         const
                             {owner, relativeToSelf} = target,
                             camera = owner.worldCamera?.viewport ?? owner.parent.worldCamera.viewport,
