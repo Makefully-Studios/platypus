@@ -150,9 +150,9 @@ const
                 transform: null,
                 properties,
                 type: ''
-            },
+            };
+        let gid = obj.gid || -1,
             props = null;
-        let gid = obj.gid || -1;
         
         if (gid !== -1) {
             data.transform = entityTransformCheck(gid);
