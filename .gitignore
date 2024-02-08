@@ -10,3 +10,4 @@ npm-debug.log
 /.vscode/settings.json
 /build/.grunt
 /build/_SpecRunner.html
+env.json
