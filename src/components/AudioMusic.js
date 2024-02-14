@@ -19,7 +19,7 @@ const
         }
     },
     Tween = TweenJS.Tween,
-    tracks = {}; // List of actively-playing tracks.
+    activeTracks = {}; // List of actively-playing tracks.
 
 export default createComponentClass(/** @lends platypus.components.AudioMusic.prototype */{
     id: 'AudioMusic',
@@ -37,8 +37,11 @@ export default createComponentClass(/** @lends platypus.components.AudioMusic.pr
          *               "volume": 0.75,
          *               // Optional. Used to specify how loud to play audio on a range from 0 (mute) to 1 (full volume). Default is 1.
          *
-         *               "fade": 1000
+         *               "fade": 1000,
          *               // Optional. How long to fade to selected volume.
+         * 
+         *               "autoStart": true
+         *               // Optional. Whether the music should play as soon as the component loads.
          *           }
          *       }
          *
@@ -52,69 +55,82 @@ export default createComponentClass(/** @lends platypus.components.AudioMusic.pr
     },
         
     initialize: function () {
-        const
-            fadeOuts = arrayCache.setUp(),
-            keys = Object.keys(tracks),
-            {length} = keys,
-            tracks = this.tracks;
-        let fade = 1000;
-
         this.player = platypus.game.musicPlayer;
-        
-        for (let i = 0; i < length; i++) {
-            fadeOuts.push(keys[i]);
+        this.changeMusicTracks(this.tracks);
+    },
+
+    events: {
+        'change-music-tracks': function (tracks) {
+            this.changeMusicTracks(tracks);
         }
-    
-        if (tracks) {
+    },
+
+    methods: {
+        changeMusicTracks (tracks) {
             const
-                keys = Object.keys(tracks),
+                fadeOuts = arrayCache.setUp(),
+                keys = Object.keys(activeTracks),
                 {length} = keys;
+            let fade = 1000;
 
-            for (let j = 0; j < length; j++) {
+            for (let i = 0; i < length; i++) {
+                fadeOuts.push(keys[i]);
+            }
+        
+            if (tracks) {
                 const
-                    key = keys[j],
-                    fadeOut = fadeOuts.indexOf(key),
-                    trackProperties = tracks[key];
-                let sound = tracks[key],
-                    tween = null;
+                    keys = Object.keys(tracks),
+                    {length} = keys;
 
-                if (fadeOut >= 0) {
-                    greenSplice(fadeOuts, fadeOut);
-                } else { // gotta load it because it's not there!
-                    sound = tracks[key] = this.player.play(trackProperties.sound || trackProperties, {
-                        loop: Infinity,
-                        volume: trackProperties.fade ? 0 : (typeof trackProperties.volume === 'number' ? trackProperties.volume : 1),
-                        initialVolume: typeof trackProperties.volume === 'number' ? trackProperties.volume : 1
-                    });
-                }
+                for (let j = 0; j < length; j++) {
+                    const
+                        key = keys[j],
+                        fadeOut = fadeOuts.indexOf(key),
+                        trackProperties = tracks[key];
 
-                if (trackProperties.fade) {
-                    tween = new Tween(sound);
-                    tween.to({
-                        volume: (typeof trackProperties.volume === 'number' ? trackProperties.volume : 1) * this.player.volume
-                    }, trackProperties.fade);
-                    tween.start();
+                    if (trackProperties.autoStart !== false) {
+                        let sound = activeTracks[key],
+                            tween = null;
 
-                    // default to what is being used for defined sounds to handle undefined sounds.
-                    fade = trackProperties.fade;
+                        if (fadeOut >= 0) {
+                            greenSplice(fadeOuts, fadeOut);
+                        } else { // gotta load it because it's not there!
+                            sound = activeTracks[key] = this.player.play(trackProperties.sound || trackProperties, {
+                                loop: Infinity,
+                                volume: trackProperties.fade ? 0 : (typeof trackProperties.volume === 'number' ? trackProperties.volume : 1),
+                                initialVolume: typeof trackProperties.volume === 'number' ? trackProperties.volume : 1
+                            });
+                        }
+
+                        if (trackProperties.fade) {
+                            tween = new Tween(sound);
+                            tween.to({
+                                volume: (typeof trackProperties.volume === 'number' ? trackProperties.volume : 1) * this.player.volume
+                            }, trackProperties.fade);
+                            tween.start();
+
+                            // default to what is being used for defined sounds to handle undefined sounds.
+                            fade = trackProperties.fade;
+                        }
+                    }
                 }
             }
-        }
 
-        fadeOuts.forEach((value) => {
-            const sound = tracks[value],
-                tween = new Tween(sound);
+            fadeOuts.forEach((value) => {
+                const sound = activeTracks[value],
+                    tween = new Tween(sound);
 
-            tween.to({
-                volume: 0
-            }, fade);
-            tween.onComplete(() => {
-                this.player.stop(sound);
-                //sound.unload();
+                tween.to({
+                    volume: 0
+                }, fade);
+                tween.onComplete(() => {
+                    this.player.stop(sound);
+                    //sound.unload();
+                });
+                delete activeTracks[value];
+                tween.start();
             });
-            delete tracks[value];
-            tween.start();
-        });
+        }
     },
 
     getAssetList: function (component, props, defaultProps) {
