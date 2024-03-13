@@ -21,7 +21,7 @@ export default (function () {
                 return (ownerState) => ownerState.includes(states) ? skin : null;
             }
         },
-        getBaseTexture = function (path) {
+        getTextureSource = function (path) {
             const
                 asset = platypus.assetCache.get(path.substring(path.lastIndexOf('/') + 1, path.lastIndexOf('.')));
             
@@ -29,7 +29,7 @@ export default (function () {
                 platypus.debug.warn('RenderSpine: "' + path + '" is not a loaded asset.');
             }
 
-            return asset.baseTexture;
+            return asset.textureSource;
         };
     
     return createComponentClass(/** @lends platypus.components.RenderSpine.prototype */{
@@ -391,12 +391,12 @@ export default (function () {
                         spineAtlas = new TextureAtlas(atlas, (line, callback) => {
                             // Not sure if this handles memory well - keeping it in for now.
                             const
-                                baseTexture = getBaseTexture(line);
+                                textureSource = getTextureSource(line);
         
-                            callback(baseTexture);
+                            callback(textureSource);
         
-                            if (baseTexture.isLoading) {
-                                baseTexture.on('loaded', loadFinished);
+                            if (textureSource.isLoading) {
+                                textureSource.on('loaded', loadFinished);
                             } else {
                                 loadFinished();
                             }
@@ -754,7 +754,7 @@ export default (function () {
                                     images.push({
                                         src: lines[j],
                                         data: {
-                                            alphaMode: PIXI.ALPHA_MODES.PMA
+                                            alphaMode: 'pma'
                                         }
                                     });
                                 } else {

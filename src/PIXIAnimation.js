@@ -1,16 +1,16 @@
 /*global platypus */
-import {AnimatedSprite, BaseTexture, Container, Point, Rectangle, Sprite, Texture} from 'pixi.js';
+import {AnimatedSprite, TextureSource, Container, Point, Rectangle, Sprite, Texture} from 'pixi.js';
 import {arrayCache, greenSlice} from './utils/array.js';
 import Data from './Data.js';
 
 const
     MAX_KEY_LENGTH_PER_IMAGE = 128,
     animationCache = {},
-    baseTextureCache = {},
+    textureSourceCache = {},
     doNothing = function () {},
     emptyFrame = Texture.EMPTY,
     regex = /[\[\]{},-]/g,
-    getBaseTextures = function (images) {
+    getTextureSources = function (images) {
         const
             assetCache = platypus.assetCache,
             bts = arrayCache.setUp();
@@ -20,7 +20,7 @@ const
                 path = images[i];
 
             if (typeof path === 'string') {
-                if (!baseTextureCache[path]) {
+                if (!textureSourceCache[path]) {
                     const
                         asset = assetCache.get(path);
 
@@ -28,11 +28,11 @@ const
                         platypus.debug.warn(`PIXIAnimation: "${path}" is not a loaded asset.`);
                         break;
                     }
-                    baseTextureCache[path] = asset.baseTexture;
+                    textureSourceCache[path] = asset.textureSource;
                 }
-                bts.push(baseTextureCache[path]);
+                bts.push(textureSourceCache[path]);
             } else {
-                bts.push(new BaseTexture(path));
+                bts.push(new TextureSource(path));
             }
         }
         
@@ -102,7 +102,7 @@ const
     getAnimations = function (spriteSheet = {}) {
         const
             {frames, images} = spriteSheet,
-            bases = getBaseTextures(images),
+            bases = getTextureSources(images),
             textures = frames.map((frame) => new Texture(bases[frame[4]], new Rectangle(frame[0], frame[1], frame[2], frame[3]), null, null, 0, new Point((frame[5] || 0) / frame[2], (frame[6] || 0) / frame[3]))), // Set up texture for each frame
             anims = standardizeAnimations(spriteSheet.animations, textures); // Set up animations
 
@@ -121,7 +121,7 @@ const
     cacheAnimations = function (spriteSheet, cacheId) {
         const
             {frames, images} = spriteSheet,
-            bases = getBaseTextures(images),
+            bases = getTextureSources(images),
             textures = frames.map((frame) => new Texture(bases[frame[4]], new Rectangle(frame[0], frame[1], frame[2], frame[3]), null, null, 0, new Point((frame[5] || 0) / frame[2], (frame[6] || 0) / frame[3]))), // Set up texture for each frame
             anims = standardizeAnimations(spriteSheet.animations, textures); // Set up animations
 
@@ -484,7 +484,7 @@ const
                         addFrameArray(sFrames, dFrames, firstImageIndex);
                     } else {
                         const
-                            bases = getBaseTextures(images);
+                            bases = getTextureSources(images);
 
                         addFrameObject(sFrames, dFrames, firstImageIndex, bases);
                         arrayCache.recycle(bases);

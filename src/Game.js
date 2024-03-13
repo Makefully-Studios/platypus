@@ -1,6 +1,6 @@
 /* global document, platypus, window */
 import {Application, CaptionPlayer, TextRenderer} from 'springroll';
-import {Container, CullerPlugin, Renderer, Ticker, extensions} from 'pixi.js';
+import {Container, CullerPlugin, Application as PixiApplication, Ticker, extensions} from 'pixi.js';
 import {arrayCache, greenSlice, greenSplice, union} from './utils/array.js';
 import Data from './Data.js';
 import Entity from './Entity.js';
@@ -176,7 +176,7 @@ class Game extends Messenger {
     constructor (definition, options, onFinishedLoading) {
         const
             displayOptions = options.display || {},
-            load = function (displayOptions, settings) {
+            load = async function (displayOptions, settings) {
                 const
                     dpi = window.devicePixelRatio || 1,
                     ticker = options.workerTick ? new TickerClient() : Ticker.shared;
@@ -203,7 +203,7 @@ class Game extends Messenger {
 
                 this.stage = new Container();
                 this.stage.sortableChildren = true;
-                this.renderer = new Renderer({
+                this.renderer = (await (new PixiApplication({
                     width: this.canvas.width,
                     height: this.canvas.height,
                     view: this.canvas,
@@ -213,7 +213,7 @@ class Game extends Messenger {
                     clearBeforeRender: !!displayOptions.clearView,
                     backgroundColor: displayOptions.backgroundColor || 0,
                     autoResize: false
-                });
+                }).init())).renderer;
 
                 if (displayOptions.aspectRatio) { // Aspect ratio may be a single value like "4:3" or "4:3-2:1" for a range
                     const
