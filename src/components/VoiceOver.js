@@ -307,7 +307,7 @@ export default createComponentClass(/** @lends platypus.components.VoiceOver.pro
             audioDefinition.audioMap[key] = createVO(voiceOverMap[key], animationMap, this.message, this.frameLength);
         }
         
-        Promise.all([componentInit(platypus.components[this.renderComponent], animationDefinition), componentInit(AudioVO, audioDefinition)]).then(callback);
+        Promise.all([componentInit(typeof this.renderComponent === 'string' ? platypus.components[this.renderComponent] : this.renderComponent, animationDefinition), componentInit(AudioVO, audioDefinition)]).then(callback);
 
         return true;
     },
