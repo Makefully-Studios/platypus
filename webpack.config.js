@@ -14,15 +14,10 @@ module.exports = env => {
             filename: 'platypus.js',
             library: 'platypus'
         },
-        plugins: [
-            new webpack.ProvidePlugin({ // Needed to import pixi-spine correctly.
-                PIXI: 'pixi.js'
-            })
-        ],
         externals: {
             "@tweenjs/tween.js": "@tweenjs/tween.js",
             "@pixi/sound": "@pixi/sound",
-            "pixi-spine": "pixi-spine",
+            "@pixi/spine-pixi": "@pixi/spine-pixi",
             "pixi.js": "pixi.js",
             "springroll": "springroll"
         }

@@ -25,11 +25,11 @@
     },
     "peerDependencies": {
         "@pixi/sound": "^6.0.0",
+        "@pixi/spine-pixi": "^1.0.6",
         "@tweenjs/tween.js": "^23.1.1",
         "pako": "^2.1.0",
-        "pixi-spine": "^4.0.4",
         "pixi.js": "^8.0.1",
-        "springroll": "^2.5.1"
+        "springroll": "^2.6.0"
     },
     "engine": "node >= 0.10.22"
 }

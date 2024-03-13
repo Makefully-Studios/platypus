@@ -1,7 +1,6 @@
 /* global platypus */
 import * as PIXI from 'pixi.js';
-import {Spine, TextureAtlas} from 'pixi-spine';
-import {AtlasAttachmentLoader, SkeletonJson} from "@pixi-spine/runtime-3.8";
+import {Spine, TextureAtlas, AtlasAttachmentLoader, SkeletonJson} from "@pixi/spine-pixi";
 import {arrayCache, union} from '../utils/array.js';
 import Data from '../Data.js';
 import RenderAnimator from './RenderAnimator.js';
