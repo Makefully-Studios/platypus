@@ -203,7 +203,7 @@ class Game extends Messenger {
 
                 this.stage = new Container();
                 this.stage.sortableChildren = true;
-                this.renderer = (await (new PixiApplication({
+                this.pixiApp = new PixiApplication({
                     width: this.canvas.width,
                     height: this.canvas.height,
                     view: this.canvas,
@@ -213,7 +213,9 @@ class Game extends Messenger {
                     clearBeforeRender: !!displayOptions.clearView,
                     backgroundColor: displayOptions.backgroundColor || 0,
                     autoResize: false
-                }).init())).renderer;
+                });
+                await this.pixiApp.init();
+                this.renderer = this.pixiApp.renderer;
 
                 if (displayOptions.aspectRatio) { // Aspect ratio may be a single value like "4:3" or "4:3-2:1" for a range
                     const
