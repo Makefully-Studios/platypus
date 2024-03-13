@@ -775,7 +775,7 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
             this.cacheClipHeight  = cth * th;
 
             if (this.tileCache) {
-                this.mapContainer.mask = new Graphics().beginFill(0x000000).drawRect(0, 0, this.cacheClipWidth + margin, this.cacheClipHeight + margin).endFill();
+                this.mapContainer.mask = new Graphics().rect(0, 0, this.cacheClipWidth + margin, this.cacheClipHeight + margin).fill(0x000000);
             }
         },
 
@@ -790,7 +790,7 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
             this.cacheClipWidth   = this.cacheTilesWidth  * tw;
             this.cacheClipHeight  = this.cacheTilesHeight * th;
 
-            this.mapContainer.mask = new Graphics().beginFill(0x000000).drawRect(0, 0, this.cacheClipWidth, this.cacheClipHeight).endFill();
+            this.mapContainer.mask = new Graphics().rect(0, 0, this.cacheClipWidth, this.cacheClipHeight).fill(0x000000);
         },
 
         update: function (texture, bounds, tilesSpriteCache, oldBounds) {
@@ -928,8 +928,11 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
                 {renderer} = this;
 
             // This mask makes only the extruded border drawn for the next 4 draws so that inner holes aren't extruded in addition to the outer rim.
-            border.lineStyle(1, 0x000000);
-            border.drawRect(0.5, 0.5, this.cacheClipWidth + 1, this.cacheClipHeight + 1);
+            border.rect(0.5, 0.5, this.cacheClipWidth + 1, this.cacheClipHeight + 1);
+            border.stroke({
+                width: 1,
+                color: 0x000000
+            });
 
             //clearRenderTexture(renderer, dest);
 

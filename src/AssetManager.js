@@ -160,9 +160,7 @@ export default class AssetManager {
 
         if (needsLoading.length) {
             // Do this first to pass `data` property if needed
-            needsLoading.forEach((asset) => {
-                Assets.add(asset.alias, asset.src, asset.data);
-            });
+            needsLoading.forEach((asset) => Assets.add(asset));
 
             const
                 aliases = needsLoading.map((asset) => asset.alias[0]),

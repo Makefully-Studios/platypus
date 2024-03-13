@@ -59,8 +59,8 @@ export default createComponentClass(/** @lends platypus.components.RenderProgres
             this.color = +this.color.replace('#', '0x');
         }
         
-        b.f(this.backgroundColor).drawRect(-this.regX, -this.regY, this.width, this.height);
-        f.f(this.color).drawRect(-this.regX, -this.regY, this.width, this.height);
+        b.f(this.backgroundColor).rect(-this.regX, -this.regY, this.width, this.height);
+        f.f(this.color).rect(-this.regX, -this.regY, this.width, this.height);
         f.scale = new Point(0.0001, 1);
         con.addChild(b);
         con.addChild(f);

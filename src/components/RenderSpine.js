@@ -123,7 +123,7 @@ export default (function () {
             localScaleY: 1,
 
             /**
-             * Optional. A mask definition that determines where the image should clip. A string can also be used to create more complex shapes via the PIXI graphics API like: "mask": "r(10,20,40,40).drawCircle(30,10,12)". Defaults to no mask or, if simply set to true, a rectangle using the entity's dimensions.
+             * Optional. A mask definition that determines where the image should clip. A string can also be used to create more complex shapes via the PIXI graphics API like: "mask": "r(10,20,40,40).circle(30,10,12)". Defaults to no mask or, if simply set to true, a rectangle using the entity's dimensions.
              *
              *  "mask": {
              *      "x": 10,
@@ -134,7 +134,7 @@ export default (function () {
              *
              *  -OR-
              *
-             *  "mask": "r(10,20,40,40).drawCircle(30,10,12)"
+             *  "mask": "r(10,20,40,40).circle(30,10,12)"
              *
              * @property mask
              * @type Object

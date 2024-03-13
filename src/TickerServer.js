@@ -10,7 +10,7 @@ self.onmessage = ({data}) => {
                 newTime = performance.now();
 
             self.postMessage({
-                elapsedMS: newTime - time
+                deltaTime: newTime - time
             });
 
             time = newTime;

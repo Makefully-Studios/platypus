@@ -29,21 +29,24 @@ const
 
 export default (function () {
     var createShape = function (shape, color, left, top, width, height, z, outline) {
-            var newShape = new Graphics().beginFill(color, 0.1);
-
-            if (outline) {
-                newShape.lineStyle(outline, color);
-            }
+            var newShape = new Graphics();
 
             switch (shape) {
             case 'rectangle':
-                newShape.drawRect(left, top, width, height);
+                newShape.rect(left, top, width, height);
                 break;
             case 'circle':
-                newShape.drawCircle(0, 0, width);
+                newShape.circle(0, 0, width);
                 break;
             }
             newShape.z = z;
+            newShape.fill(color, 0.1);
+            if (outline) {
+                newShape.stroke({
+                    width: outline,
+                    color
+                });
+            }
 
             return newShape;
         },

@@ -1,6 +1,6 @@
 /* global document, platypus, window */
 import {Application, CaptionPlayer, TextRenderer} from 'springroll';
-import {Container, Renderer, Ticker} from 'pixi.js';
+import {Container, CullerPlugin, Renderer, Ticker, extensions} from 'pixi.js';
 import {arrayCache, greenSlice, greenSplice, union} from './utils/array.js';
 import Data from './Data.js';
 import Entity from './Entity.js';
@@ -123,6 +123,9 @@ const
             }
         });
     };
+
+// Set up Pixi culling on every frame.
+extensions.add(CullerPlugin);
 
 /**
  * This class is used to create the `platypus.game` object and loads the Platypus game as described by the game configuration files.
@@ -423,7 +426,7 @@ class Game extends Messenger {
      * @fires platypus.Game#tick
      * @fires platypus.Entity#tick
      **/
-    tick (ticker, tickMessage, deltaTime) {
+    tick (ticker, tickMessage, {deltaTime}) {
         const loading = this.loading;
 
         tickMessage.delta = tickMessage.deltaMS = ticker.deltaMS;

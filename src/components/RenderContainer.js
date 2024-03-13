@@ -69,7 +69,7 @@ export default createComponentClass(/** @lends platypus.components.RenderContain
     
     properties: {
         /**
-         * Optional. A mask definition that determines where the image should clip. A string can also be used to create more complex shapes via the PIXI graphics API like: "mask": "r(10,20,40,40).drawCircle(30,10,12)". Defaults to no mask or, if simply set to true, a rectangle using the entity's dimensions. Note that the mask is in world coordinates by default. To make the mask local to the entity's coordinates, set `localMask` to `true` in the RenderContainer properties.
+         * Optional. A mask definition that determines where the image should clip. A string can also be used to create more complex shapes via the PIXI graphics API like: "mask": "r(10,20,40,40).circle(30,10,12)". Defaults to no mask or, if simply set to true, a rectangle using the entity's dimensions. Note that the mask is in world coordinates by default. To make the mask local to the entity's coordinates, set `localMask` to `true` in the RenderContainer properties.
          *
          *  "mask": {
          *      "x": 10,
@@ -80,7 +80,7 @@ export default createComponentClass(/** @lends platypus.components.RenderContain
          *
          *  -OR-
          *
-         *  "mask": "r(10,20,40,40).drawCircle(30,10,12)"
+         *  "mask": "r(10,20,40,40).circle(30,10,12)"
          *
          * @property mask
          * @type Object
@@ -564,17 +564,16 @@ export default createComponentClass(/** @lends platypus.components.RenderContain
                 gfx = shape;
             } else {
                 gfx = new Graphics();
-                gfx.beginFill(0x000000, 1);
                 if (typeof shape === 'string') {
                     processGraphics(gfx, shape);
                 } else if (shape.radius) {
-                    gfx.drawCircle(shape.x || 0, shape.y || 0, shape.radius);
+                    gfx.circle(shape.x || 0, shape.y || 0, shape.radius);
                 } else if (shape instanceof AABB) {
-                    gfx.drawRect(shape.left, shape.top, shape.width, shape.height);
+                    gfx.rect(shape.left, shape.top, shape.width, shape.height);
                 } else if (shape.width && shape.height) {
-                    gfx.drawRect(shape.x || 0, shape.y || 0, shape.width, shape.height);
+                    gfx.rect(shape.x || 0, shape.y || 0, shape.width, shape.height);
                 }
-                gfx.endFill();
+                gfx.fill(0x000000, 1);
             }
             
             gfx.isMask = true;

@@ -8,8 +8,8 @@ export default class {
         this.elapsedMS = this.deltaMS;
         
         worker.onmessage = ({data}) => {
-            this.elapsedMS = data.elapsedMS;
-            listeners.forEach((listener) => listener(data.elapsedMS));
+            this.elapsedMS = data.deltaTime;
+            listeners.forEach((listener) => listener(data));
         };
 
         this.start();
