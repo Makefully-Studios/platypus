@@ -850,7 +850,10 @@ export default (function () {
                 this.windowPerWorldUnitWidth  = this.viewport.width  / worldVP.width;
                 this.windowPerWorldUnitHeight = this.viewport.height / worldVP.height;
                 
-                this.container.setTransform(this.viewport.x - this.viewport.halfWidth, this.viewport.y - this.viewport.halfHeight);
+                this.container.updateTransform({
+                    x: this.viewport.x - this.viewport.halfWidth,
+                    y: this.viewport.y - this.viewport.halfHeight
+                });
                 
                 this.viewportUpdate = true;
                 
@@ -979,8 +982,20 @@ export default (function () {
                     msg.orientation    = worldCamera.orientation;
                     
                     // Transform the world to appear within camera
-                    this.world.setTransform(-viewport.x, -viewport.y, 1, 1, 0);
-                    this.container.setTransform(viewport.halfWidth * msg.scaleX, viewport.halfHeight * msg.scaleY, msg.scaleX, msg.scaleY, msg.orientation);
+                    this.world.updateTransform({
+                        x: -viewport.x,
+                        y: -viewport.y,
+                        scaleX: 1,
+                        scaleY: 1,
+                        rotation: 0
+                    });
+                    this.container.updateTransform({
+                        x: viewport.halfWidth * msg.scaleX,
+                        y: viewport.halfHeight * msg.scaleY,
+                        scaleX: msg.scaleX,
+                        scaleY: msg.scaleY,
+                        rotation: msg.orientation
+                    });
                     this.container.visible = true;
 
                     /**

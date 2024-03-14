@@ -535,7 +535,15 @@ export default createComponentClass(/** @lends platypus.components.RenderContain
                 matrix.ty = y + o[1][2];
                 this.container.transform.setFromMatrix(matrix);
             } else {
-                this.container.setTransform(x, y, this.scaleX * mirrored, this.scaleY * flipped, (rotation ? (rotation / 180) * Math.PI : 0), this.skewX, this.skewY);
+                this.container.updateTransform({
+                    x,
+                    y,
+                    scaleX: this.scaleX * mirrored,
+                    scaleY: this.scaleY * flipped,
+                    rotation: (rotation ? (rotation / 180) * Math.PI : 0),
+                    skewX: this.skewX,
+                    skewY: this.skewY
+                });
             }
             
             this.lastX = x;

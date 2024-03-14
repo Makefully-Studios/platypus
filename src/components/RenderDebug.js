@@ -213,7 +213,15 @@ export default (function () {
                     this.container.zIndex = this.owner.z + 0.000001;
                 }
 
-                this.container.setTransform(x, y, 1, 1, 0, 0, 0);
+                this.container.updateTransform({
+                    x,
+                    y,
+                    scaleX: 1,
+                    scaleY: 1,
+                    rotation: 0,
+                    skewX: 0,
+                    skewY: 0
+                });
                 
                 this.lastX = this.owner.x;
                 this.lastY = this.owner.y;

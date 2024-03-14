@@ -1,7 +1,6 @@
 /* global platypus */
-import * as PIXI from 'pixi.js';
-import {Spine, TextureAtlas, AtlasAttachmentLoader, SkeletonJson} from "@pixi/spine-pixi";
-import {arrayCache, union} from '../utils/array.js';
+import {Spine, AtlasAttachmentLoader, SkeletonJson} from "@pixi/spine-pixi";
+import {arrayCache} from '../utils/array.js';
 import Data from '../Data.js';
 import RenderAnimator from './RenderAnimator.js';
 import RenderContainer from './RenderContainer.js';
@@ -20,16 +19,6 @@ export default (function () {
 
                 return (ownerState) => ownerState.includes(states) ? skin : null;
             }
-        },
-        getTextureSource = function (path) {
-            const
-                asset = platypus.assetCache.get(path.substring(path.lastIndexOf('/') + 1, path.lastIndexOf('.')));
-            
-            if (!asset) {
-                platypus.debug.warn('RenderSpine: "' + path + '" is not a loaded asset.');
-            }
-
-            return asset.textureSource;
         };
     
     return createComponentClass(/** @lends platypus.components.RenderSpine.prototype */{
@@ -378,29 +367,15 @@ export default (function () {
                     }
                 };
             
-            return function (def, loadFinished) {
+            return function () {
                 // If PIXI.spine is unavailable, this component doesn't work.
                 if (!Spine) {
                     platypus.debug.error('RenderSpine requires `PIXI.spine` to function.');
                     return false;
                 } else {
                     const
-                        settings = platypus.game.settings,
-                        atlas = settings.atlases[this.atlas],
-                        skeleton = settings.skeletons[this.skeleton],
-                        spineAtlas = new TextureAtlas(atlas, (line, callback) => {
-                            // Not sure if this handles memory well - keeping it in for now.
-                            const
-                                textureSource = getTextureSource(line);
-        
-                            callback(textureSource);
-        
-                            if (textureSource.isLoading) {
-                                textureSource.on('loaded', loadFinished);
-                            } else {
-                                loadFinished();
-                            }
-                        }),
+                        skeleton = platypus.assetCache.get(this.skeleton),
+                        spineAtlas = platypus.assetCache.get(this.atlas),
                         spineJsonParser = new SkeletonJson(new AtlasAttachmentLoader(spineAtlas)),
                         skeletonData = spineJsonParser.readSkeletonData(skeleton),
                         spine = this.spine = new Spine(skeletonData),
@@ -641,7 +616,10 @@ export default (function () {
             },
 
             innerPlayAnimation: function (animation, loop) {
-                const spine = this.spine;
+                const
+                    {currentAnimations, spine} = this,
+                    {state, skeleton} = spine,
+                    {data} = skeleton;
                 let animated = 0,
                     remaining = animation;
 
@@ -652,9 +630,9 @@ export default (function () {
                     
                     remaining = (semicolon >= 0) ? remaining.substring(semicolon + 1) : '';
 
-                    if (spine.state.hasAnimation(next)) {
-                        this.currentAnimations[animated] = next;
-                        spine.state.setAnimation(animated, next, loop);
+                    if (data.findAnimation(next)) {
+                        currentAnimations[animated] = next;
+                        state.setAnimation(animated, next, loop);
                     }
                     animated += 1;
                 }
@@ -687,9 +665,9 @@ export default (function () {
 
             setMixTimes: function (mixTimes) {
                 const
-                    spine = this.spine,
-                    animations = spine.spineData.animations,
-                    stateData = spine.stateData;
+                    {spine} = this,
+                    {animations} = spine.skeleton.data,
+                    {data: stateData} = spine.state;
 
                 if (typeof mixTimes === 'number') {
                     let i = animations.length;
@@ -768,27 +746,13 @@ export default (function () {
                 };
             
             return function (component, props, defaultProps) {
-                const
-                    atlases = platypus.game.settings.atlases,
-                    atlas = component.atlas ?? props.atlas ?? defaultProps.atlas,
-                    pma = component.preMultipliedAlpha ?? props.preMultipliedAlpha ?? defaultProps.preMultipliedAlpha ?? true;
-                
-                if (Array.isArray(atlas)) {
-                    const
-                        images = arrayCache.setUp();
-                    let i = atlas.length;
-                    
-                    while (i--) {
-                        const
-                            arr = getImages(atlas[i], atlases, pma);
-
-                        union(images, arr);
-                        arrayCache.recycle(arr);
-                    }
-                    return images;
-                } else {
-                    return getImages(atlas, atlases, pma);
-                }
+                return [{
+                    alias: [component?.atlas ?? props?.atlas ?? defaultProps?.atlas],
+                    src: component?.atlas ?? props?.atlas ?? defaultProps?.atlas
+                }, {
+                    alias: [component?.skeleton ?? props?.skeleton ?? defaultProps?.skeleton],
+                    src: component?.skeleton ?? props?.skeleton ?? defaultProps?.skeleton
+                }];
             };
         }())
     });
