@@ -201,8 +201,6 @@ class Game extends Messenger {
                     this.voPlayer.captions = new CaptionPlayer(settings.captions, new TextRenderer(captionsElement));
                 }
 
-                this.stage = new Container();
-                this.stage.sortableChildren = true;
                 this.pixiApp = new PixiApplication({
                     width: this.canvas.width,
                     height: this.canvas.height,
@@ -216,6 +214,8 @@ class Game extends Messenger {
                 });
                 await this.pixiApp.init();
                 this.renderer = this.pixiApp.renderer;
+                this.stage = this.pixiApp.stage;
+                this.stage.sortableChildren = true;
 
                 if (displayOptions.aspectRatio) { // Aspect ratio may be a single value like "4:3" or "4:3-2:1" for a range
                     const
