@@ -371,7 +371,6 @@ export default (function () {
                 // If PIXI.spine is unavailable, this component doesn't work.
                 if (!Spine) {
                     platypus.debug.error('RenderSpine requires `PIXI.spine` to function.');
-                    return false;
                 } else {
                     const
                         skeleton = platypus.assetCache.get(this.skeleton),
@@ -542,8 +541,6 @@ export default (function () {
                         this.addToContainer();
                     }
                 }
-
-                return true; //using callback
             };
         }()),
 
