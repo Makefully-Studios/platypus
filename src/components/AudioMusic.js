@@ -68,15 +68,9 @@ export default createComponentClass(/** @lends platypus.components.AudioMusic.pr
     methods: {
         changeMusicTracks (tracks) {
             const
-                fadeOuts = arrayCache.setUp(),
-                keys = Object.keys(activeTracks),
-                {length} = keys;
+                fadeOuts = Object.keys(activeTracks);
             let fade = 1000;
 
-            for (let i = 0; i < length; i++) {
-                fadeOuts.push(keys[i]);
-            }
-        
             if (tracks) {
                 const
                     keys = Object.keys(tracks),
