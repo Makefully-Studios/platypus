@@ -14,6 +14,8 @@ import TweenJS from '@tweenjs/tween.js';
 import VOPlayer from './VOPlayer.js';
 import sayHello from './sayHello.js';
 
+sound.disableAutoPause = true; // We manually handle pausing via Springroll Container events.
+
 const
     XMLHttpRequest = window.XMLHttpRequest,
     getJSON = function (path, callback) {
