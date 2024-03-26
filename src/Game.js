@@ -201,7 +201,8 @@ class Game extends Messenger {
                     this.voPlayer.captions = new CaptionPlayer(settings.captions, new TextRenderer(captionsElement));
                 }
 
-                this.pixiApp = new PixiApplication({
+                this.pixiApp = new PixiApplication();
+                await this.pixiApp.init({
                     width: this.canvas.width,
                     height: this.canvas.height,
                     view: this.canvas,
@@ -212,7 +213,6 @@ class Game extends Messenger {
                     backgroundColor: displayOptions.backgroundColor || 0,
                     autoResize: false
                 });
-                await this.pixiApp.init();
                 this.renderer = this.pixiApp.renderer;
                 this.stage = this.pixiApp.stage;
                 this.stage.sortableChildren = true;
