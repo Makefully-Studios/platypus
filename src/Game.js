@@ -176,7 +176,7 @@ class Game extends Messenger {
     constructor (definition, options, onFinishedLoading) {
         const
             displayOptions = options.display || {},
-            load = async function (displayOptions, settings) {
+            load = async function (settings) {
                 const
                     dpi = window.devicePixelRatio || 1,
                     ticker = options.workerTick ? new TickerClient() : Ticker.shared;
@@ -206,12 +206,8 @@ class Game extends Messenger {
                     width: this.canvas.width,
                     height: this.canvas.height,
                     view: this.canvas,
-                    transparent: !!displayOptions.transparent,
-                    antialias: !!displayOptions.antiAlias,
-                    preserveDrawingBuffer: !!displayOptions.preserveDrawingBuffer,
-                    clearBeforeRender: !!displayOptions.clearView,
-                    backgroundColor: displayOptions.backgroundColor || 0,
-                    autoResize: false
+                    autoResize: false,
+                    ...displayOptions
                 });
                 this.renderer = this.pixiApp.renderer;
                 this.stage = this.pixiApp.stage;
@@ -413,9 +409,9 @@ class Game extends Messenger {
         this.loadingQueue = arrayCache.setUp();
 
         if (typeof definition === 'string') {
-            loadJSONLinks(definition, load.bind(this, displayOptions));
+            loadJSONLinks(definition, load.bind(this));
         } else {
-            load.call(this, displayOptions, definition);
+            load.call(this, definition);
         }
     }
     
