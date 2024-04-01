@@ -332,19 +332,22 @@ export default class Entity extends Messenger {
      * @param data {Object} Layer data that affects asset list.
      * @return {Array} A list of the necessary assets to load.
      */
-    static getAssetList (def, props, data) {
-        const
-            {components, preload, properties, type} = def ?? {};
-
+    static getAssetList ({components, preload = [], properties, type} = {}, props, data) {
         if (type) {
             const
                 definition = platypus.game.settings.entities[type];
 
             if (!definition) {
-                platypus.debug.warn(`Entity "${type}": This entity is not defined.`, def);
+                platypus.debug.warn(`Entity "${type}": This entity is not defined.`);
                 return arrayCache.setUp();
             }
-            return Entity.getAssetList(definition, properties, data);
+            return Entity.getAssetList({
+                ...definition,
+                preload: [
+                    ...preload,
+                    ...definition.preload ?? []
+                ]
+            }, properties, data);
         } else {
             const
                 assets = union(arrayCache.setUp(), preload),

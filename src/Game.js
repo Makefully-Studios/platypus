@@ -631,7 +631,13 @@ class Game extends Messenger {
                     layerDefinition = getDefinition(layer),
                     layerProps = (layer && layer.type && layer.properties) || null;
 
-                layers[i] = layerDefinition;
+                layers[i] = {
+                    ...layerDefinition,
+                    preload: [
+                        ...layerDefinition?.preload ?? [],
+                        ...layer?.preload ?? []
+                    ]
+                };
                 properties[i] = layerProps;
             }
 

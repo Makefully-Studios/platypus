@@ -320,14 +320,24 @@ export default createComponentClass(/** @lends platypus.components.VoiceOver.pro
     
     getAssetList: function (component, props, defaultProps) {
         const
-            ss = component?.spriteSheet ?? props?.spriteSheet ?? defaultProps?.spriteSheet;
+            ss = component?.spriteSheet ?? props?.spriteSheet ?? defaultProps?.spriteSheet,
+            audioMap =  component?.voiceOverMap ?? props?.voiceOverMap ?? defaultProps?.voiceOverMap,
+            voAssets = AudioVO.getAssetList({
+                audioMap
+            });
         
         if (typeof ss === 'string') {
-            return greenSlice(platypus.game.settings.spriteSheets[ss].images);
+            return [
+                ...greenSlice(platypus.game.settings.spriteSheets[ss].images),
+                ...voAssets
+            ];
         } else if (ss) {
-            return greenSlice(ss.images);
+            return [
+                ...greenSlice(ss.images),
+                ...voAssets
+            ];
         } else {
-            return arrayCache.setUp();
+            return voAssets;
         }
     }
 });
