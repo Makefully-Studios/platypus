@@ -51,7 +51,16 @@ export default createComponentClass(/** @lends platypus.components.AudioMusic.pr
          * @type Object
          * @default null
          */
-        tracks: null
+        tracks: null,
+
+        /**
+         * The default fade for music track volume changes.
+         * 
+         * @property fade
+         * @type number
+         * @default 1000
+         */
+        fade: 1000
     },
         
     initialize: function () {
@@ -68,8 +77,8 @@ export default createComponentClass(/** @lends platypus.components.AudioMusic.pr
     methods: {
         changeMusicTracks (tracks) {
             const
-                fadeOuts = Object.keys(activeTracks);
-            let fade = 1000;
+                fadeOuts = Object.keys(activeTracks),
+                {fade} = this;
 
             if (tracks) {
                 const
@@ -84,27 +93,25 @@ export default createComponentClass(/** @lends platypus.components.AudioMusic.pr
 
                     if (trackProperties.autoStart !== false) {
                         let sound = activeTracks[key],
-                            tween = null;
+                            tween = null,
+                            trackFade = trackProperties.fade ?? fade;
 
                         if (fadeOut >= 0) {
                             greenSplice(fadeOuts, fadeOut);
                         } else { // gotta load it because it's not there!
                             sound = activeTracks[key] = this.player.play(trackProperties.sound || trackProperties, {
                                 loop: Infinity,
-                                volume: trackProperties.fade ? 0 : (typeof trackProperties.volume === 'number' ? trackProperties.volume : 1),
+                                volume: trackFade ? 0 : (typeof trackProperties.volume === 'number' ? trackProperties.volume : 1),
                                 initialVolume: typeof trackProperties.volume === 'number' ? trackProperties.volume : 1
                             });
                         }
 
-                        if (trackProperties.fade) {
+                        if (trackFade) {
                             tween = new Tween(sound);
                             tween.to({
                                 volume: (typeof trackProperties.volume === 'number' ? trackProperties.volume : 1) * this.player.volume
-                            }, trackProperties.fade);
+                            }, trackFade);
                             tween.start();
-
-                            // default to what is being used for defined sounds to handle undefined sounds.
-                            fade = trackProperties.fade;
                         }
                     }
                 }
