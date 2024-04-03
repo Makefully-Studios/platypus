@@ -22,10 +22,10 @@ const
             },
             voice = sound.voice,
             mouthCues = sound.mouthCues ?? platypus.game.settings.mouthCues?.[definition.sound] ?? platypus.game.settings.mouthCues?.[definition.sound.substring(definition.sound.lastIndexOf('/') + 1)];
-        let time = 0;
 
         if (voice) {
-            let lastFrame = null;
+            let lastFrame = null,
+                time = 0;
 
             voice += ' ';
 
@@ -43,15 +43,30 @@ const
                 time += frameLength;
             }
         } else if (mouthCues) {
-            for (let i = 0; i < mouthCues.length; i++) {
+            // if in condensed format
+            if (typeof mouthCues[0] === 'number') {
                 const
-                    thisFrame = mouthCues[i];
+                    length = (mouthCues.length / 2) >> 0;
 
-                definition.events.push({
-                    time: thisFrame.start * 1000,
-                    event: getEventName(message, thisFrame.value)
-                });
-                time += frameLength;
+                for (let i = 0; i < length; i++) {
+                    const
+                        index = i * 2;
+    
+                    definition.events.push({
+                        time: mouthCues[index] * 1000,
+                        event: getEventName(message, mouthCues[index + 1])
+                    });
+                }
+            } else {
+                for (let i = 0; i < mouthCues.length; i++) {
+                    const
+                        thisFrame = mouthCues[i];
+    
+                    definition.events.push({
+                        time: thisFrame.start * 1000,
+                        event: getEventName(message, thisFrame.value)
+                    });
+                }
             }
         }
 
