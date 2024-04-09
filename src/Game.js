@@ -14,6 +14,8 @@ import TweenJS from '@tweenjs/tween.js';
 import VOPlayer from './VOPlayer.js';
 import sayHello from './sayHello.js';
 
+sound.disableAutoPause = true; // We manually handle pausing via Springroll Container events.
+
 const
     XMLHttpRequest = window.XMLHttpRequest,
     getJSON = function (path, callback) {
@@ -630,7 +632,13 @@ class Game extends Messenger {
                     layerDefinition = getDefinition(layer),
                     layerProps = (layer && layer.type && layer.properties) || null;
 
-                layers[i] = layerDefinition;
+                layers[i] = {
+                    ...layerDefinition,
+                    preload: [
+                        ...layerDefinition?.preload ?? [],
+                        ...layer?.preload ?? []
+                    ]
+                };
                 properties[i] = layerProps;
             }
 

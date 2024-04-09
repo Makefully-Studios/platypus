@@ -4,6 +4,13 @@ import {arrayCache} from '../utils/array.js';
 import createComponentClass from '../factory.js';
 
 const
+    formatPath = (path) => {
+        if (path.indexOf('.mp3') === -1) {
+            return `${path}.mp3`;
+        } else {
+            return path;
+        }
+    },
     sortByTime = function (a, b) {
         return a.time - b.time;
     },
@@ -98,7 +105,16 @@ export default createComponentClass(/** @lends platypus.components.AudioVO.proto
          * @type Object
          * @default null
          */
-        audioMap: null
+        audioMap: null,
+
+        /**
+         * Whether all audio should be preloaded. 'none' preloads no audio, 'events' preloads audio with events attached, and 'all' preloads all audio.
+         * 
+         * @property preloadAudio
+         * @type Object
+         * @default 'events'
+         */
+        preloadAudio: 'events'
     },
         
     /**
@@ -234,6 +250,65 @@ export default createComponentClass(/** @lends platypus.components.AudioVO.proto
             arrayCache.recycle(this.eventList);
             this.eventList = eventList;
             this.playingAudio = true;
+        }
+    },
+    
+    getAssetList: function (component, props, defaultProps) {
+        const
+            preloadAudio = component?.preloadAudio ?? props?.preloadAudio ?? defaultProps?.preloadAudio,
+            audioMap = component?.audioMap ?? props?.audioMap ?? defaultProps?.audioMap;
+        
+        if (audioMap && preloadAudio !== 'none') {
+            const
+                preloadOptions = {
+                    all: () => true,
+                    events: (sound) => {
+                        if (Array.isArray(sound)) {
+                            for (let i = 0; i < sound.length; i++) {
+                                if (shouldPreload(sound[i])) {
+                                    return true;
+                                }
+                            }
+                        } else if (sound) {
+                            return shouldPreload(sound?.sound) || sound?.events?.length > 0;
+                        } else {
+                            return false;
+                        }
+                    }
+                },
+                shouldPreload = preloadOptions[preloadAudio] ?? preloadOptions.events,
+                getTracks = (sound) => {
+                    if (typeof sound === 'string') {
+                        return {
+                            [formatPath(sound)]: true
+                        };
+                    } else if (Array.isArray(sound)) {
+                        return sound.reduce((obj, value) => ({
+                            ...obj,
+                            ...getTracks(value)
+                        }), {});
+                    } else if (sound.sound) {
+                        return getTracks(sound.sound);
+                    } else {
+                        return {};
+                    }
+                };
+
+            return Object.keys(Object.keys(audioMap).reduce((obj, key) => {
+                const
+                    audio = audioMap[key];
+
+                if (shouldPreload(audio)) {
+                    return {
+                        ...obj,
+                        ...getTracks(audio)
+                    };
+                } else {
+                    return obj;
+                }
+            }, {}));
+        } else {
+            return [];
         }
     }
 });

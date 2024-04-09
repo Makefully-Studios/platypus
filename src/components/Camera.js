@@ -516,33 +516,22 @@ export default (function () {
              * @param {Number} [location.time] The time to transition to the new location.
              * @param {Function} [location.ease] The ease function to use. Defaults to a linear transition.
              */
-            "relocate": (function () {
-                var move = function (v) {
-                        if (this.move(v.x, v.y)) {
-                            this.viewportUpdate = true;
-                        }
-                    },
-                    stop = function () {
-                        this.recycle();
-                    };
-
-                return function (location) {
-                    if (location.time) {
-                        const
-                            worldVP = this.worldCamera.viewport,
-                            v = Vector.setUp(worldVP.x, worldVP.y),
-                            tween = new TweenJS.Tween(v);
-                        
-                        tween.to({x: location.x, y: location.y}, location.time);
-                        if (location.ease) {
-                            tween.easing(location.ease);
-                        }
-                        tween.onUpdate(move.bind(this, v)).onStop(stop.bind(v)).start();
-                    } else if (this.move(location.x, location.y)) {
-                        this.viewportUpdate = true;
+            "relocate": function (location) {
+                if (location.time) {
+                    const
+                        worldVP = this.worldCamera.viewport,
+                        v = Vector.setUp(worldVP.x, worldVP.y),
+                        tween = new TweenJS.Tween(v);
+                    
+                    tween.to({x: location.x, y: location.y}, location.time);
+                    if (location.ease) {
+                        tween.easing(location.ease);
                     }
-                };
-            }()),
+                    tween.onUpdate(() => this.viewportUpdate |= !this.owner.destroyed && this.move(v.x, v.y)).onStop(() => v.recycle()).start();
+                } else if (this.move(location.x, location.y)) {
+                    this.viewportUpdate = true;
+                }
+            },
             
             "follow": function (def) {
                 this.follow(def);
