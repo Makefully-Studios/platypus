@@ -88,9 +88,7 @@ export default createComponentClass(/** @lends platypus.components.Timeline.prot
             const
                 timelineId = keys[i];
 
-            this.addEventListener(timelineId, () => {
-                this.timelineInstances.push(this.createTimeStampedTimeline(this.timelines[timelineId]));
-            });
+            this.addTimeline(timelineId, this.timelines[timelineId]);
         }
     },
 
@@ -110,10 +108,26 @@ export default createComponentClass(/** @lends platypus.components.Timeline.prot
             while (i--) {
                 instances[i].remove = true;
             }
+        },
+
+        /**
+         * Add a timeline dynamically.
+         *
+         * @event platypus.Entity#add-timeline
+         * @param eventId {String} The event to listen for to trigger the timeline.
+         * @param timeline {Array} The array of timeline data.
+         */
+        "add-timeline": function (eventId, timeline) {
+            this.addTimeline(eventId, timeline);
         }
     },
     
     methods: {
+        addTimeline: function (eventId, timeline) {
+            this.addEventListener(eventId, () => {
+                this.timelineInstances.push(this.createTimeStampedTimeline(timeline));
+            });
+        },
         createTimeStampedTimeline: function (timeline) {
             const
                 timeStampedTimeline = arrayCache.setUp();
