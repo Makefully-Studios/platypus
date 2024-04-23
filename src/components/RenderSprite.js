@@ -271,6 +271,15 @@ export default createComponentClass(/** @lends platypus.components.RenderSprite.
         scaleY: 1,
         
         /**
+        * The rotation for this sprite relative to the container.
+        *
+        * @property localRotation
+        * @type Number
+        * @default 0
+        */
+        localRotation: 0,
+        
+        /**
         * The scaling factor for this sprite relative to the scale of the container.
         *
         * @property localScaleX
@@ -388,6 +397,7 @@ export default createComponentClass(/** @lends platypus.components.RenderSprite.
             this.sprite.x = this.offsetX;
             this.sprite.y = this.offsetY;
             this.sprite.zIndex = this.offsetZ;
+            this.sprite.rotation = (this.localRotation / 180) * Math.PI;
             this.sprite.scale.x = this.localScaleX;
             this.sprite.scale.y = this.localScaleY;
 
