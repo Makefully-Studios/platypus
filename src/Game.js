@@ -265,7 +265,7 @@ class Game extends Messenger {
                         renderer.render(this.stage); // to prevent flickering from canvas adjustment.
                     };
                 }
-                this.scaleManager = new Resize(resizeCallback, platypus.supports.iOS ? document.documentElement : null);
+                this.scaleManager = new Resize(resizeCallback, this.canvas);
                 resizeCallback({ // Run once to resize content div.
                     width: window.innerWidth,
                     height: window.innerHeight

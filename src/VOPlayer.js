@@ -418,7 +418,7 @@ class VOPlayer extends Messenger {
      * Plays the current audio item and begins preloading the next item.
      * @private
      */
-    _playSound () {
+    async _playSound () {
         const
             play = () => {
                 this._soundInstance = platypus.assetCache.get(soundId).play({
@@ -468,22 +468,26 @@ class VOPlayer extends Messenger {
 
         this.currentlyLoadingAudio = true;
 
-        this.assetCache.load(arr, null, () => {
-            this.currentlyLoadingAudio = false;
-            if (this.stoppedWhileLoading) {
-                this.stoppedWhileLoading = false;
-                if (this.playQueue.length) { // Already more queued up, so we'll roll the stop into it here
+        try {
+            await this.assetCache.load(arr, null, () => {
+                this.currentlyLoadingAudio = false;
+                if (this.stoppedWhileLoading) {
+                    this.stoppedWhileLoading = false;
+                    if (this.playQueue.length) { // Already more queued up, so we'll roll the stop into it here
+                        play();
+                    } else {
+                        play();
+                        this.stop();
+                    }
+                } else if (currentVO === this._currentVO) {
                     play();
                 } else {
-                    play();
-                    this.stop();
+                    platypus.debug.warn('VOPlayer: Asset loading out of order.');
                 }
-            } else if (currentVO === this._currentVO) {
-                play();
-            } else {
-                platypus.debug.warn('VOPlayer: Asset loading out of order.');
-            }
-        });
+            });
+        } catch (e) {
+            platypus.debug.warn('Unable to load voice-over.', e);
+        }
 
         arrayCache.recycle(arr);
     }
