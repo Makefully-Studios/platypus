@@ -1,24 +1,18 @@
 /* global platypus */
-import AABB from '../AABB.js';
-import {Rectangle} from 'pixi.js';
-import createComponentClass from '../factory.js';
+import {Container, Rectangle} from 'pixi.js';
+import {createComponentClass} from 'platypus';
 
 const
-    claimHitArea = new Rectangle(-2000, -2000, 4000, 4000);
+    claimHitArea = new Rectangle(-2000, -2000, 4000, 4000),
+    allDraggedItems = [];
 
 export default createComponentClass(/** @lends platypus.components.LogicDragDrop.prototype */{
     id: 'LogicDragDrop',
     
     properties: {
-        /**
-         * Sets the renderParent while being dragged.
-         *
-         * @property dragRenderParent
-         * @type string
-         * @default ''
-         */
-        dragRenderParent: '',
-        
+        //TODO: Impement Multi-Drag
+
+
         /**
          * Sets whether a click-move should start the dragging behavior in addition to click-drag. This value is ignored for mobile devices.
          *
@@ -26,7 +20,17 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
          * @type Boolean
          * @default false
          */
-        stickyClick: false
+        stickyClick: true,
+
+        /**
+         * Sets whether an entity can be dragged at initial. Change via disable-drag().
+         *
+         * @property dragDisabled
+         * @type Boolean
+         * @default false
+         */
+        dragDisabled: false
+
     },
     
     /**
@@ -39,7 +43,6 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
      * @listens platypus.Entity#component-added
      * @listens platypus.Entity#handle-logic
      * @listens platypus.Entity#handle-post-collision-logic
-     * @listens platypus.Entity#no-drop
      * @listens platypus.Entity#pointerdown
      * @listens platypus.Entity#pointermove
      * @listens platypus.Entity#prepare-logic
@@ -47,34 +50,31 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
      * @listens platypus.Entity#pressup
      */
     initialize: function () {
-        this.aabb = AABB.setUp();
+        this.aabb = this.owner.parent.worldCamera.viewport;
+        this.cameraScaleX = 1;
+        this.cameraScaleY = 1;
         this.nextX = this.owner.x;
         this.nextY = this.owner.y;
-        this.lastZ = this.owner.z;
         this.grabOffsetX = 0;
         this.grabOffsetY = 0;
         this.state = this.owner.state;
         this.state.set('dragging', false);
-        this.state.set('noDrop', false);
-        this.tryDrop = false;
-        this.hitSomething = false;
-        this.hasCollision = false;
-        
+        this.dragId = null;
+        this.originalContainer = null
+        this.dragContainer = new Container();
+
+        this.dragContainer.zIndex = Infinity;
+
         if (platypus.supports.mobile) {
             this.stickyClick = false;
         }
     },
 
     events: {
-        "camera-update": function (camera) {
-            this.aabb.set(camera.viewport);
+        "camera-update": function ({scaleX, scaleY}) {
+            this.cameraScaleX = scaleX;
+            this.cameraScaleY = scaleY;
             this.checkCamera();
-        },
-
-        "component-added": function (component) {
-            if (component.type === 'CollisionBasic') {
-                this.hasCollision = true;
-            }
         },
         
         "prepare-logic": function () {
@@ -82,62 +82,83 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
         },
 
         "handle-logic": function () {
-            if (this.state.get('dragging')) {
-                this.owner.x = this.nextX;
-                this.owner.y = this.nextY;
-                this.owner.triggerEvent('hovering');
-            }
-            
-            this.state.set('noDrop', false);
-        },
+            let defaultCancelled = false;
 
-        "handle-post-collision-logic": function () {
-            if (this.tryDrop) {
-                this.tryDrop = false;
-                if (this.hitSomething) {
-                    this.dropFailed = false;
-                    this.state.set('noDrop', true);
-                    this.state.set('dragging', true);
-                    this.owner.dragMode = true;
-                } else {
-                    this.state.set('noDrop', false);
-                    this.state.set('dragging', false);
-                    this.owner.dragMode = false;
+            if (this.state.get('dragging')) {
+                const
+                    {dragContainer, nextX, nextY, owner} = this;
+
+                owner.triggerEvent('dragging', {
+                    dragContainer,
+                    entity: owner,
+                    x: nextX,
+                    y: nextY,
+                    pointer: {
+                        x: nextX + this.grabOffsetX,
+                        y: nextY + this.grabOffsetY
+                    },
+                    preventDefault: () => {
+                        defaultCancelled = true;
+                    }
+                });
+
+                if (!defaultCancelled) {
+                    owner.x = nextX;
+                    owner.y = nextY;
                 }
-            } else if (this.hitSomething) {
-                this.state.set('noDrop', true);
             }
-            this.hitSomething = false;
         },
 
         "pointerdown": function (eventData) {
+            if (this.dragDisabled) {
+                return;
+            }
+
             if (this.sticking) {
                 this.sticking = false;
-                this.releasePointer();
                 this.release();
             } else {
-                this.nextX = this.owner.x;
-                this.nextY = this.owner.y;
-                this.lastZ = this.owner.z;
-                this.grabOffsetX = (eventData.x >> 0) - this.owner.x;
-                this.grabOffsetY = (eventData.y >> 0) - this.owner.y;
-                this.state.set('dragging', true);
-                if (this.dragRenderParent !== this.owner.renderParent) {
-                    this.originalRenderParent = this.owner.renderParent;
+                const
+                    {owner} = this;
 
-                    /**
-                     * Sets the parent render container of an entity to that of the given entity or entity with the given id.
-                     *
-                     * @method platypus.Entity#set-parent-render-container
-                     * @param entity {Object} The entity to relocate.
-                     * @param container {Entity|String|PIXI.Container} The entity, id of the entity, or PIXI.Container that will act as the parent container.
-                     */
-                    this.owner.parent.triggerEvent("set-parent-render-container", this.owner, this.dragRenderParent);
-                }
-                this.owner.dragMode = true;
-                this.sticking = this.stickyClick;
-                if (this.sticking) {
-                    this.claimPointer();
+                if (this.dragId === null) {
+                    const
+                        {dragContainer} = this;
+                    let defaultCancelled = false;
+
+                    this.dragId = eventData.event.pointerId;
+
+                    owner.triggerEvent('drag-start', {
+                        dragContainer,
+                        entity: owner,
+                        preventDefault: () => {
+                            defaultCancelled = true;
+                        }
+                    });
+
+                    if (defaultCancelled) {
+                        this.dragId = null;
+                    } else {
+                        const
+                            {state} = this,
+                            {x, y} = owner;
+
+                        this.nextX = x;
+                        this.nextY = y;
+                        this.grabOffsetX = (eventData.x >> 0) - x;
+                        this.grabOffsetY = (eventData.y >> 0) - y;
+                        state.set('dragging', true);
+                        owner.dragMode = true;
+                        this.sticking = this.stickyClick;
+                        this.claimPointer();
+        
+                        // put in top layer
+                        this.checkCamera(); //update dragContainer dimensions
+                        this.originalContainer = owner.container.parent;
+                        dragContainer.addChild(owner.container);
+                        owner.parent.stage.addChild(dragContainer);
+                        allDraggedItems.push(this);
+                    }
                 }
             }
             
@@ -145,7 +166,11 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
         },
 
         "pressup": function (eventData) {
-            if (!this.sticking) {
+            if (!this.state.get('dragging')) {
+                return;
+            }
+
+            if (this.dragId !== null && !this.sticking) {
                 this.release();
             }
             
@@ -153,6 +178,10 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
         },
 
         "pointermove": function (eventData) {
+            if (!this.state.get('dragging')) {
+                return;
+            }
+
             if (this.sticking) {
                 this.nextX = eventData.x - this.grabOffsetX;
                 this.nextY = eventData.y - this.grabOffsetY;
@@ -163,71 +192,124 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
         },
 
         "pressmove": function (eventData) {
-            this.nextX = eventData.x - this.grabOffsetX;
-            this.nextY = eventData.y - this.grabOffsetY;
-            if (this.sticking && (this.nextX !== this.owner.x || this.nextY !== this.owner.y)) {
-                this.sticking = false;
-                this.releasePointer();
+            if (!this.state.get('dragging')) {
+                return;
             }
             
-            eventData.event.preventDefault();
-            eventData.pixiEvent.stopPropagation();
+            if (this.dragId !== null) {
+                this.nextX = eventData.x - this.grabOffsetX;
+                this.nextY = eventData.y - this.grabOffsetY;
+                if (this.sticking && (this.nextX !== this.owner.x || this.nextY !== this.owner.y)) {
+                    this.sticking = false;
+                }
+                
+                eventData.event.preventDefault();
+                eventData.pixiEvent.stopPropagation();
+            }
         },
 
-        /**
-         * This message comes from the collision system letting us know the object is currently in a location that it cannot be dropped.
-         *
-         * @event platypus.Entity#no-drop
-         */
-        "no-drop": function () {
-            this.hitSomething = true;
+        "disable-drag": function (disable) {
+            //If we don't send in a value, we toggle the dragDisabled.
+            this.dragDisabled = typeof disable === 'boolean' ? disable : !this.dragDisabled;
+
+            if (this.dragDisabled && this.state.get('dragging')) {
+                this.release();
+            }
         }
     },
     
     methods: {// These are methods that are called by this component.
-        checkCamera: function () {
-            if (this.state && this.state.get('dragging') && !this.aabb.containsPoint(this.nextX + this.grabOffsetX, this.nextY + this.grabOffsetY)) {
-                if (this.sticking) {
-                    this.sticking = false;
-                    this.releasePointer();
+        checkCamera () {
+            const
+                {state} = this;
+
+            if (state?.get('dragging')) {
+                const
+                    {aabb} = this;
+
+                if (!aabb.containsPoint(this.nextX + this.grabOffsetX, this.nextY + this.grabOffsetY)) {
+                    if (this.sticking) {
+                        this.sticking = false;
+                    }
+                    this.release();
+                } else { // adjust container if needed.
+                    const
+                        {cameraScaleX, cameraScaleY, dragContainer} = this;
+    
+                    dragContainer.scale.x = cameraScaleX;
+                    dragContainer.scale.y = cameraScaleY;
+                    dragContainer.x = -(aabb.left * cameraScaleX);
+                    dragContainer.y = -(aabb.top * cameraScaleY);
                 }
-                this.release();
             }
         },
 
-        claimPointer: function () {
+        claimPointer () {
             this.lastHitArea = this.owner.container.hitArea;
 
             this.owner.container.hitArea = claimHitArea; // capture all the clicks!
         },
 
-        releasePointer: function () {
+        releasePointer () {
             this.owner.container.hitArea = this.lastHitArea;
         },
 
-        release: function () {
-            if (this.hasCollision) {
-                this.tryDrop = true;
-            } else {
-                this.state.set('noDrop', false);
-                this.state.set('dragging', false);
-                if (this.originalRenderParent) {
-                    this.owner.parent.triggerEvent("set-parent-render-container", this.owner, this.originalRenderParent);
-                }
-                this.owner.dragMode = false;
-                this.owner.z = this.lastZ;
+        releaseContainer () {
+            const
+                {originalContainer, owner} = this,
+                index = allDraggedItems.indexOf(this);
+
+            if (index >= 0) {
+                allDraggedItems.splice(index, 1);
             }
-            this.owner.triggerEvent('dropped', this.owner);
+
+            if (originalContainer) {
+                owner.parent.stage.removeChild(this.dragContainer);
+                originalContainer.addChild(owner.container);
+                this.originalContainer = null;
+            }
+        },
+
+        release () {
+            const
+                {dragContainer, owner, state} = this,
+                dropX = owner.x,
+                dropY = owner.y;
+            let defaultCancelled = false;
+
+            this.dragId = null;
+            state.set('dragging', false);
+            owner.dragMode = false;
+            this.releasePointer();
+
+            this.releaseContainer();
+
+            owner.triggerEvent('drop', {
+                dragContainer,
+                entity: owner,
+                x: dropX,
+                y: dropY,
+                preventDefault: () => {
+                    defaultCancelled = true;
+                }
+            });
+
+            if (!defaultCancelled) {
+                //do default drop actions here
+                owner.x = dropX;
+                owner.y = dropY;
+                owner.triggerEvent('drop-complete');
+            }
         },
         
-        destroy: function () {
-            this.state.set('dragging', false);
+        destroy () {
+            if (this.state.get('dragging')) {
+                this.dragId = null;
+                this.releaseContainer();
+                this.state.set('dragging', false);
+            }
             this.owner.dragMode = false;
-            this.state.set('noDrop', false);
             this.state = null;
-            this.aabb.recycle();
-            this.aabb = null;
-            this.owner.z = this.lastZ;
         }
     }
 });
