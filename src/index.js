@@ -58,7 +58,7 @@ const
     isEdge    = (uagent.search('edge')    > -1),
     isIPod    = (uagent.search('ipod')    > -1),
     isIPhone  = (uagent.search('iphone')  > -1),
-    isIPad    = (uagent.search('ipad')    > -1),
+    isIPad    = (uagent.search('ipad')    > -1) || (uagent.search('mac') > -1 && navigator.maxTouchPoints > 2 && !isIPhone),
     isAndroid = (uagent.search('android') > -1),
     isSilk    = (uagent.search('silk')    > -1),
     isIOS     = isIPod || isIPhone  || isIPad,
