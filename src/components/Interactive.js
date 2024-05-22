@@ -262,7 +262,7 @@ export default createComponentClass(/** @lends platypus.components.Interactive.p
                         const
                             {owner, relativeToSelf} = target,
                             camera = owner.worldCamera?.viewport ?? owner.parent.worldCamera.viewport,
-                            matrix = relativeToSelf ? container.transform.worldTransform : container.parent.transform.worldTransform,
+                            matrix = relativeToSelf ? container.worldTransform : container.parent.worldTransform,
                             msg = Data.setUp(
                                 "event", event.data.originalEvent,
                                 "pixiEvent", event,

@@ -391,7 +391,7 @@ export default (function () {
             
             "pressmove": function (event) {
                 if (this.mouse) {
-                    if (this.move(this.mouseWorldOrigin.x + ((this.mouse.x - getClientX(event.event)) * DPR) / this.world.transform.worldTransform.a, this.mouseWorldOrigin.y + ((this.mouse.y - getClientY(event.event)) * DPR) / this.world.transform.worldTransform.d)) {
+                    if (this.move(this.mouseWorldOrigin.x + ((this.mouse.x - getClientX(event.event)) * DPR) / this.world.worldTransform.a, this.mouseWorldOrigin.y + ((this.mouse.y - getClientY(event.event)) * DPR) / this.world.worldTransform.d)) {
                         this.viewportUpdate = true;
                         this.movedCamera = true;
                         event.pixiEvent.stopPropagation();

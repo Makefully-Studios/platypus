@@ -28,7 +28,7 @@ const
                         platypus.debug.warn(`PIXIAnimation: "${path}" is not a loaded asset.`);
                         break;
                     }
-                    textureSourceCache[path] = asset.textureSource;
+                    textureSourceCache[path] = asset.source;
                 }
                 bts.push(textureSourceCache[path]);
             } else {
