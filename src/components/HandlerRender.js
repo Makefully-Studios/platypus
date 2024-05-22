@@ -75,7 +75,7 @@ export default (function () {
             
             this.worldContainer = this.worldContainer || new Container();
             this.worldContainer.sortableChildren = true;
-            this.worldContainer.name = '';
+            this.worldContainer.label = '';
 
             if (this.interactive) {
                 definition = Data.setUp(
