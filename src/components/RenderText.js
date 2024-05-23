@@ -3,17 +3,18 @@ import {Text} from 'pixi.js';
 import createComponentClass from '../factory.js';
 
 const
+    DEFAULT_ALIGNMENT = 0.5,
     alignments = {
         horizontal: {
             left: 0,
-            middle: 0.5,
-            center: 0.5,
+            middle: DEFAULT_ALIGNMENT,
+            center: DEFAULT_ALIGNMENT,
             right: 1
         },
         vertical: {
             top: 0,
-            middle: 0.5,
-            center: 0.5,
+            middle: DEFAULT_ALIGNMENT,
+            center: DEFAULT_ALIGNMENT,
             bottom: 1
         }
     };
@@ -89,19 +90,19 @@ export default createComponentClass(/** @lends platypus.components.RenderText.pr
      */
     initialize: function (definition) {
         const
-            hAlign = alignments.horizontal[this.style.align],
-            vAlign = alignments.vertical[this.style.verticalAlign];
-
-        this.sprite = new Text(this.text, this.style);
+            {offsetX, offsetY, offsetZ, owner, style = {}, text = ''} = this,
+            hAlign = alignments.horizontal[style?.align] ?? DEFAULT_ALIGNMENT,
+            vAlign = alignments.vertical[style?.verticalAlign] ?? DEFAULT_ALIGNMENT,
+            sprite = this.sprite = new Text({text, style});
         
-        this.sprite.anchor.x = typeof hAlign === 'number' ? hAlign : 0.5;
-        this.sprite.anchor.y = typeof vAlign === 'number' ? vAlign : 1;
-        this.sprite.x = this.offsetX;
-        this.sprite.y = this.offsetY;
-        this.sprite.zIndex = this.offsetZ;
+        sprite.anchor.x = hAlign;
+        sprite.anchor.y = vAlign;
+        sprite.x = offsetX;
+        sprite.y = offsetY;
+        sprite.zIndex = offsetZ;
 
-        if (!this.owner.container) {
-            this.owner.addComponent(new RenderContainer(this.owner, definition, () => this.addToContainer()));
+        if (!owner.container) {
+            owner.addComponent(new RenderContainer(owner, definition, () => this.addToContainer()));
         } else {
             this.addToContainer();
         }
@@ -115,24 +116,17 @@ export default createComponentClass(/** @lends platypus.components.RenderText.pr
          * @param text {String} The text to insert.
          */
         "set-text": function (text) {
+            const
+                {sprite} = this;
+
             if (typeof text === 'string') {
-                this.sprite.text = text;
+                sprite.text = text;
             } else {
                 if (text.style) {
-                    const
-                        textStyle = this.sprite.style,
-                        keys = Object.keys(text.style),
-                        {length} = keys;
-
-                    for (let i = 0; i < length; i++) {
-                        const
-                            key = keys[i];
-
-                        textStyle[key] = text.style[key];
-                    }
+                    Object.keys(text.style).forEach((key) => sprite.style[key] = text.style[key])
                 }
                 if (typeof text.text === 'string') {
-                    this.sprite.text = text.text;
+                    sprite.text = text.text;
                 }
             }
         }
