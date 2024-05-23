@@ -499,17 +499,18 @@ export default createComponentClass(/** @lends platypus.components.RenderContain
     methods: {
         updateSprite: function (uncached, x, y) {
             const
+                {container, dragMode, owner, scaleX, scaleY, skewX, skewY, visible} = this,
                 matrix = pixiMatrix,
                 rotation = (this.rotate === 'rotation') && this.rotation || 0;
             let mirrored = 1,
                 flipped  = 1;
             
-            if (this.container.zIndex !== this.owner.z) {
-                this.container.zIndex = this.owner.z;
+            if (container.zIndex !== owner.z) {
+                container.zIndex = owner.z;
             }
 
-            if (!this.ignoreOpacity && (this.owner.opacity || (this.owner.opacity === 0))) {
-                this.container.alpha = this.owner.opacity;
+            if (!this.ignoreOpacity && (owner.opacity || (owner.opacity === 0))) {
+                container.alpha = owner.opacity;
             }
             
             if (this.mirror || this.flip) {
@@ -533,23 +534,23 @@ export default createComponentClass(/** @lends platypus.components.RenderContain
                 matrix.c = o[0][1];
                 matrix.d = o[1][1];
                 matrix.ty = y + o[1][2];
-                this.container.transform.setFromMatrix(matrix);
+                container.transform.setFromMatrix(matrix);
             } else {
-                this.container.updateTransform({
+                container.updateTransform({
                     x,
                     y,
-                    scaleX: this.scaleX * mirrored,
-                    scaleY: this.scaleY * flipped,
+                    scaleX: scaleX * mirrored,
+                    scaleY: scaleY * flipped,
                     rotation: (rotation ? (rotation / 180) * Math.PI : 0),
-                    skewX: this.skewX,
-                    skewY: this.skewY
+                    skewX: skewX,
+                    skewY: skewY
                 });
             }
             
             this.lastX = x;
             this.lastY = y;
-            this.wasVisible = this.visible;
-            this.container.visible = this.visible || this.dragMode;
+            this.wasVisible = visible;
+            container.visible = visible || dragMode;
         },
         
         setMask: function (shape) {

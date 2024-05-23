@@ -813,35 +813,37 @@ export default (function () {
             },
             
             resize: function () {
-                var worldAspectRatio = this.width / this.height,
-                    windowAspectRatio = this.owner.width / this.owner.height,
-                    worldVP = this.worldCamera.viewport;
+                const
+                    {container, height, overflow, owner, stretch, viewport, width, worldCamera} = this,
+                    worldAspectRatio = width / height,
+                    windowAspectRatio = owner.width / owner.height,
+                    {viewport: worldVP} = worldCamera;
                 
                 //The dimensions of the camera in the window
-                this.viewport.setAll(this.owner.width / 2, this.owner.height / 2, this.owner.width, this.owner.height);
+                viewport.setAll(owner.width / 2, owner.height / 2, owner.width, owner.height);
                 
-                if (!this.stretch) {
+                if (!stretch) {
                     if (windowAspectRatio > worldAspectRatio) {
-                        if (this.overflow) {
-                            worldVP.resize(this.height * windowAspectRatio, this.height);
+                        if (overflow) {
+                            worldVP.resize(height * windowAspectRatio, height);
                         } else {
-                            this.viewport.resize(this.viewport.height * worldAspectRatio, this.viewport.height);
+                            viewport.resize(viewport.height * worldAspectRatio, viewport.height);
                         }
-                    } else if (this.overflow) {
-                        worldVP.resize(this.width, this.width / windowAspectRatio);
+                    } else if (overflow) {
+                        worldVP.resize(width, width / windowAspectRatio);
                     } else {
-                        this.viewport.resize(this.viewport.width, this.viewport.width / worldAspectRatio);
+                        viewport.resize(viewport.width, viewport.width / worldAspectRatio);
                     }
                 }
                 
-                this.worldPerWindowUnitWidth  = worldVP.width  / this.viewport.width;
-                this.worldPerWindowUnitHeight = worldVP.height / this.viewport.height;
-                this.windowPerWorldUnitWidth  = this.viewport.width  / worldVP.width;
-                this.windowPerWorldUnitHeight = this.viewport.height / worldVP.height;
+                this.worldPerWindowUnitWidth  = worldVP.width  / viewport.width;
+                this.worldPerWindowUnitHeight = worldVP.height / viewport.height;
+                this.windowPerWorldUnitWidth  = viewport.width  / worldVP.width;
+                this.windowPerWorldUnitHeight = viewport.height / worldVP.height;
                 
-                this.container.updateTransform({
-                    x: this.viewport.x - this.viewport.halfWidth,
-                    y: this.viewport.y - this.viewport.halfHeight
+                container.updateTransform({
+                    x: viewport.x - viewport.halfWidth,
+                    y: viewport.y - viewport.halfHeight
                 });
                 
                 this.viewportUpdate = true;
@@ -954,11 +956,10 @@ export default (function () {
 
             updateViewport: function () {
                 const
-                    msg       = this.message,
-                    viewport  = msg.viewport,
-                    worldCamera = this.worldCamera;
+                    {container, message: msg, owner, stationary, viewportUpdate, windowPerWorldUnitHeight, windowPerWorldUnitWidth, world, worldCamera} = this,
+                    {viewport} = msg;
                 
-                if (this.viewportUpdate) {
+                if (viewportUpdate) {
                     this.viewportUpdate = false;
                     this.stationary = false;
                     msg.stationary = false;
@@ -966,26 +967,19 @@ export default (function () {
                     viewport.set(worldCamera.viewport);
 
                     // Set up the rest of the camera message:
-                    msg.scaleX         = this.windowPerWorldUnitWidth;
-                    msg.scaleY         = this.windowPerWorldUnitHeight;
-                    msg.orientation    = worldCamera.orientation;
+                    msg.scaleX = windowPerWorldUnitWidth;
+                    msg.scaleY = windowPerWorldUnitHeight;
+                    msg.orientation = worldCamera.orientation;
                     
                     // Transform the world to appear within camera
-                    this.world.updateTransform({
-                        x: -viewport.x,
-                        y: -viewport.y,
-                        scaleX: 1,
-                        scaleY: 1,
-                        rotation: 0
-                    });
-                    this.container.updateTransform({
-                        x: viewport.halfWidth * msg.scaleX,
-                        y: viewport.halfHeight * msg.scaleY,
-                        scaleX: msg.scaleX,
-                        scaleY: msg.scaleY,
-                        rotation: msg.orientation
-                    });
-                    this.container.visible = true;
+                    world.x = -viewport.x;
+                    world.y = -viewport.y;
+                    container.x = viewport.halfWidth * msg.scaleX;
+                    container.y = viewport.halfHeight * msg.scaleY;
+                    container.scaleX = msg.scaleX;
+                    container.scaleY = msg.scaleY;
+                    container.rotation = msg.orientation;
+                    container.visible = true;
 
                     /**
                      * This component fires "camera-update" when the position of the camera in the world has changed. This event is triggered on both the entity (typically a layer) as well as children of the entity.
@@ -999,17 +993,17 @@ export default (function () {
                      * @param message.viewport {platypus.AABB} An AABB describing the world viewport area.
                      * @param message.stationary {Boolean} Whether the camera is moving.
                      **/
-                    this.owner.triggerEvent('camera-update', msg);
-                    if (this.owner.triggerEventOnChildren) {
-                        this.owner.triggerEventOnChildren('camera-update', msg);
+                    owner.triggerEvent('camera-update', msg);
+                    if (owner.triggerEventOnChildren) {
+                        owner.triggerEventOnChildren('camera-update', msg);
                     }
-                } else if (!this.stationary) {
+                } else if (!stationary) {
                     this.stationary = true;
                     msg.stationary = true;
 
-                    this.owner.triggerEvent('camera-update', msg);
-                    if (this.owner.triggerEventOnChildren) {
-                        this.owner.triggerEventOnChildren('camera-update', msg);
+                    owner.triggerEvent('camera-update', msg);
+                    if (owner.triggerEventOnChildren) {
+                        owner.triggerEventOnChildren('camera-update', msg);
                     }
                 }
             },

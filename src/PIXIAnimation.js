@@ -103,7 +103,12 @@ const
         const
             {frames, images} = spriteSheet,
             bases = getTextureSources(images),
-            textures = frames.map((frame) => new Texture(bases[frame[4]], new Rectangle(frame[0], frame[1], frame[2], frame[3]), null, null, 0, new Point((frame[5] || 0) / frame[2], (frame[6] || 0) / frame[3]))), // Set up texture for each frame
+            textures = frames.map((frame) => new Texture({
+                source: bases[frame[4]],
+                frame: new Rectangle(frame[0], frame[1], frame[2], frame[3]),
+                rotate: 0,
+                defaultAnchor: new Point((frame[5] || 0) / frame[2], (frame[6] || 0) / frame[3])
+            })), // Set up texture for each frame
             anims = standardizeAnimations(spriteSheet.animations, textures); // Set up animations
 
         // Set up a default animation that plays through all frames
@@ -122,7 +127,12 @@ const
         const
             {frames, images} = spriteSheet,
             bases = getTextureSources(images),
-            textures = frames.map((frame) => new Texture(bases[frame[4]], new Rectangle(frame[0], frame[1], frame[2], frame[3]), null, null, 0, new Point((frame[5] || 0) / frame[2], (frame[6] || 0) / frame[3]))), // Set up texture for each frame
+            textures = frames.map((frame) => new Texture({
+                source: bases[frame[4]],
+                frame: new Rectangle(frame[0], frame[1], frame[2], frame[3]),
+                rotate: 0,
+                defaultAnchor: new Point((frame[5] || 0) / frame[2], (frame[6] || 0) / frame[3])
+            })), // Set up texture for each frame
             anims = standardizeAnimations(spriteSheet.animations, textures); // Set up animations
 
         arrayCache.recycle(bases);

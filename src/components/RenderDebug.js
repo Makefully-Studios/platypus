@@ -203,28 +203,17 @@ export default (function () {
         
         methods: {
             update: function () {
-                var x = 0,
-                    y = 0;
-                
-                x = this.owner.x;
-                y = this.owner.y;
+                const
+                    {container, owner} = this;
 
-                if (this.container.zIndex !== this.owner.z + 0.000001) {
-                    this.container.zIndex = this.owner.z + 0.000001;
+                if (container.zIndex !== owner.z + 0.000001) {
+                    container.zIndex = owner.z + 0.000001;
                 }
 
-                this.container.updateTransform({
-                    x,
-                    y,
-                    scaleX: 1,
-                    scaleY: 1,
-                    rotation: 0,
-                    skewX: 0,
-                    skewY: 0
+                container.updateTransform({
+                    x: owner.x,
+                    y: owner.y
                 });
-                
-                this.lastX = this.owner.x;
-                this.lastY = this.owner.y;
             },
 
             updateSprites: function () {
