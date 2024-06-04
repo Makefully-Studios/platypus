@@ -1,6 +1,6 @@
 /* global document, platypus, window */
 import {Application, CaptionPlayer, TextRenderer} from 'springroll';
-import {Container, CullerPlugin, Application as PixiApplication, Ticker, extensions} from 'pixi.js';
+import {CullerPlugin, Application as PixiApplication, Ticker, extensions} from 'pixi.js';
 import {arrayCache, greenSlice, greenSplice, union} from './utils/array.js';
 import Data from './Data.js';
 import Entity from './Entity.js';

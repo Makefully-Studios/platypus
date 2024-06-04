@@ -1,5 +1,5 @@
 /* global platypus */
-import {arrayCache, greenSplice, union} from './utils/array.js';
+import {arrayCache, greenSplice} from './utils/array.js';
 import Messenger from './Messenger.js';
 import StateMap from './StateMap.js';
 import createComponentClass from './factory.js';
@@ -349,24 +349,10 @@ export default class Entity extends Messenger {
                 ]
             }, properties, data);
         } else {
-            const
-                assets = union(arrayCache.setUp(), preload),
-                {length} = components;
-
-            for (let i = 0; i < length; i++) {
-                const
-                    component = getComponentClass(components[i]);
-
-                if (component) {
-                    const
-                        arr = component.getAssetList(components[i], properties, props, data);
-
-                    union(assets, arr);
-                    arrayCache.recycle(arr);
-                }
-            }
-            
-            return assets;
+            return [...new Set([
+                ...preload,
+                ...components.map((component) => getComponentClass(component)?.getAssetList(component, properties, props, data) ?? []).flat()
+            ])];
         }
     }
 }
