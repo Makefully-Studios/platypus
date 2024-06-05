@@ -772,7 +772,7 @@ export default (function () {
                 const
                     atlases = platypus.game.settings.atlases,
                     atlas = component.atlas ?? props.atlas ?? defaultProps.atlas,
-                    pma = component.preMultipliedAlpha ?? props.preMultipliedAlpha ?? defaultProps.preMultipliedAlpha ?? true;
+                    pma = component?.preMultipliedAlpha ?? props?.preMultipliedAlpha ?? defaultProps?.preMultipliedAlpha ?? true;
                 
                 if (Array.isArray(atlas)) {
                     const
