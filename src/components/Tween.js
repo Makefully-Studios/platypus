@@ -1,7 +1,5 @@
 /* global platypus */
-import Data from '../Data.js';
 import TweenJS from '@tweenjs/tween.js';
-import {arrayCache} from '../utils/array.js';
 import createComponentClass from '../factory.js';
 
 const
@@ -94,35 +92,11 @@ export default createComponentClass(/** @lends platypus.components.Tween.prototy
             events = this.events;
 
         this.group = new Group();
-
-        this.waitingToChain = Data.setUp();
-        this.tweens = Data.setUp();
-
         this.time = 0;
         this.paused = false;
         
         if (events) {
-            const
-                keys = Object.keys(events),
-                {length} = keys;
-
-            for (let i = 0; i < length; i++) {
-                const
-                    event = keys[i],
-                    tween = this.tweens[event] = this.createTweens(events[event]);
-
-                this.addEventListener(event, () => this.runTween(event));
-
-                if (this.waitingToChain[event]) {
-                    const waits = this.waitingToChain[event];
-
-                    for (let i = 0; i < waits.length; i++) {
-                        waits[i].chain(tween);
-                    }
-                    arrayCache.recycle(waits);
-                    delete this.waitingToChain[event];
-                }
-            }
+            Object.keys(events).forEach((event) => this.addEventListener(event, () => this.runTween(events[event])));
         }
     },
 
@@ -201,6 +175,7 @@ export default createComponentClass(/** @lends platypus.components.Tween.prototy
                 }
                 if (tweenDefinition.onComplete || tweenDefinition.yoyo) { // need fix for repeating an event that yoyo's
                     tween.onComplete(() => {
+                        tween.stop();
                         if (tweenDefinition.yoyo) { // reset tween
                             tween.to(tweenDefinition.to);
                             tween.repeat(tweenDefinition.repeat);
@@ -222,13 +197,10 @@ export default createComponentClass(/** @lends platypus.components.Tween.prototy
                     if (!chainable) {
                         platypus.debug.warn('Component Tween: ignoring `chain` on tween since it is part of an array of tweens.');
                     } else if (typeof tweenDefinition.chain === 'string') {
-                        if (this.tweens[tweenDefinition.chain]) {
-                            tween.chain(this.tweens[tweenDefinition.chain]);
+                        if (this.events[tweenDefinition.chain]) {
+                            tween.chain(this.createTweens(this.events[tweenDefinition.chain]));
                         } else {
-                            if (!this.waitingToChain[tweenDefinition.chain]) {
-                                this.waitingToChain[tweenDefinition.chain] = arrayCache.setUp();
-                            }
-                            this.waitingToChain[tweenDefinition.chain].push(tween);
+                            platypus.debug.warn(`Component Tween: ignoring chain on tween since there is no tween event trigger "${tweenDefinition.chain}".`);
                         }
                     } else {
                         tween.chain(tweenDefinition.chain);
@@ -302,19 +274,9 @@ export default createComponentClass(/** @lends platypus.components.Tween.prototy
 
         runTween: function (tweenDefinition) {
             const
-                tween = typeof tweenDefinition === 'string' ? this.tweens[tweenDefinition] : this.createTweens(tweenDefinition);
+                tween = this.createTweens(tweenDefinition);
 
             if (tween) {
-                // Clean out old values
-                const
-                    keys = Object.keys(tween._valuesStart),
-                    {length} = keys;
-        
-                for (let i = 0; i < length; i++) {
-                    delete tween._valuesStart[keys[i]];
-                }
-
-                // Run
                 tween.start(this.time);
             } else {
                 platypus.debug.warn('Component Tween: Unable to run requested tween.', tweenDefinition);
