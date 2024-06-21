@@ -1,9 +1,10 @@
 /* global document, platypus, window */
-import {Application, CaptionPlayer, TextRenderer} from 'springroll';
+import {Application} from 'springroll';
 import {CullerPlugin, Application as PixiApplication, Ticker, extensions} from 'pixi.js';
 import {arrayCache, greenSlice, greenSplice, union} from './utils/array.js';
 import Data from './Data.js';
 import Entity from './Entity.js';
+import ID3CaptionPlayer from './ID3CaptionPlayer.js';
 import Messenger from './Messenger.js';
 import Resize from './Resize.js';
 import SFXPlayer from './SFXPlayer.js';
@@ -177,7 +178,7 @@ class Game extends Messenger {
      */
     constructor (definition, options, onFinishedLoading) {
         const
-            displayOptions = options.display || {},
+            {display: displayOptions = {}, modules = {}} = options,
             load = async function (settings) {
                 const
                     dpi = window.devicePixelRatio || 1,
@@ -192,17 +193,18 @@ class Game extends Messenger {
                 
                 this.settings = settings;
 
-                if (settings.captions) {
-                    const captionsElement = document.getElementById("captions") || (function (canvas) {
-                        const element = document.createElement('div');
+                if (settings.captions || modules.jsmediatags) {
+                    this.voPlayer.captions = new ID3CaptionPlayer(settings.captions, document.getElementById("captions") || (() => {
+                        const
+                            element = document.createElement('div'),
+                            {canvas} = this;
                         
                         element.setAttribute('id', 'captions');
                         canvas.parentNode.insertBefore(element, canvas);
                         return element;
-                    }(this.canvas));
-                    this.voPlayer.captions = new CaptionPlayer(settings.captions, new TextRenderer(captionsElement));
+                    })(), modules.jsmediatags);
                 }
-
+            
                 this.pixiApp = new PixiApplication();
                 await this.pixiApp.init({
                     width: this.canvas.width,

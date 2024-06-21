@@ -421,12 +421,15 @@ class VOPlayer extends Messenger {
     async _playSound () {
         const
             play = () => {
-                this._soundInstance = platypus.assetCache.get(soundId).play({
+                const
+                    sound = platypus.assetCache.get(soundId);
+
+                this._soundInstance = sound.play({
                     complete: this._onSoundFinished,
                     volume: this.volume
                 });
                 if (this._captions) {
-                    this._captions.start(this._currentVO);
+                    this._captions.start(sound, soundId);
                     this.game.on("tick", this._syncCaptionToSound);
                 }
                 if (this.playQueue.length) { // We need to skip on ahead, because new VO was played while this or a prior one was loading.

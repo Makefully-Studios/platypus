@@ -31,5 +31,8 @@
         "pixi.js": "^8.0.1",
         "springroll": "^2.6.0"
     },
+    "optionalDependencies": {
+      "jsmediatags": "github:probityrules/jsmediatags"
+    },
     "engine": "node >= 0.10.22"
 }
