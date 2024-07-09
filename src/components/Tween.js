@@ -216,7 +216,7 @@ export default createComponentClass(/** @lends platypus.components.Tween.prototy
                 if (tweenDefinition.delay) {
                     tween.delay(tweenDefinition.delay);
                 }
-                if (tweenDefinition.repeatDelay) {
+                if (typeof tweenDefinition.repeatDelay !== 'undefined') {
                     tween.repeatDelay(tweenDefinition.repeatDelay);
                 }
                 
