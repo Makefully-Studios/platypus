@@ -96,7 +96,21 @@ export default createComponentClass(/** @lends platypus.components.Tween.prototy
         this.paused = false;
         
         if (events) {
-            Object.keys(events).forEach((event) => this.addEventListener(event, () => this.runTween(events[event])));
+            Object.keys(events).forEach((event) => this.addEventListener(event, (augmentTweenData) => {
+                const
+                    data = events[event],
+                    isArr = Array.isArray(data);
+
+                if (typeof augmentTweenData === typeof data && Array.isArray(augmentTweenData) === isArr) {
+                    if (isArr) {
+                        this.runTween([...data, ...augmentTweenData]);
+                    } else {
+                        this.runTween({...data, ...augmentTweenData});
+                    }
+                } else {
+                    this.runTween(data);
+                }
+            }));
         }
     },
 
