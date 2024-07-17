@@ -34,6 +34,10 @@ const
                 }
             }
         }
+
+        if (instances.length) {
+            this.owner.triggerEvent('timeline-progress', this.timelineInstances);
+        }
     };
 
 export default createComponentClass(/** @lends platypus.components.Timeline.prototype */{
@@ -95,6 +99,22 @@ export default createComponentClass(/** @lends platypus.components.Timeline.prot
     events: {
         "handle-logic": updateLogic,
 
+        "pause-timelines": function () {
+            this.timelineInstances.forEach((timeline) => {
+                if (timeline.active) {
+                    timeline.pause();
+                }
+            });
+        },
+
+        "play-timelines": function () {
+            this.timelineInstances.forEach((timeline) => {
+                if (!timeline.active) {
+                    timeline.play();
+                }
+            });
+        },
+
         /**
          * Stops all timelines.
          *
@@ -151,6 +171,7 @@ export default createComponentClass(/** @lends platypus.components.Timeline.prot
             return Data.setUp(
                 "timeline", timeStampedTimeline,
                 "time", 0,
+                "total", timeOffset,
                 "active", 1,
                 "pause", pause,
                 "play", play,
@@ -176,6 +197,8 @@ export default createComponentClass(/** @lends platypus.components.Timeline.prot
 
                     if (typeof value === 'string') {
                         this.owner.triggerEvent(value);
+                    } else if (typeof value === 'function') {
+                        value(this.owner, instance);
                     } else {
                         if (value.entity) {
                             if (this.owner.getEntityById) {
