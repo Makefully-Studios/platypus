@@ -187,13 +187,9 @@ export default createComponentClass(/** @lends platypus.components.Tween.prototy
                 if (tweenDefinition.onStop) {
                     tween.onStop((typeof tweenDefinition.onStop !== 'function') ? (...args) => owner.trigger(tweenDefinition.onStop, ...args) : tweenDefinition.onStop);
                 }
-                if (tweenDefinition.onComplete || tweenDefinition.yoyo) { // need fix for repeating an event that yoyo's
+                if (tweenDefinition.onComplete) {
                     tween.onComplete(() => {
                         tween.stop();
-                        if (tweenDefinition.yoyo) { // reset tween
-                            tween.to(tweenDefinition.to);
-                            tween.repeat(tweenDefinition.repeat);
-                        }
                         if (tweenDefinition.onComplete) {
                             if (typeof tweenDefinition.onComplete !== 'function') {
                                 owner.trigger(tweenDefinition.onComplete);
