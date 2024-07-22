@@ -26,6 +26,15 @@ export default  createComponentClass(/** @lends platypus.components.LogicAttachm
         attachment: '',
 
         /**
+         * The entity properties that should be updated on attached entity.
+         * 
+         * @property updateProperties
+         * @type Array
+         * @default ["x", "y", "z"]
+         */
+        updateProperties: null,
+
+        /**
          * This is an object of key/value pairs. The keys are events this component is listening for locally, the value is the new event to be broadcast on the attached entity. The value can also be an array of events to be fired.
          *
          *      "events": {
@@ -105,6 +114,9 @@ export default  createComponentClass(/** @lends platypus.components.LogicAttachm
             type: this.attachment,
             properties: this.attachmentPosition
         };
+        if (this.updateProperties === null) {
+            this.updateProperties = ['x', 'y', 'z'];
+        }
 
         this.attachment = null;
         this.isAttached = this.startAttached;
@@ -135,13 +147,11 @@ export default  createComponentClass(/** @lends platypus.components.LogicAttachm
     events: {
         "handle-logic": function () {
             const
-                {owner, state} = this;
+                {attachmentPosition, owner, state, updateProperties} = this;
 
             if (this.isAttached) {
                 if (!this.attachment) {
-                    this.attachmentPosition.x = owner.x;
-                    this.attachmentPosition.y = owner.y;
-                    this.attachmentPosition.z = owner.z;
+                    updateProperties.forEach((property) => attachmentPosition[property] = owner[property]);
                     this.attachment = this.owner.parent.addEntity(this.attachmentProperties);
                 }
                 
@@ -150,6 +160,10 @@ export default  createComponentClass(/** @lends platypus.components.LogicAttachm
                     this.attachment = null;
                     this.isAttached = false;
                 } else {
+                    // New way (gets overridden by old way atm):
+                    updateProperties.forEach((property) => this.attachment[property] = owner[property]);
+
+                    // Old way:
                     let
                         {offsetX, offsetY} = this;
 
