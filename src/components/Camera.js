@@ -976,8 +976,8 @@ export default (function () {
                     world.y = -viewport.y;
                     container.x = viewport.halfWidth * msg.scaleX;
                     container.y = viewport.halfHeight * msg.scaleY;
-                    container.scaleX = msg.scaleX;
-                    container.scaleY = msg.scaleY;
+                    container.scale.x = msg.scaleX;
+                    container.scale.y = msg.scaleY;
                     container.rotation = msg.orientation;
                     container.visible = true;
 
