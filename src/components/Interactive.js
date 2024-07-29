@@ -441,23 +441,27 @@ export default createComponentClass(/** @lends platypus.components.Interactive.p
         },
 
         setHitArea (shape) {
-            const
-                sav = JSON.stringify(shape);
-            let ha = savedHitAreas[sav];
+            if (shape) {
+                const
+                    sav = JSON.stringify(shape);
+                let ha = savedHitAreas[sav];
 
-            if (!ha) {
-                if (Array.isArray(shape)) {
-                    ha = new Polygon(shape);
-                } else if (shape.radius) {
-                    ha = new Circle(shape.x ?? 0, shape.y ?? 0, shape.radius);
-                } else {
-                    ha = new Rectangle(shape.x ?? 0, shape.y ?? 0, shape.width ?? this.owner.width ?? 0, shape.height ?? this.owner.height ?? 0);
+                if (!ha) {
+                    if (Array.isArray(shape)) {
+                        ha = new Polygon(shape);
+                    } else if (shape.radius) {
+                        ha = new Circle(shape.x ?? 0, shape.y ?? 0, shape.radius);
+                    } else {
+                        ha = new Rectangle(shape.x ?? 0, shape.y ?? 0, shape.width ?? this.owner.width ?? 0, shape.height ?? this.owner.height ?? 0);
+                    }
+                    
+                    savedHitAreas[sav] = ha;
                 }
                 
-                savedHitAreas[sav] = ha;
+                return ha;
+            } else {
+                return null;
             }
-            
-            return ha;
         },
 
         toJSON () { // This component is added by another component, so it shouldn't be returned for reconstruction.
