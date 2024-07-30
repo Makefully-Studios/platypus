@@ -18,9 +18,9 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
          *
          * @property stickyClick
          * @type Boolean
-         * @default false
+         * @default undefined
          */
-        stickyClick: !platypus.supports.mobile,
+        stickyClick: undefined,
 
         /**
          * Sets whether an entity can be dragged at initial. Change via disable-drag().
@@ -64,6 +64,11 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
         this.dragContainer = new Container();
 
         this.dragContainer.zIndex = Infinity;
+
+        if (this.stickyClick === undefined) {
+            this.stickyClick = platypus.supports.mobile;
+        }
+        this.releaseStick = false;
     },
 
     events: {
@@ -102,6 +107,11 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
                     owner.x = nextX;
                     owner.y = nextY;
                 }
+
+                if (this.releaseStick) {
+                    setTimeout(() => this.release());
+                    this.releaseStick = false;
+                }
             }
         },
 
@@ -112,7 +122,9 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
 
             if (this.sticking) {
                 this.sticking = false;
-                this.release();
+                this.nextX = eventData.x - this.grabOffsetX;
+                this.nextY = eventData.y - this.grabOffsetY;
+                this.releaseStick = true; // Delay release until logic runs in case of collision checks, etc.
             } else {
                 const
                     {owner} = this;
