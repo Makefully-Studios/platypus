@@ -14,13 +14,13 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
 
 
         /**
-         * Sets whether a click-move should start the dragging behavior in addition to click-drag. This value is ignored for mobile devices.
+         * Sets whether a click-move should start the dragging behavior in addition to click-drag. Defaults to `true` on desktop and `false` on mobile devices.
          *
          * @property stickyClick
          * @type Boolean
          * @default false
          */
-        stickyClick: true,
+        stickyClick: !platypus.supports.mobile,
 
         /**
          * Sets whether an entity can be dragged at initial. Change via disable-drag().
@@ -64,10 +64,6 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
         this.dragContainer = new Container();
 
         this.dragContainer.zIndex = Infinity;
-
-        if (platypus.supports.mobile) {
-            this.stickyClick = false;
-        }
     },
 
     events: {
