@@ -402,6 +402,7 @@ export default (function () {
                                 if (this.playIndex < this.playSequence.length || this.loopSequence) {
                                     this.playIndex = this.playIndex % this.playSequence.length;
                                     this.innerPlayAnimation(this.playSequence[this.playIndex], false);
+                                    return;
                                 }
                             }
         
@@ -592,6 +593,7 @@ export default (function () {
 
         methods: {
             addToContainer: function () {
+                this.owner.container.cullable = false;
                 this.owner.container.addChild(this.spine);
             },
             
