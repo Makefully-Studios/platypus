@@ -177,6 +177,12 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
             eventData.pixiEvent.stopPropagation();
         },
 
+        "input-off": function () {
+            if (this.state.get('dragging') && this.dragId !== null) {
+                this.release();
+            }
+        },
+
         "pointermove": function (eventData) {
             if (!this.state.get('dragging')) {
                 return;

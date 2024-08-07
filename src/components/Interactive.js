@@ -149,18 +149,22 @@ export default createComponentClass(/** @lends platypus.components.Interactive.p
         
         "input-off": function () {
             if (this.removeInputListeners) {
+                // Make sure currently-pressed is released.
+                if (this.pressed) {
+                    this.handlePressUp(this.pressed);
+                }
                 this.removeInputListeners();
             }
         },
 
         "pointerdown": function (event) {
             if (this.pressed === null) { // so extra multi-touch presses won't trigger 'pressmove' / 'pressup'
-                this.pressed = event.pixiEvent.pointerId;
+                this.pressed = Data.setUp(event);
             }
         },
 
         "pointermove": function (event) {
-            if (this.pressed === event.pixiEvent.pointerId) {
+            if (this.pressed?.pixiEvent?.pointerId === event.pixiEvent.pointerId) {
                 /**
                  * This event is triggered on press move (drag).
                  *
@@ -172,38 +176,21 @@ export default createComponentClass(/** @lends platypus.components.Interactive.p
                  * @param entity {platypus.Entity} The entity receiving this event.
                  */
                 this.owner.triggerEvent('pressmove', event);
+                this.pressed.recycle();
+                this.pressed = Data.setUp(event);
             }
         },
 
         "pointerup": function (event) {
-            if (this.pressed === event.pixiEvent.pointerId) {
-                /**
-                 * This event is triggered on press up.
-                 *
-                 * @event platypus.Entity#pressup
-                 * @param event {DOMEvent} The original DOM pointer event.
-                 * @param pixiEvent {PIXI.interaction.InteractionEvent} The Pixi pointer event.
-                 * @param x {Number} The x coordinate in world units.
-                 * @param y {Number} The y coordinate in world units.
-                 * @param entity {platypus.Entity} The entity receiving this event.
-                 */
-                this.owner.triggerEvent('pressup', event);
-                this.pressed = null;
-            }
+            this.handlePressUp(event);
         },
 
         "pointerupoutside": function (event) {
-            if (this.pressed === event.pixiEvent.pointerId) {
-                this.owner.triggerEvent('pressup', event);
-                this.pressed = null;
-            }
+            this.handlePressUp(event);
         },
 
         "pointercancel": function (event) {
-            if (this.pressed === event.pixiEvent.pointerId) {
-                this.owner.triggerEvent('pressup', event);
-                this.pressed = null;
-            }
+            this.handlePressUp(event);
         },
 
         /**
@@ -461,6 +448,24 @@ export default createComponentClass(/** @lends platypus.components.Interactive.p
                 return ha;
             } else {
                 return null;
+            }
+        },
+
+        handlePressUp (event) {
+            if (this.pressed?.pixiEvent?.pointerId === event.pixiEvent.pointerId) {
+                /**
+                 * This event is triggered on press up.
+                 *
+                 * @event platypus.Entity#pressup
+                 * @param event {DOMEvent} The original DOM pointer event.
+                 * @param pixiEvent {PIXI.interaction.InteractionEvent} The Pixi pointer event.
+                 * @param x {Number} The x coordinate in world units.
+                 * @param y {Number} The y coordinate in world units.
+                 * @param entity {platypus.Entity} The entity receiving this event.
+                 */
+                this.owner.triggerEvent('pressup', event);
+                this.pressed.recycle();
+                this.pressed = null;
             }
         },
 
