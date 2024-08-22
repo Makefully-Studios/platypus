@@ -58,6 +58,7 @@ export {default as RelayGame} from "./RelayGame.js";
 export {default as RelayLinker} from "./RelayLinker.js";
 export {default as RelayParent} from "./RelayParent.js";
 export {default as RelaySelf} from "./RelaySelf.js";
+export {default as Render} from "./Render.js";
 export {default as RenderAnimator} from "./RenderAnimator.js";
 export {default as RenderContainer} from "./RenderContainer.js";
 export {default as RenderDebug} from "./RenderDebug.js";
