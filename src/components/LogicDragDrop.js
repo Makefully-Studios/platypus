@@ -23,6 +23,15 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
         stickyClick: undefined,
 
         /**
+         * Sets how far a `pressmove` event can deviate from the original `pointerdown` before a stickyClick becomes unstuck (ie normal drag-drop). `0` means any movement will unstick the click. `10` means the mouse needs to move more than 10 units before the unstick occurs. `stickyClick` must be enabled for this property to matter.
+         * 
+         * @property stickiness
+         * @type Number
+         * @default 0
+         */
+        stickiness: 0,
+
+        /**
          * Sets whether an entity can be dragged at initial. Change via disable-drag().
          *
          * @property dragDisabled
@@ -121,7 +130,7 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
             }
 
             if (this.sticking) {
-                this.sticking = false;
+                this.sticking = null;
                 this.nextX = eventData.x - this.grabOffsetX;
                 this.nextY = eventData.y - this.grabOffsetY;
                 this.releaseStick = true; // Delay release until logic runs in case of collision checks, etc.
@@ -157,7 +166,7 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
                         this.grabOffsetY = (eventData.y >> 0) - y;
                         state.set('dragging', true);
                         owner.dragMode = true;
-                        this.sticking = this.stickyClick;
+                        this.sticking = this.stickyClick ? {x, y} : null;
                         this.claimPointer();
         
                         // put in top layer
@@ -205,10 +214,13 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
             }
             
             if (this.dragId !== null) {
+                const
+                    {stickiness, sticking} = this;
+
                 this.nextX = eventData.x - this.grabOffsetX;
                 this.nextY = eventData.y - this.grabOffsetY;
-                if (this.sticking && (this.nextX !== this.owner.x || this.nextY !== this.owner.y)) {
-                    this.sticking = false;
+                if (sticking && (Math.pow(this.nextX - sticking.x, 2) + Math.pow(this.nextY - sticking.y, 2) > Math.pow(stickiness, 2))) {
+                    this.sticking = null;
                 }
                 
                 eventData.event.preventDefault();
@@ -237,7 +249,7 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
 
                 if (!aabb.containsPoint(this.nextX + this.grabOffsetX, this.nextY + this.grabOffsetY)) {
                     if (this.sticking) {
-                        this.sticking = false;
+                        this.sticking = null;
                     }
                     this.release();
                 } else { // adjust container if needed.
