@@ -12,16 +12,6 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
     properties: {
         //TODO: Impement Multi-Drag
 
-
-        /**
-         * Sets whether a click-move should start the dragging behavior in addition to click-drag. Defaults to `true` on desktop and `false` on mobile devices.
-         *
-         * @property stickyClick
-         * @type Boolean
-         * @default undefined
-         */
-        stickyClick: undefined,
-
         /**
          * Sets how far a `pressmove` event can deviate from the original `pointerdown` before a stickyClick becomes unstuck (ie normal drag-drop). `0` means any movement will unstick the click. `10` means the mouse needs to move more than 10 units before the unstick occurs. `stickyClick` must be enabled for this property to matter.
          * 
@@ -40,6 +30,17 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
          */
         dragDisabled: false
 
+    },
+
+    publicProperties: {
+        /**
+         * Sets whether a click-move should start the dragging behavior in addition to click-drag. Defaults to `true` on desktop and `false` on mobile devices.
+         *
+         * @property stickyClick
+         * @type Boolean
+         * @default undefined
+         */
+        stickyClick: undefined
     },
     
     /**
