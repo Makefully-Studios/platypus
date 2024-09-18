@@ -1,5 +1,9 @@
 /* global platypus */
 import {arrayCache, greenSplice} from './utils/array.js';
+import TweenJS from '@tweenjs/tween.js';
+
+const
+    {Tween} = TweenJS;
 
 /**
  * This class plays sfx audio and manages Springroll volume changes.
@@ -55,6 +59,20 @@ import {arrayCache, greenSplice} from './utils/array.js';
         } else {
             platypus.debug.warn('SFXPlayer: Did not find "' + audio.soundId + '"');
         }
+    }
+
+    fade (audio, volume, time, onComplete = () => {}) {
+        const
+            tween = new Tween(audio);
+
+        tween.to({
+            initialVolume: volume
+        }, time);
+        tween.onUpdate(() => {
+            audio.set('volume', audio.initialVolume * this.volume);
+        });
+        tween.onComplete(onComplete);
+        tween.start();
     }
 
     /**

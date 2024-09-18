@@ -7,7 +7,6 @@
  */
 /* global platypus */
 import {arrayCache, greenSplice} from '../utils/array.js';
-import TweenJS from '@tweenjs/tween.js';
 import createComponentClass from '../factory.js';
 
 const
@@ -18,7 +17,6 @@ const
             return path;
         }
     },
-    Tween = TweenJS.Tween,
     activeTracks = {}; // List of actively-playing tracks.
 
 export default createComponentClass(/** @lends platypus.components.AudioMusic.prototype */{
@@ -77,6 +75,7 @@ export default createComponentClass(/** @lends platypus.components.AudioMusic.pr
     methods: {
         changeMusicTracks (tracks) {
             const
+                {player} = this,
                 fadeOuts = Object.keys(activeTracks),
                 {fade} = this;
 
@@ -93,7 +92,6 @@ export default createComponentClass(/** @lends platypus.components.AudioMusic.pr
 
                     if (trackProperties.autoStart !== false) {
                         let sound = activeTracks[key],
-                            tween = null,
                             trackFade = trackProperties.fade ?? fade;
 
                         if (fadeOut >= 0) {
@@ -101,35 +99,28 @@ export default createComponentClass(/** @lends platypus.components.AudioMusic.pr
                         } else { // gotta load it because it's not there!
                             sound = activeTracks[key] = this.player.play(trackProperties.sound || trackProperties, {
                                 loop: Infinity,
-                                volume: trackFade ? 0 : (typeof trackProperties.volume === 'number' ? trackProperties.volume : 1),
-                                initialVolume: typeof trackProperties.volume === 'number' ? trackProperties.volume : 1
+                                volume: trackFade ? 0 : (typeof trackProperties.volume === 'number' ? trackProperties.volume : 1)
                             });
                         }
 
                         if (trackFade) {
-                            tween = new Tween(sound);
-                            tween.to({
-                                volume: (typeof trackProperties.volume === 'number' ? trackProperties.volume : 1) * this.player.volume
-                            }, trackFade);
-                            tween.start();
+                            
+                            player.fade(sound, typeof trackProperties.volume === 'number' ? trackProperties.volume : 1, trackFade)
                         }
                     }
                 }
             }
 
             fadeOuts.forEach((value) => {
-                const sound = activeTracks[value],
-                    tween = new Tween(sound);
+                const
+                    sound = activeTracks[value];
 
-                tween.to({
-                    volume: 0
-                }, fade);
-                tween.onComplete(() => {
-                    this.player.stop(sound);
+                player.fade(sound, 0, fade, () => {
+                    player.stop(sound);
                     //sound.unload();
                 });
+
                 delete activeTracks[value];
-                tween.start();
             });
         }
     },

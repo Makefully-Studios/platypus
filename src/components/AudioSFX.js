@@ -50,68 +50,72 @@ const
                     ...value
                 });
 
-            data.volume *= this.volume;
-
-            if (data.pan) {
-                if (soundInstance.panFilter) {
-                    soundInstance.panFilter.pan = data.pan;
-                } else {
-                    soundInstance.panFilter = new Sound.filters.StereoFilter(data.pan);
-                }
-            }
-            if (soundInstance.panFilter || this.autoPanFilter) {
-                const
-                    filters = [];
-                
-                if (soundInstance.panFilter) {
-                    filters.push(soundInstance.panFilter);
-                }
-                if (this.autoPanFilter) {
-                    filters.push(this.autoPanFilter);
-                }
-                soundInstance.filters = filters;
-            }
-            data.audio = this.player.play(soundInstance, data);
-            //if (data.volume) {
-            //    data.audio.volume = data.volume;
-            //}
-            if (data.speed) {
-                data.audio.speed = data.speed;
-            }
-            if (data.playthrough && (data.loop !== -1)) {
-                data.audio.playthrough = true;
+            if (!soundInstance) {
+                platypus.debug.warn(`The sound "${sound}" is not a loaded asset.`);
             } else {
-                data.audio.playthrough = false;
-            }
-            data.audio.on('end', () => {
-                if (data.audio && !this.owner.destroyed && this.activeAudioClips) {
-                    //clean up active clips
-                    this.removeClip(data.audio);
-                    
-                    /**
-                     * When a sound effect is finished playing, this event is triggered.
-                     *
-                     * @event platypus.Entity#clip-complete
-                     */
-                    this.owner.triggerEvent('clip-complete');
+                data.volume *= this.volume;
+
+                if (data.pan) {
+                    if (soundInstance.panFilter) {
+                        soundInstance.panFilter.pan = data.pan;
+                    } else {
+                        soundInstance.panFilter = new Sound.filters.StereoFilter(data.pan);
+                    }
                 }
-                data.recycle();
-            });
-            
-            data.audio.soundId = sound;
-            this.activeAudioClips.push(data.audio);
+                if (soundInstance.panFilter || this.autoPanFilter) {
+                    const
+                        filters = [];
+                    
+                    if (soundInstance.panFilter) {
+                        filters.push(soundInstance.panFilter);
+                    }
+                    if (this.autoPanFilter) {
+                        filters.push(this.autoPanFilter);
+                    }
+                    soundInstance.filters = filters;
+                }
+                data.audio = this.player.play(soundInstance, data);
+                //if (data.volume) {
+                //    data.audio.volume = data.volume;
+                //}
+                if (data.speed) {
+                    data.audio.speed = data.speed;
+                }
+                if (data.playthrough && (data.loop !== -1)) {
+                    data.audio.playthrough = true;
+                } else {
+                    data.audio.playthrough = false;
+                }
+                data.audio.on('end', () => {
+                    if (data.audio && !this.owner.destroyed && this.activeAudioClips) {
+                        //clean up active clips
+                        this.removeClip(data.audio);
+                        
+                        /**
+                         * When a sound effect is finished playing, this event is triggered.
+                         *
+                         * @event platypus.Entity#clip-complete
+                         */
+                        this.owner.triggerEvent('clip-complete');
+                    }
+                    data.recycle();
+                });
+                
+                data.audio.soundId = sound;
+                this.activeAudioClips.push(data.audio);
 
-            if (data.audio.playState === 'playFailed') {
-                // Let's try again - maybe it was a loading issue.
-                const
-                    wait = function (event) {
-                        if (event.id === sound) {
-                            data.audio.play(data);
-                            Sound.off('fileload', wait);
-                        }
-                    };
+                if (data.audio.playState === 'playFailed') {
+                    // Let's try again - maybe it was a loading issue.
+                    const
+                        wait = function (event) {
+                            if (event.id === sound) {
+                                data.audio.play(data);
+                                Sound.off('fileload', wait);
+                            }
+                        };
 
-                Sound.on('fileload', wait);
+                    Sound.on('fileload', wait);
+                }
             }
         };
     };
