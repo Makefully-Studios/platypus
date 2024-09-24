@@ -1,5 +1,5 @@
 /* global platypus */
-import {ColorMatrixFilter, Container, Graphics, Matrix} from 'pixi.js';
+import {Container, Graphics, Matrix} from 'pixi.js';
 import AABB from '../AABB.js';
 import Data from '../Data.js';
 import Entity from '../Entity.js';
@@ -318,8 +318,6 @@ export default createComponentClass(/** @lends platypus.components.RenderContain
         this.lastX = owner.x;
         this.lastY = owner.y;
 
-        this._tint = null;
-
         if (this.interpolation) { // handle interpolation if timeline changes.
             const
                 updateUsingOwnerXY = () => {
@@ -378,32 +376,10 @@ export default createComponentClass(/** @lends platypus.components.RenderContain
 
         Object.defineProperty(owner, 'tint', {
             get: function () {
-                return this._tint;
+                return container.tint;
             }.bind(this),
             set: function (value) {
-                var filters = this.container.filters,
-                    matrix = null,
-                    color = castValue(value);
-
-                if (color === this._tint) {
-                    return;
-                }
-
-                if (color === null) {
-                    if (filters) {
-                        this.container.filters = null;
-                    }
-                } else {
-                    if (!filters) {
-                        filters = this.container.filters = arrayCache.setUp(new ColorMatrixFilter());
-                    }
-                    matrix = filters[0].matrix;
-                    matrix[0] = (color & 0xff0000) / 0xff0000; // Red
-                    matrix[6] = (color & 0xff00) / 0xff00; // Green
-                    matrix[12] = (color & 0xff) / 0xff; // Blue
-                }
-
-                this._tint = color;
+                container.tint = castValue(value);
             }.bind(this)
         });
     
