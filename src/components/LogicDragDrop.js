@@ -117,11 +117,6 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
                     owner.x = nextX;
                     owner.y = nextY;
                 }
-
-                if (this.releaseStick) {
-                    setTimeout(() => this.release());
-                    this.releaseStick = false;
-                }
             }
         },
 
@@ -184,6 +179,12 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
         },
 
         "pressup": function (eventData) {
+            if (this.releaseStick) {
+                this.release();
+                this.releaseStick = false;
+                return;
+            }
+
             if (!this.state.get('dragging')) {
                 return;
             }
