@@ -115,7 +115,6 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
             }
 
             if (this.sticking) {
-                this.sticking = false;
                 this.release();
             } else {
                 const
@@ -234,9 +233,6 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
                     {aabb} = this;
 
                 if (!aabb.containsPoint(this.nextX + this.grabOffsetX, this.nextY + this.grabOffsetY)) {
-                    if (this.sticking) {
-                        this.sticking = false;
-                    }
                     this.release();
                 } else { // adjust container if needed.
                     const
@@ -282,6 +278,8 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
                 dropX = owner.x,
                 dropY = owner.y;
             let defaultCancelled = false;
+
+            this.sticking = false;
 
             this.dragId = null;
             state.set('dragging', false);
