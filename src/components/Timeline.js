@@ -172,10 +172,13 @@ export default createComponentClass(/** @lends platypus.components.Timeline.prot
 
                 if (entry.time <= instance.time) {
                     const
-                        value = entry.value;
+                        value = entry.value,
+                        type = typeof value;
 
-                    if (typeof value === 'string') {
+                    if (type === 'string') {
                         this.owner.triggerEvent(value);
+                    } else if (type === 'function') {
+                        value();
                     } else {
                         if (value.entity) {
                             if (this.owner.getEntityById) {
@@ -221,6 +224,18 @@ export default createComponentClass(/** @lends platypus.components.Timeline.prot
             }
             arrayCache.recycle(instances);
             this.timelineInstances = null;
+        }
+    },
+
+    publicMethods: {
+        // asynchronous wait that incorporates ticker pauses.
+        wait (time) {
+            return new Promise ((resolve, reject) => {
+                this.timelineInstances.push(this.createTimeStampedTimeline([
+                    time,
+                    resolve
+                ]));
+            });
         }
     }
 });
