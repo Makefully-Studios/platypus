@@ -1,0 +1,48 @@
+.platypus-debugging {
+    position: fixed;
+    pointer-events: none;
+    color: #fff;
+    font-size: 12px;
+    padding: 5px;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 2;
+    font-family: "Lucida Console", Monaco, monospace;
+    -webkit-touch-callout: none;
+    user-select: none;
+    cursor: default;
+    margin: 0;
+    line-height: 1.5em;
+}
+
+#framerate {
+    top: 0;
+    left: 0;
+}
+
+#platypus-logging {
+    top: 0;
+    right: 0;
+    max-width: 40%;
+    max-height: 40%;
+    overflow-x: auto;
+}
+
+#platypus-logging .general {color: lightgreen;}
+#platypus-logging .log {color: white;}
+#platypus-logging .warn {color: yellow;}
+#platypus-logging .debug {color: lightblue;}
+#platypus-logging .error {color: lightcoral;}
+#platypus-logging span {padding-right: 1.5em;}
+
+#toggle-platypus-debugging {
+    position: fixed;
+    top: 0;
+    right: 0;
+    font-size: 12px;
+    padding: 5px;
+    background: rgba(0, 0, 0, 0.4);
+    font-family: "Lucida Console", Monaco, monospace;
+    border: none;
+    color: white;
+    z-index: 3;
+}

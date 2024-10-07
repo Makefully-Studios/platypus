@@ -162,6 +162,15 @@ export default createComponentClass(/** @lends platypus.components.RenderContain
         cache: false,
 
         /**
+         * Sets the PIXI Container's `cullable` property.
+         *
+         * @property cullable
+         * @type Boolean
+         * @default true
+         */
+        cullable: true,
+
+        /**
          * Optional. Ignores the opacity of the owner.
          *
          * @property ignoreOpacity
@@ -306,7 +315,7 @@ export default createComponentClass(/** @lends platypus.components.RenderContain
             initialTint = this.tint;
 
         container.sortableChildren = true;
-        container.cullable = true;
+        container.cullable = this.cullable;
 
         if (this.rotate === true) {
             this.rotate = 'rotation';

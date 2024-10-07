@@ -12,15 +12,14 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
     properties: {
         //TODO: Impement Multi-Drag
 
-
         /**
-         * Sets whether a click-move should start the dragging behavior in addition to click-drag. This value is ignored for mobile devices.
-         *
-         * @property stickyClick
-         * @type Boolean
-         * @default false
+         * Sets how far a `pressmove` event can deviate from the original `pointerdown` before a stickyClick becomes unstuck (ie normal drag-drop). `0` means any movement will unstick the click. `10` means the mouse needs to move more than 10 units before the unstick occurs. `stickyClick` must be enabled for this property to matter.
+         * 
+         * @property stickiness
+         * @type Number
+         * @default 0
          */
-        stickyClick: true,
+        stickiness: 0,
 
         /**
          * Sets whether an entity can be dragged at initial. Change via disable-drag().
@@ -31,6 +30,17 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
          */
         dragDisabled: false
 
+    },
+
+    publicProperties: {
+        /**
+         * Sets whether a click-move should start the dragging behavior in addition to click-drag. Defaults to `true` on desktop and `false` on mobile devices.
+         *
+         * @property stickyClick
+         * @type Boolean
+         * @default undefined
+         */
+        stickyClick: undefined
     },
     
     /**
@@ -65,9 +75,10 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
 
         this.dragContainer.zIndex = Infinity;
 
-        if (platypus.supports.mobile) {
-            this.stickyClick = false;
+        if (this.stickyClick === undefined) {
+            this.stickyClick = platypus.supports.mobile;
         }
+        this.releaseStick = false;
     },
 
     events: {
@@ -115,7 +126,10 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
             }
 
             if (this.sticking) {
-                this.release();
+                this.sticking = null;
+                this.nextX = eventData.x - this.grabOffsetX;
+                this.nextY = eventData.y - this.grabOffsetY;
+                this.releaseStick = true; // Delay release until logic runs in case of collision checks, etc.
             } else {
                 const
                     {owner} = this;
@@ -148,7 +162,7 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
                         this.grabOffsetY = (eventData.y >> 0) - y;
                         state.set('dragging', true);
                         owner.dragMode = true;
-                        this.sticking = this.stickyClick;
+                        this.sticking = this.stickyClick ? {x, y} : null;
                         this.claimPointer();
         
                         // put in top layer
@@ -165,6 +179,12 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
         },
 
         "pressup": function (eventData) {
+            if (this.releaseStick) {
+                this.release();
+                this.releaseStick = false;
+                return;
+            }
+
             if (!this.state.get('dragging')) {
                 return;
             }
@@ -202,10 +222,13 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
             }
             
             if (this.dragId !== null) {
+                const
+                    {stickiness, sticking} = this;
+
                 this.nextX = eventData.x - this.grabOffsetX;
                 this.nextY = eventData.y - this.grabOffsetY;
-                if (this.sticking && (this.nextX !== this.owner.x || this.nextY !== this.owner.y)) {
-                    this.sticking = false;
+                if (sticking && (Math.pow(this.nextX - sticking.x, 2) + Math.pow(this.nextY - sticking.y, 2) > Math.pow(stickiness, 2))) {
+                    this.sticking = null;
                 }
                 
                 eventData.event.preventDefault();
@@ -279,7 +302,7 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
                 dropY = owner.y;
             let defaultCancelled = false;
 
-            this.sticking = false;
+            this.sticking = null;
 
             this.dragId = null;
             state.set('dragging', false);

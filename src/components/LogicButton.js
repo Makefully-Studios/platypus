@@ -205,11 +205,6 @@ export default (function () {
                         if (eventData && eventData.pixiEvent && eventData.pixiEvent.stopPropagation) { // ensure a properly formed event has been sent
                             eventData.pixiEvent.stopPropagation();
                         }
-
-                        // Doing this prevents the call from reccurring.
-                        if (this.useOnce && this.removeEventListener) {
-                            this.removeEventListener('pointerdown');
-                        }
                     }
                 }
             },
@@ -264,7 +259,8 @@ export default (function () {
                     }
 
                     // Doing this prevents the call from reccurring.
-                    if (this.useOnce && this.removeEventListener) { //Second check is to ensure method exists which won't be the case if a result of the press is the button being destroyed.
+                    if (!this.cancelled && this.useOnce && this.removeEventListener) { //Second check is to ensure method exists which won't be the case if a result of the press is the button being destroyed.
+                        this.removeEventListener('pointerdown');
                         this.removeEventListener('pressup');
                         this.state.set('disabled', true);
                         this.owner.container.cursor = null;

@@ -45,15 +45,6 @@ const
         createComponentClass,
         components
     },
-    debugWrapper = Debugger ? function (method, ...args) {
-        if (platypus.game?.settings?.debug) {
-            Debugger.log(method, ...args);
-        }
-    } : function (method, ...args) {
-        if (platypus.game?.settings?.debug) {
-            window.console[method](...args);
-        }
-    },
     uagent    = navigator.userAgent.toLowerCase(),
     isEdge    = (uagent.search('edge')    > -1),
     isIPod    = (uagent.search('ipod')    > -1),
@@ -62,7 +53,52 @@ const
     isAndroid = (uagent.search('android') > -1),
     isSilk    = (uagent.search('silk')    > -1),
     isIOS     = isIPod || isIPhone  || isIPad,
-    isMobile  = isIOS  || isAndroid || isSilk;
+    isMobile  = isIOS  || isAndroid || isSilk,
+    logToDiv = isMobile ? (() => {
+        const
+            logDiv = document.createElement('ul'),
+            toggleLogDiv = document.createElement('button');
+
+        logDiv.style.display = 'none';
+        logDiv.id = "platypus-logging";
+        logDiv.classList.add('platypus-debugging');
+        document.body.appendChild(logDiv);
+
+        toggleLogDiv.id = 'toggle-platypus-debugging';
+        toggleLogDiv.innerText = 'log';
+        toggleLogDiv.addEventListener('click', () => {
+            if (logDiv.style.display === 'none') {
+                logDiv.style.display = 'block';
+                toggleLogDiv.innerText = 'X';
+            } else {
+                logDiv.style.display = 'none';
+                toggleLogDiv.innerText = 'log';
+            }
+        });
+        document.body.appendChild(toggleLogDiv);
+
+        return (method, ...args) => {
+            const
+                newLog = document.createElement('li');
+
+            newLog.classList.add(method);
+            args.forEach((arg) => {
+                const
+                    newArg = document.createElement('span');
+
+                newArg.innerText = arg;
+                newLog.appendChild(newArg);
+            });
+
+            logDiv.appendChild(newLog);
+        };
+    })() : () => {},
+    debugWrapper = function (method, ...args) {
+        if (platypus.game?.settings?.debug) {
+            Debugger.log(method, ...args);
+            logToDiv(method, ...args);
+        }
+    };
 
 /**
  * This is an object of boolean key/value pairs describing the current browser's properties.
@@ -75,11 +111,11 @@ platypus.supports = {
     iPod: isIPod,
     iPhone: isIPhone,
     iPad: isIPad,
-    safari: (uagent.search('safari')  > -1) && !isEdge,
-    ie: (uagent.search('msie')    > -1) || (uagent.search('trident') > -1),
+    safari: (uagent.search('safari') > -1) && !isEdge,
+    ie: (uagent.search('msie') > -1) || (uagent.search('trident') > -1),
     firefox: (uagent.search('firefox') > -1),
     android: isAndroid,
-    chrome: (uagent.search('chrome')  > -1) && !isEdge,
+    chrome: (uagent.search('chrome') > -1) && !isEdge,
     silk: isSilk,
     iOS: isIOS,
     mobile: isMobile,

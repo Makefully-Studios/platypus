@@ -513,6 +513,15 @@ class VOPlayer extends Messenger {
             this.unloadSound(this._currentVO);
             this._soundInstance = null;
         }
+
+        if (this._currentVO) {
+            if (typeof this._currentVO === "string") {
+                this.trigger("stop", this._currentVO);
+            } else if (typeof this._currentVO !== "function") {
+                this.trigger("stop", null);
+            }
+        }
+
         this._currentVO = null;
         if (this._captions && this._captions.activeCaption) {
             this._captions.stop();

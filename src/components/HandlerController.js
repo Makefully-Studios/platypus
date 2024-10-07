@@ -115,7 +115,16 @@ export default createComponentClass(/** @lends platypus.components.HandlerContro
          * @type Boolean
          * @default false
          */
-        useHandleLogic: false
+        useHandleLogic: false,
+
+        /**
+         * Which default key events should be allowed. Defaults to 'none'. May be 'none', 'all', or an array of allowed keys.
+         * 
+         * @property enableDefaultEvents
+         * @type String|Array
+         * @default 'none'
+         */
+        enableDefaultEvents: 'none'
     },
 
     publicProperties: {
@@ -138,17 +147,23 @@ export default createComponentClass(/** @lends platypus.components.HandlerContro
      * @fires platypus.Entity#input-precedence-updated
      */
     initialize: function () {
-        if (platypus.game.settings.debug) { // If this is a test build, leave in the browser key combinations so debug tools can be opened as expected.
+        const
+            {enableDefaultEvents} = this;
+
+        if (platypus.game.settings.debug || enableDefaultEvents === 'all') { // If this is a test build, leave in the browser key combinations so debug tools can be opened as expected.
             this.callbackKeyDown = onDown.bind(this, 'keyboard');
             this.callbackKeyUp = onUp.bind(this, 'keyboard');
         } else { // Otherwise remove default browser behavior for key inputs so that they do not interfere with game-play.
+            const
+                preventDefault = Array.isArray(enableDefaultEvents) ? (event) => enableDefaultEvents.indexOf(event.code) === -1 ? event.preventDefault() : null : (event) => event.preventDefault();
+
             this.callbackKeyDown = (event) => {
                 onDown.call(this, 'keyboard', event);
-                event.preventDefault(); // this may be too aggressive - if problems arise, we may need to limit this to certain key combos that get in the way of game-play. Example: (event.metaKey && event.keyCode == 37) causes an accidental cmd key press to send the browser back a page while playing and hitting the left arrow button.
+                preventDefault(event); // default 'none' may be too aggressive - if problems arise, we may need to limit this to certain key combos that get in the way of game-play. Example: (event.metaKey && event.keyCode == 37) causes an accidental cmd key press to send the browser back a page while playing and hitting the left arrow button.
             };
             this.callbackKeyUp = (event) => {
                 onUp.call(this, 'keyboard', event);
-                event.preventDefault(); // this may be too aggressive - if problems arise, we may need to limit this to certain key combos that get in the way of game-play. Example: (event.metaKey && event.keyCode == 37) causes an accidental cmd key press to send the browser back a page while playing and hitting the left arrow button.
+                preventDefault(event);
             };
         }
         

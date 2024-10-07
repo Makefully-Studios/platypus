@@ -113,6 +113,7 @@ const
         let framerateTimer = 0;
 
         framerate.id = "framerate";
+        framerate.classList.add('platypus-debugging');
         framerate.innerHTML = "FPS: 00.000";
         canvas.parentNode.insertBefore(framerate, canvas);
 

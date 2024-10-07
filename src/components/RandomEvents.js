@@ -37,7 +37,16 @@ export default createComponentClass(/** @lends platypus.components.RandomEvents.
     id: 'RandomEvents',
 
     properties: {
-        events: null
+        events: null,
+
+        /**
+         * Whether to cycle through all options (default) or just trigger any option.
+         * 
+         * @property trueRandom
+         * @type boolean
+         * @default false
+         */
+        trueRandom: false
     },
     
     initialize: function () {

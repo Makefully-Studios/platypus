@@ -225,7 +225,7 @@ export default createComponentClass(/** @lends platypus.components.VoiceOver.pro
      */
     initialize: function (definition, callback) {
         const
-            {aliases, acceptInput, animation, animationMap, flip, hidden, interactive, mask, messagePrefix, mirror, offsetZ, owner, regX, regY, restart, scaleX, scaleY, spriteSheet, stateBased, voiceOverMap = {}} = this,
+            {aliases, acceptInput, animation, animationMap, flip, hidden, interactive, mask, messagePrefix, mirror, offsetZ, owner, regX, regY, renderComponent, restart, scaleX, scaleY, spriteSheet, stateBased, voiceOverMap = {}} = this,
             animationKeys = Object.keys(animationMap),
             {length: animationLength} = animationKeys,
             componentInit = (Component, definition) => new Promise((resolve) => owner.addComponent(new Component(owner, definition, resolve))),
