@@ -262,6 +262,13 @@ export default createComponentClass(/** @lends platypus.components.VoiceOver.pro
             this.message = '';
         }
 
+        this.relayLipSyncEvents = ({descriptor, content}) => {
+            if (descriptor === 'lipsync') {
+                this.owner.triggerEvent(getEventName(this.message, content));
+            }
+        };
+        platypus.game.voPlayer.on('lyric', this.relayLipSyncEvents);
+
         for (let i = 0; i < animationLength; i++) {
             const
                 key = animationKeys[i];
@@ -325,6 +332,12 @@ export default createComponentClass(/** @lends platypus.components.VoiceOver.pro
         Promise.all([componentInit(typeof this.renderComponent === 'string' ? platypus.components[this.renderComponent] : this.renderComponent, animationDefinition), componentInit(AudioVO, audioDefinition)]).then(callback);
 
         return true;
+    },
+
+    methods: {
+        destroy () {
+            platypus.game.voPlayer.off('lipsync', this.relayLipSyncEvents);
+        }
     },
 
     events: {

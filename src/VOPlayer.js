@@ -20,6 +20,7 @@ class VOPlayer extends Messenger {
 
         this.game = game;
         this.assetCache = assetCache;
+        this.tagReader = game.options.modules?.jsmediatags ?? null;
 
         //Bound method calls
         this._onSoundFinished = this._onSoundFinished.bind(this);
@@ -411,7 +412,25 @@ class VOPlayer extends Messenger {
     _syncCaptionToSound (tick) {
         if (!this._soundInstance) return;
 
+        const
+            {_soundInstance, audioTagEvents} = this,
+            elapsed = _soundInstance._elapsed * 1000;
+
         this._captions.update(tick.delta / 1000);
+
+        if (audioTagEvents) {
+            while (audioTagEvents.length && audioTagEvents[0].time <= elapsed) {
+                const
+                    {language, descriptor, contentType, content} = audioTagEvents.shift();
+
+                this.trigger('lyric', {
+                    language,
+                    descriptor,
+                    contentType,
+                    content
+                });
+            }
+        }
     }
 
     /**
@@ -428,6 +447,32 @@ class VOPlayer extends Messenger {
                     complete: this._onSoundFinished,
                     volume: this.volume
                 });
+                this.audioTagEvents = null;
+                if (this.tagReader) {
+                    this.tagReader.read(sound.url, {
+                        onSuccess: ({tags}) => {
+                            const
+                                {SYLT} = tags;
+                    
+                            if (SYLT) {
+                                const
+                                    list = Array.isArray(SYLT) ? SYLT : [SYLT];
+                    
+                                this.audioTagEvents = list.reduce((events, {data}) => {
+                                    events.push(...data.synchronisedText.map(({text: content, timeStamp: time}) => ({
+                                        time,
+                                        language: data.language,
+                                        descriptor: data.descriptor,
+                                        contentType: data.contentType,
+                                        content
+                                    })));
+                                    return events;
+                                }, []).sort(({time: a}, {time: b}) => a - b);
+                            }
+                        },
+                        onError: (error) => platypus.debug.warn(error)
+                    });
+                }
                 if (this._captions) {
                     this._captions.start(sound, soundId);
                     this.game.on("tick", this._syncCaptionToSound);
