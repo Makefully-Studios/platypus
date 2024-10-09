@@ -1,5 +1,5 @@
 /* global platypus */
-import {Spine, AtlasAttachmentLoader, SkeletonJson} from "@pixi/spine-pixi";
+import {Skin, Spine, AtlasAttachmentLoader, SkeletonJson} from "@pixi/spine-pixi";
 import {arrayCache} from '../utils/array.js';
 import Data from '../Data.js';
 import RenderAnimator from './RenderAnimator.js';
@@ -449,23 +449,7 @@ export default (function () {
                     spine.scale.y = this.localScaleY;
     
                     if (this.skinMap) { // Set up skin map handling.
-                        const
-                            switchSkin = (skin) => {
-                                if (this.currentSkin !== skin) {
-                                    this.currentSkin = skin;
-                                    this.spine.skeleton.setSkin(null);
-                                    //this.spine.skeleton.skin = null;
-                                    this.spine.skeleton.setSlotsToSetupPose();
-                                    this.spine.state.apply(this.spine.skeleton);
-                                    if (skin) {
-                                        this.spine.skeleton.setSkinByName(skin);
-                                        this.spine.skeleton.setSlotsToSetupPose();
-                                        //this.playAnimation(this.currentAnimations.join(';'));
-                                        this.spine.state.apply(this.spine.skeleton);
-                                    }
-                                }
-                            },
-                            map = this.skinMap;
+                        const map = this.skinMap;
         
                         this.currentSkin = null;
 
@@ -479,7 +463,7 @@ export default (function () {
                                 const
                                     key = keys[i];
 
-                                this.addEventListener(key, () => switchSkin(map[key]));
+                                this.addEventListener(key, () => this.switchSkin(map[key]));
                             }
                         }
         
@@ -511,7 +495,7 @@ export default (function () {
                                         const testCase = this.checkStates[i](this.state);
 
                                         if (testCase !== null) {
-                                            switchSkin(testCase);
+                                            this.switchSkin(testCase);
                                             break;
                                         }
                                     }
@@ -588,10 +572,42 @@ export default (function () {
             
             "play-animation": function (animation, loop) {
                 this.playAnimation(animation, loop);
+            },
+
+            /**
+             * Change the skin of the character.
+             *
+             * @event platypus.Entity#switch-skin
+             * @param skin {String or Array} The skin or set of skins you would like to apply.
+             */
+            "switch-skin": function (skin) {
+                this.switchSkin(skin);
             }
         },
 
         methods: {
+            switchSkin: function (newSkin) {
+                const skeletonData = this.spine.skeleton.data;
+                const skin = new Skin("custom");
+                let x = 0,
+                    foundSkin = null;
+
+                if (typeof newSkin === 'string') {
+                    newSkin = [newSkin];
+                }
+
+                for (x = 0; x < newSkin.length; x++) {
+                    foundSkin = skeletonData.findSkin(newSkin[x]);
+                    if (foundSkin) {
+                        skin.addSkin(foundSkin);
+                    } else {
+                        console.warn('Cannot find skin: ' + newSkin[x]);
+                    }
+                }
+
+                this.spine.skeleton.setSkin(skin);
+                this.spine.skeleton.setSlotsToSetupPose();
+            },
             addToContainer: function () {
                 this.owner.container.cullable = false;
                 this.owner.container.addChild(this.spine);
