@@ -398,10 +398,16 @@ export default (function () {
                                 animationName = animationData.animation.name;
                                 
                             if (this.playSequence) {
+                                const
+                                    last = this.playIndex === this.playSequence.length - 1;
+
                                 this.playIndex += 1;
                                 if (this.playIndex < this.playSequence.length || this.loopSequence) {
                                     this.playIndex = this.playIndex % this.playSequence.length;
                                     this.innerPlayAnimation(this.playSequence[this.playIndex], false);
+                                    if (last) {
+                                        this.owner.triggerEvent('animation-looped');
+                                    }
                                     return;
                                 }
                             }
@@ -547,7 +553,7 @@ export default (function () {
 
         events: {
             "handle-render": function (renderData) {
-                if (this.spine) {
+                if (this.spine && !this.paused) {
                     this.owner.triggerEvent('update-animation', true);
 
                     this.spine.update(renderData.delta / 1000);
@@ -588,6 +594,14 @@ export default (function () {
             
             "play-animation": function (animation, loop) {
                 this.playAnimation(animation, loop);
+            },
+
+            "pause-animation": function () {
+                this.paused = true;
+            },
+
+            "unpause-animation": function () {
+                this.paused = false;
             }
         },
 
@@ -640,7 +654,10 @@ export default (function () {
             },
 
             stopAnimation: function (animation) {
-                const spine = this.spine;
+                const
+                    {currentAnimations, spine} = this,
+                    {state, skeleton} = spine,
+                    {data} = skeleton;
                 let animated = 0,
                     remaining = animation;
 
@@ -651,14 +668,13 @@ export default (function () {
                     
                     remaining = (semicolon >= 0) ? remaining.substring(semicolon + 1) : '';
 
-                    if (spine.state.hasAnimation(next)) {
-                        this.currentAnimations[animated] = next;
-                        spine.state.setAnimation(animated, next, false);
+                    if (data.findAnimation(next)) {
+                        currentAnimations[animated] = next;
+                        state.setAnimation(animated, next, false);
                     }
                     animated += 1;
                 }
 
-                this.paused = true;
                 return animated;
             },
 
@@ -705,54 +721,14 @@ export default (function () {
             }
         },
         
-        getAssetList: (function () {
-            const
-                getImages = function (atlas, atlases, pma) {
-                    const images = arrayCache.setUp();
-
-                    if (atlas) {
-                        const findReturns = /\r/g;
-                        let lines = atlas.replace(findReturns, '').split('\n'),
-                            j = lines.length;
-
-                        if (lines.length === 1) { // id, not an actual atlas
-                            atlas = atlases[atlas];
-                            if (atlas) {
-                                lines = atlas.replace(findReturns, '').split('\n');
-                            } else {
-                                return images;
-                            }
-                            j = lines.length;
-                        }
-
-                        while (j--) { // Fix up relative image location paths.
-                            if (lines[j].substr(lines[j].length - 4) === '.png') {
-                                if (pma) {
-                                    images.push({
-                                        src: lines[j],
-                                        data: {
-                                            alphaMode: 'pma'
-                                        }
-                                    });
-                                } else {
-                                    images.push(lines[j]);
-                                }
-                            }
-                        }
-                    }
-
-                    return images;
-                };
-            
-            return function (component, props, defaultProps) {
-                return [{
-                    alias: [component?.atlas ?? props?.atlas ?? defaultProps?.atlas],
-                    src: component?.atlas ?? props?.atlas ?? defaultProps?.atlas
-                }, {
-                    alias: [component?.skeleton ?? props?.skeleton ?? defaultProps?.skeleton],
-                    src: component?.skeleton ?? props?.skeleton ?? defaultProps?.skeleton
-                }];
-            };
-        }())
+        getAssetList (component, props, defaultProps) {
+            return [{
+                alias: [component?.atlas ?? props?.atlas ?? defaultProps?.atlas],
+                src: component?.atlas ?? props?.atlas ?? defaultProps?.atlas
+            }, {
+                alias: [component?.skeleton ?? props?.skeleton ?? defaultProps?.skeleton],
+                src: component?.skeleton ?? props?.skeleton ?? defaultProps?.skeleton
+            }];
+        }
     });
 })();
