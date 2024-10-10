@@ -1,6 +1,6 @@
 {
     "name": "platypus",
-    "version": "3.4.0",
+    "version": "3.5.0",
     "description": "Platypus",
     "license": "MIT",
     "main": "lib/platypus.js",
@@ -25,10 +25,10 @@
     },
     "peerDependencies": {
         "@pixi/sound": "^6.0.0",
-        "@pixi/spine-pixi": "^1.0.6",
+        "@pixi/spine-pixi": "^2.1.1",
         "@tweenjs/tween.js": "^23.1.1",
         "pako": "^2.1.0",
-        "pixi.js": "^8.0.1",
+        "pixi.js": "^8.1.5",
         "springroll": "^2.6.0"
     },
     "optionalDependencies": {
