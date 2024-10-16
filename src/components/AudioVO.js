@@ -11,26 +11,6 @@ const
         } else {
             return path;
         }
-    },
-    setupEventList = function (sounds, eventList, player) { // This function merges events from individual sounds into a full list queued to sync with the SpringRoll voPlayer.
-        const
-            soundList = arrayCache.setUp();
-        
-        // Create alias-only sound list.
-        for (let i = 0; i < sounds.length; i++) {
-            if (sounds[i].sound) {
-                const
-                    events = sounds[i].events;
-                
-                if (events) {
-                    soundList.push(() => eventList.addEvents(events, player.getElapsed()));
-                }
-                soundList.push(sounds[i].sound);
-            } else {
-                soundList.push(sounds[i]);
-            }
-        }
-        return soundList;
     };
 
 export default createComponentClass(/** @lends platypus.components.AudioVO.prototype */{
@@ -183,13 +163,13 @@ export default createComponentClass(/** @lends platypus.components.AudioVO.proto
             if (typeof soundDefinition === 'string') {
                 soundList = arrayCache.setUp(soundDefinition);
             } else if (Array.isArray(soundDefinition)) {
-                soundList = setupEventList(soundDefinition, eventList, player);
+                soundList = this.setupEventList(soundDefinition, eventList);
             } else {
                 if (soundDefinition.events) {
                     eventList.addEvents(soundDefinition.events);
                 }
                 if (Array.isArray(soundDefinition.sound)) {
-                    soundList = setupEventList(soundDefinition.sound, eventList, player);
+                    soundList = this.setupEventList(soundDefinition.sound, eventList);
                 } else {
                     soundList = arrayCache.setUp(soundDefinition.sound);
                 }
@@ -202,6 +182,37 @@ export default createComponentClass(/** @lends platypus.components.AudioVO.proto
             player.play(soundList, onComplete.bind(this, true), onComplete.bind(this, false));
 
             this.playingAudio = true;
+        },
+
+        setupEventList (sounds, eventList) { // This function merges events from individual sounds into a full list queued to sync with the SpringRoll voPlayer.
+            const
+                {owner, player} = this,
+                soundList = arrayCache.setUp();
+            
+            // Create alias-only sound list.
+            for (let i = 0; i < sounds.length; i++) {
+                if (sounds[i].sound) {
+                    const
+                        events = sounds[i].events;
+                    let timeEvents = null;
+                    
+                    if (events) {
+                        // Add audio-segment events
+                        soundList.push(() => timeEvents = eventList.addEvents(events, player.getElapsed()));
+                    }
+                    soundList.push(sounds[i].sound);
+                    if (events) {
+                        // Make sure audio-segment events not yet triggered are triggered.
+                        soundList.push(() => eventList.clear(timeEvents).forEach((event) => {
+                            owner.trigger(event);
+                            event.recycle();
+                        }));
+                    }
+                } else {
+                    soundList.push(sounds[i]);
+                }
+            }
+            return soundList;
         }
     },
     

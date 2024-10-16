@@ -16,28 +16,36 @@ const
     },
     proto = TimeEventList.prototype;
 
-proto.clear = function () {
-    return this.getEvents(Infinity);
+proto.clear = function (list) {
+    return this.getEvents(Infinity, list);
 };
 
 proto.addEvents = function (list, time = 0) {
     const
-        {list: timeList} = this;
+        {list: timeList} = this,
+        arr = arrayCache.setUp();
 
     list.forEach((entry) => {
         if (typeof entry === 'number') {
             time += entry;
         } else if (entry instanceof TimeEvent) {
             timeList.push(entry);
+            arr.push(entry);
         } else {
-            timeList.push(TimeEvent.setUp(entry, time));
+            const
+                event = TimeEvent.setUp(entry, time);
+
+            timeList.push(event);
+            arr.push(event);
         }
     });
 
     timeList.sort(sortByTime);
+
+    return arr;
 };
 
-proto.getEvents = function (time) {
+proto.getEvents = function (time, limitToThese) {
     const
         arr = arrayCache.setUp(),
         {list} = this;
@@ -45,7 +53,9 @@ proto.getEvents = function (time) {
     this.time = time;
 
     while (list.length && list[0].time <= time) {
-        arr.push(list.shift());
+        if (!limitToThese || limitToThese.indexOf(list[0]) >= 0) {
+            arr.push(list.shift());
+        }
     }
 
     return arr;
