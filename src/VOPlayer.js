@@ -2,6 +2,7 @@
 import {arrayCache, greenSlice, greenSplice} from './utils/array.js';
 import Data from './Data.js';
 import Messenger from './Messenger.js';
+import TimeEventList from './TimeEventList.js';
 
 /**
  * This class is used to create `platypus.game.voPlayer` and manages playback by only playing one at a time, playing a list, and even handling captions at the same time.
@@ -322,7 +323,7 @@ class VOPlayer extends Messenger {
              */
             this.trigger("end", currentVO);
             if (typeof currentVO === "string") {
-                this.voList[0] += audio.duration * 1000;
+                this.voList[0] += (audio?.duration ?? 0) * 1000;
                 this.unloadSound(currentVO);
                 greenSplice(this.voList, 1);
                 this._listCounter -= 1;
@@ -413,22 +414,14 @@ class VOPlayer extends Messenger {
         if (!this._soundInstance) return;
 
         const
-            {_soundInstance, audioTagEvents} = this,
+            {_soundInstance, audioEventQueue} = this,
             elapsed = _soundInstance._elapsed * 1000;
 
-        this._captions.update(tick.delta / 1000);
+        if (elapsed > 0) { // we don't want to trigger things if audio is still being loaded.
+            this._captions.update(tick.delta / 1000);
 
-        if (audioTagEvents) {
-            while (audioTagEvents.length && audioTagEvents[0].time <= elapsed) {
-                const
-                    {language, descriptor, contentType, content} = audioTagEvents.shift();
-
-                this.trigger('lyric', {
-                    language,
-                    descriptor,
-                    contentType,
-                    content
-                });
+            if (audioEventQueue) {
+                audioEventQueue.getEvents(elapsed).forEach((entry) => this.trigger(entry));
             }
         }
     }
@@ -447,7 +440,7 @@ class VOPlayer extends Messenger {
                     complete: this._onSoundFinished,
                     volume: this.volume
                 });
-                this.audioTagEvents = null;
+                this.audioEventQueue = null;
                 if (this.tagReader) {
                     this.tagReader.read(sound.url, {
                         onSuccess: ({tags}) => {
@@ -456,25 +449,31 @@ class VOPlayer extends Messenger {
                     
                             if (SYLT) {
                                 const
-                                    list = Array.isArray(SYLT) ? SYLT : [SYLT];
+                                    list = Array.isArray(SYLT) ? SYLT : [SYLT],
+                                    combinedEventList = list.reduce((events, {data}) => {
+                                        events.push(...data.synchronisedText.map(({text: content, timeStamp: time}) => ({
+                                            event: 'lyric',
+                                            time,
+                                            message: {
+                                                language: data.language,
+                                                descriptor: data.descriptor,
+                                                contentType: data.contentType,
+                                                content
+                                            },
+                                            interruptable: true
+                                        })));
+                                        return events;
+                                    }, []);
                     
-                                this.audioTagEvents = list.reduce((events, {data}) => {
-                                    events.push(...data.synchronisedText.map(({text: content, timeStamp: time}) => ({
-                                        time,
-                                        language: data.language,
-                                        descriptor: data.descriptor,
-                                        contentType: data.contentType,
-                                        content
-                                    })));
-                                    return events;
-                                }, []).sort(({time: a}, {time: b}) => a - b);
+                                this.audioEventQueue = this.audioEventQueue || TimeEventList.setUp();
+                                this.audioEventQueue.addEvents(combinedEventList);
                             }
                         },
                         onError: (error) => platypus.debug.warn(error)
                     });
                 }
                 if (this._captions) {
-                    this._captions.start(sound, soundId);
+                    this._captions.start(sound, soundId, -0.001); // Negative start time prevents caption from appearing if caption start time is `0` but sound is not yet loaded.
                     this.game.on("tick", this._syncCaptionToSound);
                 }
                 if (this.playQueue.length) { // We need to skip on ahead, because new VO was played while this or a prior one was loading.

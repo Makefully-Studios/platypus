@@ -2,6 +2,7 @@
 import {arrayCache, greenSplice} from '../utils/array.js';
 import Data from '../Data.js';
 import createComponentClass from '../factory.js';
+import TimeEventList from '../TimeEventList.js';
 
 const
     pause = function () {
@@ -150,28 +151,12 @@ export default createComponentClass(/** @lends platypus.components.Timeline.prot
         },
         createTimeStampedTimeline: function (timeline) {
             const
-                timeStampedTimeline = arrayCache.setUp();
-            let timeOffset = 0;
-            
-            for (let x = 0; x < timeline.length; x++) {
-                const
-                    entry = timeline[x];
-
-                if (typeof entry === 'number') {
-                    timeOffset += entry;
-                } else {
-                    timeStampedTimeline.push(Data.setUp(
-                        "time", timeOffset,
-                        "value", entry
-                    ));
-                }
-            }
-            timeStampedTimeline.reverse();
+                timeStampedTimeline = TimeEventList.setUp(timeline);
 
             return Data.setUp(
                 "timeline", timeStampedTimeline,
                 "time", 0,
-                "total", timeOffset,
+                "total", timeStampedTimeline.getDuration(),
                 "active", 1,
                 "pause", pause,
                 "play", play,
@@ -181,55 +166,44 @@ export default createComponentClass(/** @lends platypus.components.Timeline.prot
         progressTimeline: function (instance, delta) {
             const
                 timeline = instance.timeline;
-            let i = timeline.length;
             
             instance.time += delta;
             
             //Go through the timeline playing events if the time has progressed far enough to trigger them.
-            while (i--) {
+            timeline.getEvents(instance.time).forEach((entry) => {
                 const
-                    entry = timeline[i];
-                let triggerOn = this.owner;
+                    {event, entity} = entry;
 
-                if (entry.time <= instance.time) {
-                    const
-                        value = entry.value,
-                        type = typeof value;
+                if (typeof event === 'function') {
+                    event(this.owner, instance);
+                } else {
+                    let triggerOn = this.owner;
 
-                    if (type === 'string') {
-                        this.owner.triggerEvent(value);
-                    } else if (typeof value === 'function') {
-                        value(this.owner, instance);
-                    } else {
-                        if (value.entity) {
+                    if (entity) {
+                        if (typeof entity === 'string') {
                             if (this.owner.getEntityById) {
-                                triggerOn = this.owner.getEntityById(value.entity);
+                                triggerOn = this.owner.getEntityById(entity);
                             } else {
-                                triggerOn = this.owner.parent.getEntityById(value.entity);
+                                triggerOn = this.owner.parent.getEntityById(entity);
                             }
-                            
-                            if (!triggerOn) {
-                                platypus.debug.warn('No entity of that id');
-                                triggerOn = this.owner;
-                            }
+                        } else {
+                            triggerOn = entity; // Maybe it's an Entity.
                         }
                         
-                        if (value.message) {
-                            triggerOn.triggerEvent(value.event, value.message);
-                        } else {
-                            triggerOn.trigger(value.event);
+                        if (!triggerOn) {
+                            platypus.debug.warn('No entity of that id');
+                            triggerOn = this.owner;
                         }
                     }
                     
-                    entry.recycle();
-                    timeline.pop(); //Remove the entry.
-                    if (!instance.active) {
-                        return; //We bail until the callback.
-                    }
-                } else {
-                    return;
+                    triggerOn.trigger(entry);
                 }
-            }
+                
+                entry.recycle();
+                if (!instance.active) {
+                    return; //We bail until the callback.
+                }
+            });
         },
         destroy: function () {
             const
@@ -240,7 +214,7 @@ export default createComponentClass(/** @lends platypus.components.Timeline.prot
                 const
                     instance = instances[i];
 
-                arrayCache.recycle(instance.timeline);
+                instance.timeline.recycle();
                 instance.recycle();
             }
             arrayCache.recycle(instances);

@@ -140,9 +140,6 @@ class Messenger {
      * @return {number} The number of handlers for the triggered message.
      */
     trigger (events, message, debug) {
-        const
-            msg = message;
-        
         if (typeof events === 'string') {
             const
                 indexOf = events.indexOf(" ");
@@ -176,10 +173,7 @@ class Messenger {
 
             return count;
         } else if (events.event) {
-            if (typeof events.message !== 'undefined') {
-                msg = events.message;
-            }
-            return this.triggerEvent(events.event, msg, events.debug ?? debug);
+            return this.triggerEvent(events.event, events.message ?? message, events.debug ?? debug);
         } else {
             platypus.debug.warn('Event incorrectly formatted: must be string, array, or object containing an "event" property.', events);
             return 0;

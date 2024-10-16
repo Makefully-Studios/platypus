@@ -2,6 +2,7 @@
 import Data from '../Data.js';
 import {arrayCache} from '../utils/array.js';
 import createComponentClass from '../factory.js';
+import TimeEventList from '../TimeEventList.js';
 
 const
     formatPath = (path) => {
@@ -11,27 +12,6 @@ const
             return path;
         }
     },
-    sortByTime = function (a, b) {
-        return a.time - b.time;
-    },
-    addEvents = function (fromList, toList) {
-        let i = 0;
-        
-        for (i = 0; i < fromList.length; i++) {
-            toList.push(Data.setUp(
-                'event', fromList[i].event,
-                'time', fromList[i].time || 0,
-                'message', fromList[i].message || null,
-                'interruptable', !!fromList[i].interruptable
-            ));
-        }
-        
-        if (i) {
-            toList.sort(sortByTime);
-        }
-        
-        return toList;
-    },
     setupEventList = function (sounds, eventList, player) { // This function merges events from individual sounds into a full list queued to sync with the SpringRoll voPlayer.
         const
             soundList = arrayCache.setUp();
@@ -40,32 +20,10 @@ const
         for (let i = 0; i < sounds.length; i++) {
             if (sounds[i].sound) {
                 const
-                    fromList = sounds[i].events;
+                    events = sounds[i].events;
                 
-                if (fromList) {
-                    const
-                        {length} = fromList;
-
-                    soundList.push(() => {
-                        const
-                            offset = player.getElapsed();
-                        
-                        for (let i = 0; i < length; i++) {
-                            const
-                                eventData = fromList[i];
-
-                            eventList.push(Data.setUp(
-                                'event', eventData.event,
-                                'time', (eventData.time ?? 0) + offset,
-                                'message', eventData.message ?? null,
-                                'interruptable', !!eventData.interruptable
-                            ));
-                        }
-                        
-                        if (length) {
-                            eventList.sort(sortByTime);
-                        }
-                    });
+                if (events) {
+                    soundList.push(() => eventList.addEvents(events, player.getElapsed()));
                 }
                 soundList.push(sounds[i].sound);
             } else {
@@ -131,7 +89,7 @@ export default createComponentClass(/** @lends platypus.components.AudioVO.proto
         const
             audioMap = this.audioMap;
     
-        this.eventList = arrayCache.setUp();
+        this.eventList = TimeEventList.setUp();
 
         this.playingAudio = false;
         this.player = platypus.game.voPlayer;
@@ -178,22 +136,18 @@ export default createComponentClass(/** @lends platypus.components.AudioVO.proto
     methods: {
         checkTimeEvents: function (finished, completed) {
             const
-                {eventList, owner} = this;
-            
-            if (eventList?.length) {
-                const
-                    currentTime = finished ? Infinity : this.player.getElapsed();
+                {eventList, owner} = this,
+                currentTime = finished ? Infinity : this.player.getElapsed(),
+                events = eventList.getEvents(currentTime);
 
-                while (eventList.length && (eventList[0].time <= currentTime)) {
-                    const
-                        event = eventList.shift();
-
-                    if (!finished || completed || !event.interruptable) {
-                        owner.trigger(event.event, event.message);
-                    }
-                    event.recycle();
+            events.forEach((event) => {
+                if (!finished || completed || !event.interruptable) {
+                    owner.trigger(event);
                 }
-            }
+                event.recycle();
+            });
+
+            arrayCache.recycle(events);
         },
 
         destroy: function () {
@@ -201,13 +155,13 @@ export default createComponentClass(/** @lends platypus.components.AudioVO.proto
                 this.player.stop();
                 this.player.voList = []; // Workaround to prevent a Springroll bug wherein stopping throws an error due to `voList` being `null`.
             }
-            arrayCache.recycle(this.eventList);
+            this.eventList.recycle();
             this.eventList = null;
         },
 
         playSound: function (soundDefinition, value) {
             const
-                {owner, player} = this,
+                {eventList, owner, player} = this,
                 onComplete = (completed) => {
                     this.playingAudio = false;
                     if (!owner.destroyed) {
@@ -221,9 +175,10 @@ export default createComponentClass(/** @lends platypus.components.AudioVO.proto
                         owner.triggerEvent('sequence-complete');
                     }
                     arrayCache.recycle(soundList);
-                },
-                eventList = arrayCache.setUp();
+                };
             let soundList = null;
+
+            eventList.clear();
 
             if (typeof soundDefinition === 'string') {
                 soundList = arrayCache.setUp(soundDefinition);
@@ -231,7 +186,7 @@ export default createComponentClass(/** @lends platypus.components.AudioVO.proto
                 soundList = setupEventList(soundDefinition, eventList, player);
             } else {
                 if (soundDefinition.events) {
-                    addEvents(soundDefinition.events, eventList);
+                    eventList.addEvents(soundDefinition.events);
                 }
                 if (Array.isArray(soundDefinition.sound)) {
                     soundList = setupEventList(soundDefinition.sound, eventList, player);
@@ -241,14 +196,11 @@ export default createComponentClass(/** @lends platypus.components.AudioVO.proto
             }
             
             if (value && value.events) {
-                addEvents(value.events, eventList);
+                eventList.addEvents(value.events);
             }
 
             player.play(soundList, onComplete.bind(this, true), onComplete.bind(this, false));
 
-            // Removing `this.eventList` after play call since playing a VO clip could be stopping a currently playing clip with events in progress.
-            arrayCache.recycle(this.eventList);
-            this.eventList = eventList;
             this.playingAudio = true;
         }
     },
