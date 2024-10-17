@@ -217,6 +217,9 @@ class Game extends Messenger {
                 this.renderer = this.pixiApp.renderer;
                 this.stage = this.pixiApp.stage;
                 this.stage.sortableChildren = true;
+                if (settings.debug) { // adding built-in support for PixiJS dev tools like https://pixijs.io/devtools/docs/guide/installation/
+                    window.__PIXI_DEVTOOLS__ = {app: window.__PIXI_APP__ = this.pixiApp};
+                }
 
                 if (displayOptions.aspectRatio) { // Aspect ratio may be a single value like "4:3" or "4:3-2:1" for a range
                     const
