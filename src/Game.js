@@ -809,7 +809,7 @@ class Game extends Messenger {
     destroy () {
         const layers = this.layers;
 
-        this.scaleManager.destroy();
+        this.resizeObserver.disconnect();
 
         for (let i = 0; i < layers.length; i++) {
             layers[i].destroy();
