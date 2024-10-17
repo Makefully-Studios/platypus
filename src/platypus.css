@@ -1,3 +1,9 @@
+canvas.platypus-canvas {
+    height: 100%;
+    position: relative;
+    width: 100%;
+}
+
 .platypus-debugging {
     position: fixed;
     pointer-events: none;

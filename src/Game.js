@@ -6,7 +6,6 @@ import Data from './Data.js';
 import Entity from './Entity.js';
 import ID3CaptionPlayer from './ID3CaptionPlayer.js';
 import Messenger from './Messenger.js';
-import Resize from './Resize.js';
 import SFXPlayer from './SFXPlayer.js';
 import {sound} from '@pixi/sound';
 import Storage from './Storage.js';
@@ -229,16 +228,18 @@ class Game extends Messenger {
                         ratio1 = ratioArray1[0] / ratioArray1[1],
                         ratio2 = ratioArray2[0] / ratioArray2[1],
                         smallRatio = Math.min(ratio1, ratio2),
-                        largeRatio = Math.max(ratio1, ratio2);
+                        largeRatio = Math.max(ratio1, ratio2),
+                        frame = this.canvas;
 
-                    resizeCallback = ({width, height}) => {
+                    this.resizeObserver = new ResizeObserver((entries) => entries.forEach(({contentRect}) => {
                         const
+                            {height, width} = contentRect,
                             renderer = this.renderer,
-                            frame = document.getElementById('content'),
                             newHeight = (width / smallRatio) >> 0,
                             newWidth = (height * largeRatio) >> 0;
                         let h = height * dpi,
-                            w = width * dpi;
+                            w = width * dpi,
+                            change = false;
             
                         if (height > newHeight) {
                             frame.style.height = newHeight + 'px';
@@ -246,36 +247,38 @@ class Game extends Messenger {
                             frame.style.width = '';
                             frame.style.left = '';
                             h = newHeight * dpi;
+                            change = true;
                         } else if (width > newWidth) {
                             frame.style.width = newWidth + 'px';
                             frame.style.left = (((width - newWidth) / 2) >> 0) + 'px';
                             frame.style.height = '';
                             frame.style.top = '';
                             w = newWidth * dpi;
-                        } else {
+                            change = true;
+                        } else if (height !== newHeight && width !== newWidth) {
                             frame.style.height = '';
                             frame.style.top = '';
                             frame.style.width = '';
                             frame.style.left = '';
+                            change = true;
                         }
 
-                        renderer.resize(w, h);
-                        renderer.render(this.stage); // to prevent flickering from canvas adjustment.
-                    };
+                        if (change) {
+                            renderer.resize(w, h);
+                            renderer.render(this.stage); // to prevent flickering from canvas adjustment.
+                        }
+                    }));
                 } else {
-                    resizeCallback = ({width, height}) => {
+                    this.resizeObserver = new ResizeObserver((entries) => entries.forEach(({contentRect}) => {
                         const
+                            {height, width} = contentRect,
                             renderer = this.renderer;
 
                         renderer.resize(width * dpi, height * dpi);
                         renderer.render(this.stage); // to prevent flickering from canvas adjustment.
-                    };
+                    }));
                 }
-                this.scaleManager = new Resize(resizeCallback, this.canvas);
-                resizeCallback({ // Run once to resize content div.
-                    width: window.innerWidth,
-                    height: window.innerHeight
-                });
+                this.resizeObserver.observe(this.canvas.parentElement);
 
                 if (onFinishedLoading) {
                     onFinishedLoading(this);
@@ -341,6 +344,7 @@ class Game extends Messenger {
                 canvas.setAttribute('id', options.canvasId);
             }
         }
+        canvas.classList.add('platypus-canvas');
         canvas.width = canvas.offsetWidth;
         canvas.height = canvas.offsetHeight;
 
