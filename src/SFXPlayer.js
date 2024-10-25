@@ -13,6 +13,7 @@ const
  */
  export default class SFXPlayer {
     constructor () {
+        this.masterVolume = 1;
         this.volume = 1;
         this.playingAudio = arrayCache.setUp();
     }
@@ -32,7 +33,7 @@ const
             audio = sfx.play(data);
 
         audio.initialVolume = (typeof data.initialVolume === 'number' ? data.initialVolume : audio.volume);
-        audio.set('volume', audio.volume * this.volume);
+        audio.set('volume', audio.volume * this.volume * this.masterVolume);
         this.playingAudio.push(audio);
         audio.on('end', () => {
             const index = this.playingAudio.indexOf(audio);
@@ -69,7 +70,7 @@ const
             initialVolume: volume
         }, time);
         tween.onUpdate(() => {
-            audio.set('volume', audio.initialVolume * this.volume);
+            audio.set('volume', audio.initialVolume * this.volume * this.masterVolume);
         });
         tween.onComplete(onComplete);
         tween.start();
@@ -91,8 +92,20 @@ const
             const
                 audio = playingAudio[i];
 
-            audio.set('volume', audio.initialVolume * this.volume);
+            audio.set('volume', audio.initialVolume * this.volume * this.masterVolume);
         }
+    }
+
+    /**
+     * Sets master volume on all playing sound effects.
+     *
+     * @method platypus.SFXPlayer#setMasterVolume
+     * @param {Number} volume A value between 0-1 to set volume on all playing sound effects.
+     * @public
+     */
+    setMasterVolume (volume) {
+        this.masterVolume = volume;
+        this.setVolume(this.volume);
     }
 
     /**

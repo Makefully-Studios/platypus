@@ -12,12 +12,10 @@ import {UserData} from 'springroll';
  * @return {Data} Returns the new Storage object.
  */
 class Storage {
-    constructor (springroll, options) {
+    constructor (springroll, {name: gameId, storageKeys: keys = null}) {
         const
-            gameId = options.name,
-            storageKey = gameId + '-data',
+            storageKey = `${gameId}-data`,
             unconnectedData = window.localStorage.getItem(storageKey),
-            keys = options.storageKeys || null,
             handleData = (resp) => {
                 const
                     data = resp?.data ?? resp;

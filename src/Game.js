@@ -176,14 +176,81 @@ class Game extends Messenger {
      * @param [onFinishedLoading] {Function} An optional function to run once the game has begun.
      * @return {platypus.Game} Returns the instantiated game.
      */
-    constructor (definition, options, onFinishedLoading) {
+    constructor (definition, options = {}, onFinishedLoading) {
         const
             {display: displayOptions = {}, modules = {}} = options,
+            loadPixiJS = async ({dev = false, display = {}}) => {
+                this.pixiApp = new PixiApplication();
+                await this.pixiApp.init({
+                    width: this.canvas.width,
+                    height: this.canvas.height,
+                    view: this.canvas,
+                    autoResize: false,
+                    ...display
+                });
+                this.renderer = this.pixiApp.renderer;
+                this.stage = this.pixiApp.stage;
+                this.stage.sortableChildren = true;
+
+                // adding built-in support for PixiJS dev tools like https://pixijs.io/devtools/docs/guide/installation/
+                if (dev) {
+                    window.__PIXI_DEVTOOLS__ = {app: window.__PIXI_APP__ = this.pixiApp};
+                }
+            },
+            loadSpringroll = ({
+                disablePause = false,
+                features = {
+                    sfx: true,
+                    vo: true,
+                    music: true,
+                    sound: true,
+                    captions: true
+                },
+                name,
+                storageKeys
+            }) => new Promise((resolve) => {
+                const
+                    springroll = this.springroll = new Application({features}),
+                    state = springroll.state;
+                
+                if (!disablePause) {
+                    state.pause.subscribe((current) => {
+                        if (current) {
+                            if (!this.paused) {
+                                this.ticker.remove(this.tickInstance);
+                                this.paused = true;
+                                sound.pauseAll();
+                            }
+                        } else {
+                            if (this.paused) {
+                                this.ticker.add(this.tickInstance);
+                                this.paused = false;
+                                sound.resumeAll();
+                            }
+                        }
+                    });
+                }
+                
+                // Audio controls
+                state.soundVolume.subscribe((current) => {
+                    this.musicPlayer.setMasterVolume(current);
+                    this.voPlayer.setMasterVolume(current);
+                    this.sfxPlayer.setMasterVolume(current);
+                });
+                state.musicVolume.subscribe((current) => this.musicPlayer.setVolume(current));
+                state.voVolume.subscribe((current) => this.voPlayer.setVolume(current));
+                state.sfxVolume.subscribe((current) => this.sfxPlayer.setVolume(current));
+
+                state.captionsMuted.subscribe((current) => this.voPlayer.setCaptionMute(current));
+
+                state.ready.subscribe(resolve);
+    
+                this.storage = new Storage(springroll, {name, storageKeys});
+            }),
             load = async function (settings) {
                 const
                     dpi = window.devicePixelRatio || 1,
                     ticker = options.workerTick ? new TickerClient() : Ticker.shared;
-                let resizeCallback = null;
                     
                 platypus.game = this; //Make this instance the only Game instance.
                 
@@ -192,6 +259,11 @@ class Game extends Messenger {
                 }
                 
                 this.settings = settings;
+
+                await Promise.all([
+                    loadPixiJS(options),
+                    loadSpringroll(options)
+                ]);
 
                 if (settings.captions || modules.jsmediatags) {
                     this.voPlayer.captions = new ID3CaptionPlayer(settings.captions, document.getElementById("captions") || (() => {
@@ -205,21 +277,6 @@ class Game extends Messenger {
                     })(), modules.jsmediatags);
                 }
             
-                this.pixiApp = new PixiApplication();
-                await this.pixiApp.init({
-                    width: this.canvas.width,
-                    height: this.canvas.height,
-                    view: this.canvas,
-                    autoResize: false,
-                    ...displayOptions
-                });
-                this.renderer = this.pixiApp.renderer;
-                this.stage = this.pixiApp.stage;
-                this.stage.sortableChildren = true;
-                if (settings.debug) { // adding built-in support for PixiJS dev tools like https://pixijs.io/devtools/docs/guide/installation/
-                    window.__PIXI_DEVTOOLS__ = {app: window.__PIXI_APP__ = this.pixiApp};
-                }
-
                 if (displayOptions.aspectRatio) { // Aspect ratio may be a single value like "4:3" or "4:3-2:1" for a range
                     const
                         aspectRatioRange = displayOptions.aspectRatio.split('-'),
@@ -361,60 +418,6 @@ class Game extends Messenger {
         this.sfxPlayer = new SFXPlayer();
         this.musicPlayer = new SFXPlayer();
         
-        {
-            const
-                springroll = this.springroll = new Application({
-                    features: options.features || {
-                        sfx: true,
-                        vo: true,
-                        music: true,
-                        sound: true,
-                        captions: true
-                    }
-                }),
-                state = springroll.state;
-            
-            if (!options.disablePause) {
-                state.pause.subscribe((current) => {
-                    if (current) {
-                        if (!this.paused) {
-                            this.ticker.remove(this.tickInstance);
-                            this.paused = true;
-                            sound.pauseAll();
-                        }
-                    } else {
-                        if (this.paused) {
-                            this.ticker.add(this.tickInstance);
-                            this.paused = false;
-                            sound.resumeAll();
-                        }
-                    }
-                });
-            }
-            
-            state.soundVolume.subscribe(function () {
-                /* SR seems to trigger this too aggressively, in that it already calls mute/unmute on the comprising sfx/music/vo channels. We rely on the others instead. */
-            });
-            
-            state.musicVolume.subscribe((current) => {
-                platypus.game.musicPlayer.setVolume(current);
-            });
-            
-            state.voVolume.subscribe((current) => {
-                platypus.game.voPlayer.setVolume(current);
-            });
-
-            state.captionsMuted.subscribe((current) => {
-                platypus.game.voPlayer.setCaptionMute(current);
-            });
-            
-            state.sfxVolume.subscribe((current) => {
-                platypus.game.sfxPlayer.setVolume(current);
-            });
-
-            this.storage = new Storage(springroll, options);
-        }
-
         this.layers = arrayCache.setUp();
         this.sceneLayers = arrayCache.setUp();
         this.loading = arrayCache.setUp();

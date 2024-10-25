@@ -101,6 +101,7 @@ class VOPlayer extends Messenger {
          */
         this._captions = null;
 
+        this.masterVolume = 1;
         this.volume = 1;
         this.captionMute = true;
         this.currentlyLoadingAudio = false;
@@ -438,7 +439,7 @@ class VOPlayer extends Messenger {
 
                 this._soundInstance = sound.play({
                     complete: this._onSoundFinished,
-                    volume: this.volume
+                    volume: this.volume * this.masterVolume
                 });
                 this.audioEventQueue = null;
                 if (this.tagReader) {
@@ -598,8 +599,19 @@ class VOPlayer extends Messenger {
     setVolume (volume) {
         this.volume = volume;
         if (this._soundInstance) {
-            this._soundInstance.volume = this.volume;
+            this._soundInstance.volume = this.volume * this.masterVolume;
         }
+    }
+
+    /**
+     * Sets the master volume of VO playback.
+     *
+     * @method platypus.VOPlayer#setMasterVolume
+     * @param {Number} volume
+     */
+    setMasterVolume (volume) {
+        this.masterVolume = volume;
+        this.setVolume(this.volume);
     }
 
     /**
