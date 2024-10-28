@@ -14,6 +14,17 @@
 import {arrayCache, greenSlice} from './utils/array.js';
 import Component from './Component.js';
 
+const
+    getId = (type) => {
+        if (typeof ids[type] === 'number') {
+            ids[type] += 1;
+        } else {
+            ids[type] = 0;
+        }
+        return `${type}-${ids[type]}`;
+    };
+let ids = {};
+
 export default function (componentDefinition = {}) {
     const
         {events, getAssetList, id, initialize, methods, properties, publicMethods, publicProperties} = componentDefinition,
@@ -22,9 +33,9 @@ export default function (componentDefinition = {}) {
         NewComponent = ({[id]: class extends Component {
             constructor (owner, definition = {}, callback) {
                 const
-                    {aliases} = definition;
+                    {aliases, id: componentId = getId(id)} = definition;
 
-                super(id, owner);
+                super(id, owner, componentId);
     
                 // Set up properties, prioritizing component settings, entity settings, and finally defaults.
                 if (properties) {

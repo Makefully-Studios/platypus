@@ -279,6 +279,52 @@ export default class Entity extends Messenger {
         
         return false;
     }
+
+    /**
+     * This method gets a component by its id.
+     * 
+     * @param {String} componentId 
+     * @returns {Component} A component
+     */
+    getComponentById (componentId) {
+        return this.components.filter(({id}) => id === componentId)[0] ?? null;
+    }
+
+    /**
+     * This method gets all components by their type.
+     * 
+     * @param {String} componentType 
+     * @returns {Array} An array of components
+     */
+    getComponentsByType (componentType) {
+        return this.components.filter(({type}) => type === componentType);
+    }
+
+    /**
+     * Allows lookup for components or child entities and their properties.
+     * 
+     * For example, "component-id.sprite" will return an entity component's sprite property value.
+     * 
+     * @param {String} path 
+     * @returns {*}
+     */
+    get (path) {
+        const
+            tree = path.split('.');
+        let obj = this;
+
+        while (tree.length) {
+            let param = tree.shift();
+
+            obj = obj[param] ?? obj.getComponentById?.(param) ?? obj.getEntityById?.(param);
+            
+            if (!obj) {
+                return null;
+            }
+        }
+
+        return obj;
+    }
     
     /**
     * This method sets one or more properties on the entity.

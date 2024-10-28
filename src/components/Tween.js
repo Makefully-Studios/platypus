@@ -164,7 +164,7 @@ export default createComponentClass(/** @lends platypus.components.Tween.prototy
         createTween: function (tweenDefinition, chainable) {
             const
                 owner = this.owner,
-                entity = tweenDefinition.target ? (typeof tweenDefinition.target === 'string' ? owner.parent.getEntityById(tweenDefinition.target) : tweenDefinition.target) : owner;
+                entity = tweenDefinition.target ? (typeof tweenDefinition.target === 'string' ? owner.get(tweenDefinition.target) ?? owner.parent.get(tweenDefinition.target) : tweenDefinition.target) : owner;
 
             if (!entity) {
                 platypus.debug.warn('Component Tween: Could not find entity as specified by `target` - ' + tweenDefinition.target);

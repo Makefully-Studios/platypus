@@ -18,9 +18,10 @@ import Data from './Data.js';
  * @static
  */
 export default class Component {
-    constructor (type, owner) {
+    constructor (type, owner, id) {
         this.type = type;
         this.owner = owner;
+        this.id = id;
         this.publicMethods = Data.setUp();
         this.listener = Data.setUp(
             "events", arrayCache.setUp(),
