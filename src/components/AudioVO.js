@@ -46,6 +46,15 @@ export default createComponentClass(/** @lends platypus.components.AudioVO.proto
         audioMap: null,
 
         /**
+         * Whether VO may be interrupted by new requests to play VO
+         * 
+         * @property interrupt
+         * @type boolean
+         * @default true
+         */
+        interrupt: true,
+
+        /**
          * Whether all audio should be preloaded. 'none' preloads no audio, 'events' preloads audio with events attached, and 'all' preloads all audio.
          * 
          * @property preloadAudio
@@ -179,7 +188,7 @@ export default createComponentClass(/** @lends platypus.components.AudioVO.proto
                 eventList.addEvents(value.events);
             }
 
-            player.play(soundList, onComplete.bind(this, true), onComplete.bind(this, false));
+            player.play(soundList, onComplete.bind(this, true), onComplete.bind(this, false), this.interrupt);
 
             this.playingAudio = true;
         },

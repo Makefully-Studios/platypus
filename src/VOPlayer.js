@@ -105,6 +105,7 @@ class VOPlayer extends Messenger {
         this.volume = 1;
         this.captionMute = true;
         this.currentlyLoadingAudio = false;
+        this.interruptable = true;
         this.playQueue = arrayCache.setUp();
     }
 
@@ -279,19 +280,22 @@ class VOPlayer extends Messenger {
      * is interrupted with a stop() or play() call. If this value is a boolean
      * <code>true</code> then callback will be used instead.
      */
-    play (idOrList, callback, cancelledCallback) {
+    play (idOrList, callback, cancelledCallback, interruptable = true) {
         if (!this.startingNewTrack) {
-            if (this.currentlyLoadingAudio) {
+            if (this.currentlyLoadingAudio || (!this.interruptable && this.playing)) {
                 this.playQueue.push(Data.setUp(
                     'idOrList', idOrList,
                     'callback', callback,
-                    'cancelledCallback', cancelledCallback
+                    'cancelledCallback', cancelledCallback,
+                    'interruptable', interruptable
                 ));
                 return;
             }
             this.startingNewTrack = true;
             this.stop();
             this.startingNewTrack = false;
+
+            this.interruptable = interruptable;
 
             this._listCounter = -1;
             if (typeof idOrList === "string") {
@@ -367,6 +371,7 @@ class VOPlayer extends Messenger {
             if (c) {
                 c();
             }
+            this.checkQueue();
         } else {
             /**
              * Fired when a new VO, caption, or silence timer begins
@@ -477,13 +482,8 @@ class VOPlayer extends Messenger {
                     this._captions.start(sound, soundId, -0.001); // Negative start time prevents caption from appearing if caption start time is `0` but sound is not yet loaded.
                     this.game.on("tick", this._syncCaptionToSound);
                 }
-                if (this.playQueue.length) { // We need to skip on ahead, because new VO was played while this or a prior one was loading.
-                    const
-                        vo = greenSplice(this.playQueue, 0);
-
-                    this.play(vo.idOrList, vo.callback, vo.cancelledCallback);
-
-                    vo.recycle();
+                if (this.playQueue.length && this.interrupt) { // We need to skip on ahead, because new VO was played while this or a prior one was loading.
+                    this.checkQueue();
                 } else {
                     for (let i = this._listCounter + 1; i < this.voList.length; ++i) {
                         const next = this.voList[i];
@@ -540,6 +540,17 @@ class VOPlayer extends Messenger {
         arrayCache.recycle(arr);
     }
 
+    checkQueue () {
+        if (this.playQueue.length) {
+            const
+                vo = greenSplice(this.playQueue, 0);
+
+            this.play(vo.idOrList, vo.callback, vo.cancelledCallback, vo.interruptable);
+
+            vo.recycle();
+        }
+    }
+
     /**
      * Stops playback of any audio/timer.
      * @method platypus.VOPlayer#stop
@@ -587,6 +598,9 @@ class VOPlayer extends Messenger {
         this._cancelledCallback = null;
         if (c) {
             c();
+        }
+        if (!this.startingNewTrack) {
+            this.checkQueue();
         }
     }
 
