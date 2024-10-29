@@ -62,6 +62,9 @@ proto.getEvents = function (time, limitToThese) {
 }
 
 proto.getDuration = function () {
+    const
+        {list} = this;
+
     return list.length ? list[list.length - 1].time : 0;
 }
 

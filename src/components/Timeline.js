@@ -23,12 +23,12 @@ const
 
             if (instance.remove) {
                 greenSplice(instances, i);
-                arrayCache.recycle(instance.timeline);
+                instance.timeline.recycle();
                 instance.recycle();
             } else if (instance.active) {
-                if (instance.timeline.length === 0) {
+                if (instance.timeline.list.length === 0) {
                     greenSplice(instances, i);
-                    arrayCache.recycle(instance.timeline);
+                    instance.timeline.recycle();
                     instance.recycle();
                 } else {
                     this.progressTimeline(instance, delta);
@@ -200,9 +200,6 @@ export default createComponentClass(/** @lends platypus.components.Timeline.prot
                 }
                 
                 entry.recycle();
-                if (!instance.active) {
-                    return; //We bail until the callback.
-                }
             });
         },
         destroy: function () {

@@ -371,7 +371,11 @@ class VOPlayer extends Messenger {
             if (c) {
                 c();
             }
-            this.checkQueue();
+            if (this.interruptable) {
+                this.clearQueue();
+            } else {
+                this.checkQueue();
+            }
         } else {
             /**
              * Fired when a new VO, caption, or silence timer begins
@@ -482,7 +486,7 @@ class VOPlayer extends Messenger {
                     this._captions.start(sound, soundId, -0.001); // Negative start time prevents caption from appearing if caption start time is `0` but sound is not yet loaded.
                     this.game.on("tick", this._syncCaptionToSound);
                 }
-                if (this.playQueue.length && this.interrupt) { // We need to skip on ahead, because new VO was played while this or a prior one was loading.
+                if (this.playQueue.length && this.interruptable) { // We need to skip on ahead, because new VO was played while this or a prior one was loading.
                     this.checkQueue();
                 } else {
                     for (let i = this._listCounter + 1; i < this.voList.length; ++i) {
@@ -551,6 +555,12 @@ class VOPlayer extends Messenger {
         }
     }
 
+    clearQueue () {
+        while (this.playQueue.length) {
+            greenSplice(this.playQueue, 0).recycle();
+        }
+    }
+
     /**
      * Stops playback of any audio/timer.
      * @method platypus.VOPlayer#stop
@@ -600,7 +610,11 @@ class VOPlayer extends Messenger {
             c();
         }
         if (!this.startingNewTrack) {
-            this.checkQueue();
+            if (this.interruptable) {
+                this.clearQueue();
+            } else {
+                this.checkQueue();
+            }
         }
     }
 
