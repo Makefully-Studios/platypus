@@ -54,6 +54,12 @@ const
                 platypus.debug.warn(`The sound "${sound}" is not a loaded asset.`);
             } else {
                 data.volume *= this.volume;
+                if (data.loop && typeof data.loop === 'number') { // pixi sound doesn't handle loop counts.
+                    if (data.loop > 1) {
+                        data.loopCount = data.loop;
+                    }
+                    data.loop = data.loop > 1 || data.loop < 0;
+                }
 
                 if (data.pan) {
                     if (soundInstance.panFilter) {
@@ -81,10 +87,23 @@ const
                 if (data.speed) {
                     data.audio.speed = data.speed;
                 }
-                if (data.playthrough && (data.loop !== -1)) {
+                if (data.playthrough && !data.loop) {
                     data.audio.playthrough = true;
                 } else {
                     data.audio.playthrough = false;
+                }
+                if (data.loopCount) {
+                    let p = -1;
+
+                    data.audio.on('progress', (progress) => {
+                        if (progress < p) {
+                            console.log('LOOPED?', data.loopCount--);
+                            if (data.loopCount === 1) {
+                                data.audio.set('loop', false);
+                            }
+                        }
+                        p = progress;
+                    });
                 }
                 data.audio.on('end', () => {
                     if (data.audio && !this.owner.destroyed && this.activeAudioClips) {
