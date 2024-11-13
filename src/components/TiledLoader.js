@@ -11,9 +11,18 @@ import {inflate} from 'pako';
 
 const
     FILENAME_TO_ID = /^(?:(\w+:)\/{2}(\w+(?:\.\w+)*\/?))?([\/.]*?(?:[^?]+)?\/)?(?:(([^\/?]+)\.(\w+))|([^\/?]+))(?:\?((?:(?:[^&]*?[\/=])?(?:((?:(?:[^\/?&=]+)\.(\w+)))\S*?)|\S+))?)?$/,
+    POSITIONS = {
+        top: -1,
+        bottom: 1,
+        left: -1,
+        right: 1,
+        center: 0,
+        middle: 0
+    },
     maskId = 0x0fffffff,
     maskXFlip = 0x80000000,
     maskYFlip = 0x40000000,
+    maskRotate = 0x20000000,
     decodeString = (str, index) => (((str.charCodeAt(index)) + (str.charCodeAt(index + 1) << 8) + (str.charCodeAt(index + 2) << 16) + (str.charCodeAt(index + 3) << 24 )) >>> 0),
     decodeArray = (arr, index) => ((arr[index] + (arr[index + 1] << 8) + (arr[index + 2] << 16) + (arr[index + 3] << 24 )) >>> 0),
     decodeBase64 = (data, compression) => {
@@ -110,19 +119,15 @@ const
     },
     entityTransformCheck = function (v) {
         const
+            a = !!(maskRotate & v),
             b = !!(maskYFlip & v),
             c = !!(maskXFlip & v);
 
         transform.id = maskId & v;
-        transform.x = 1;
-        transform.y = 1;
+        transform.x = c ? -1 : 1;
+        transform.y = b ? -1 : 1;
+        transform.rotation = a ? 90 : 0;
 
-        if (b) {
-            transform.y = -1;
-        }
-        if (c) {
-            transform.x = -1;
-        }
         return transform;
     },
     createTilesetObjectGroupReference = function (reference, tilesets) {
@@ -141,6 +146,48 @@ const
                 }
             }
         }
+    },
+    getObjectCentered = (object) => {
+        const
+            {height = 0, rotation = 0, width = 0, x = 0, y = 0} = object,
+            hw = width / 2,
+            hh = height / 2,
+            angle = rotation / 180 * Math.PI,
+            topLeftOffset = Vector.setUp(hw, hh).rotate(angle),
+            centerOfObject = Vector.setUp(x, y).addVector(topLeftOffset),
+            centeredObject = {
+                ...object,
+                x: centerOfObject.x,
+                y: centerOfObject.y
+            };
+
+        topLeftOffset.recycle();
+        centerOfObject.recycle();
+
+        return centeredObject;
+    },
+    getObjectTransformed = (object, {rotation = 0, x = 1, y = 1}, width = 0, height = 0) => {
+        const
+            coords = Vector.setUp(object.x, object.y).add(-width / 2, -height / 2);
+        
+        if (rotation) {
+            coords.rotate(rotation / 180 * Math.PI);
+            coords.x *= -x;
+            coords.y *= y;
+        } else {
+            coords.x *= x;
+            coords.y *= y;
+        }
+        coords.add(width / 2, height / 2);
+
+        return {
+            ...object,
+            rotation: object.rotation + rotation,
+            flipX: x,
+            flipY: y,
+            x: coords.x,
+            y: coords.y
+        };
     },
     getEntityData = function (obj, tilesets, entityLinker) {
         const
@@ -436,7 +483,7 @@ const
     },
     importTileset = function (tileset) {
         const
-            source = platypus.game.settings.levels[getKey(tileset.source)],
+            source = platypus.game.settings.tilesets[getKey(tileset.source)],
             keys = Object.keys(source),
             {length} = keys;
 
@@ -806,11 +853,12 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
                             transform = entityTransformCheck(index);
 
                         if (tilesetObjectGroups.has(transform.id)) {
-                            const // These values cause a flipped tile to find x/y by starting on the opposite side of the tile (and subtracting x/y once in the called function).
-                                offsetX = mapOffsetX + tileWidth * (transform.x > 0 ? x : x + 1),
-                                offsetY = mapOffsetY + tileHeight * (transform.y > 0 ? y : y + 1);
+                            const
+                                offsetX = mapOffsetX + tileWidth * x,
+                                offsetY = mapOffsetY + tileHeight * y,
+                                definition = tilesetObjectGroups.get(transform.id);
                                 
-                            this.setUpEntities(tilesetObjectGroups.get(transform.id), offsetX, offsetY, tileWidth, tileHeight, tilesets, transform, progress, entityLinker);
+                            this.setUpEntities(definition.objects.map((object) => getObjectCentered(object)).map((object) => getObjectTransformed(object, transform, tileWidth, tileHeight)), definition, offsetX, offsetY, tileWidth, tileHeight, tilesets, transform, progress, entityLinker);
                         }
                     }
                 }
@@ -1063,7 +1111,7 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
                     layer = this.createLayer(getProperty(layer.properties, 'entity') || 'image-layer', layer, x, y, layer.tilewidth, layer.tileheight, [layer.tileset], null, images, layer, progress, entityLinker);
                     break;
                 case 'objectgroup':
-                    this.setUpEntities(layerDefinition, x, y, tileWidth, tileHeight, tilesets, null, progress, entityLinker);
+                    this.setUpEntities(layerDefinition.objects, layerDefinition, x, y, tileWidth, tileHeight, tilesets, null, progress, entityLinker);
                     layer = null;
                     this.updateLoadingProgress(progress);
                     break;
@@ -1135,11 +1183,10 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
                     return shape;
                 };
 
-            return function (layer, offsetX, offsetY, tileWidth, tileHeight, tilesets, transform, progress, entityLinker) {
+            return function (objects, layer, offsetX, offsetY, tileWidth, tileHeight, tilesets, transform, progress, entityLinker) {
                 const
                     clamp = 1000,
                     {
-                        objects,
                         offsetx: layerOffsetX = 0,
                         offsety: layerOffsetY = 0,
                         properties: layerProperties
@@ -1150,14 +1197,49 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
 
                 progress.total += len;
 
-                for (let obj = 0; obj < len; obj++) {
+                objects.forEach((object) => {
                     const
-                        entity = objects[obj],
-                        entityData = getEntityData(entity, tilesets, entityLinker);
+                        entityPositionX = getProperty(layerProperties, 'entityPositionX') ?? this.entityPositionX,
+                        entityPositionY = getProperty(layerProperties, 'entityPositionY') ?? this.entityPositionY,
+                        {flipX = 1, flipY = 1, height, rotation, width, x, y} = object,
+                        hw = width / 2,
+                        hh = height / 2,
+                        angle = (rotation) / 180 * Math.PI,
+                        tiledLoaderOffset = Vector.setUp(hw * POSITIONS[entityPositionX] * flipX, hh * POSITIONS[entityPositionY] * flipY).rotate(angle),
+                        registrationPoint = Vector.setUp(tiledLoaderOffset).add(hw, hh),
+                        entityLocation = Vector.setUp(mapOffsetX + x, mapOffsetY + y).addVector(tiledLoaderOffset),
+                        entityData = getEntityData(object, tilesets, entityLinker);
                     
                     if (entityData) {
                         const
-                            {polygon, polyline, rotation} = entity,
+                            addShape = (shape, properties) => {
+                                if (!properties.shapes) {
+                                    properties.shapes = [];
+                                }
+                                // Box2D collision uses a single shape.
+                                properties.shape = {...shape};
+                                // Platypus collision uses a shapes array.
+                                shape.regX = registrationPoint.x;
+                                shape.regY = registrationPoint.y;
+                                properties.shapes.push(shape);
+                            },
+                            addCollisionShapes = ({ellipse, height, width}, properties) => {
+                                if (ellipse) {
+                                    addShape({
+                                        type: 'circle', //'ellipse'
+                                        width,
+                                        height,
+                                        radius: (width + height) / 4 // Tiled has ellipses, but Platypus only accepts circles. Setting a radius based on the average of width and height in case a non-circular ellipse is imported.
+                                    }, properties);
+                                } else if (width && height) {
+                                    addShape({
+                                        type: 'rectangle',
+                                        width,
+                                        height,
+                                    }, properties);
+                                }
+                            },
+                            {polygon, polyline, rotation} = object,
                             {
                                 gid = -1,
                                 type: entityType,
@@ -1167,9 +1249,7 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
                                 properties
                             },
                             entityDefinition = platypus.game.settings.entities[entityType],
-                            entityDefProps = entityDefinition?.properties ?? null,
-                            transformX = transform?.x ?? 1,
-                            transformY = transform?.y ?? 1;
+                            entityDefProps = entityDefinition?.properties ?? null;
                             
                         entityPackage[entityDefinition ? 'type' : 'id'] = entityType;
 
@@ -1198,96 +1278,34 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
                             }
                             properties.width = largestX - smallestX;
                             properties.height = largestY - smallestY;
-                            properties.x = entity.x + mapOffsetX;
-                            properties.y = entity.y + mapOffsetY;
+                            properties.x = entityLocation.x;
+                            properties.y = entityLocation.y;
 
                             if (polygon) {
-                                properties.shape = getPolyShape('polygon', polyPoints, transformX === -1, transformY === -1, properties.decomposedPolygon);
+                                addShape(getPolyShape('polygon', polyPoints, flipX === -1, flipY === -1, properties.decomposedPolygon), properties);
                             } else if (polyline) {
-                                properties.shape = getPolyShape('polyline', polyPoints, transformX === -1, transformY === -1, null);
+                                addShape(getPolyShape('polyline', polyPoints, flipX === -1, flipY === -1, null), properties);
                             }
 
                             if (rotation) {
                                 properties.rotation = rotation;
                             }
                         } else {
-                            const
-                                {point} = entity,
-                                entityPositionX = getProperty(layerProperties, 'entityPositionX') ?? this.entityPositionX,
-                                entityPositionY = getProperty(layerProperties, 'entityPositionY') ?? this.entityPositionY,
-                                width = properties.width = entityDefProps?.width ?? entity.width ?? (point ? 0 : tileWidth),
-                                height = properties.height = entityDefProps?.height ?? entity.height ?? (point ? 0 : tileHeight),
-                                widthOffset = entityDefProps?.width ? tileWidth : (point ? 0 : width),
-                                heightOffset = entityDefProps?.height ? tileHeight : (point ? 0: height);
+                            properties.x = entityLocation.x;
+                            properties.y = entityLocation.y;
+                            properties.rotation = object.rotation;
+                            properties.regX = registrationPoint.x;
+                            properties.regY = registrationPoint.y;
 
-                            properties.x = entity.x;
-                            properties.y = entity.y;
-
-                            if (entity.rotation) {
-                                const
-                                    w = properties.width / 2,
-                                    h = properties.height / 2;
-
-                                properties.rotation = entity.rotation;
-
-                                if (w || h) {
-                                    const
-                                        a = ((entity.rotation / 180) % 2) * Math.PI,
-                                        v = Vector.setUp(w, -h).rotate(a);
-
-                                    properties.x = Math.round((properties.x + v.x - w) * clamp) / clamp;
-                                    properties.y = Math.round((properties.y + v.y + h) * clamp) / clamp;
-                                    v.recycle();
-                                }
-                            }
-
-                            if (entityPositionX === 'left') {
-                                properties.regX = 0;
-                            } else if (entityPositionX === 'center') {
-                                properties.regX = properties.width / 2;
-                                properties.x += widthOffset / 2;
-                            } else if (entityPositionX === 'right') {
-                                properties.regX = properties.width;
-                                properties.x += widthOffset;
-                            }
-                            properties.x = mapOffsetX + properties.x * transformX;
-
-                            if (gid === -1) {
-                                properties.y += properties.height;
-                            }
-                            if (entityPositionY === 'bottom') {
-                                properties.regY = properties.height;
-                            } else if (entityPositionY === 'center') {
-                                properties.regY = properties.height / 2;
-                                properties.y -= heightOffset / 2;
-                            } else if (entityPositionY === 'top') {
-                                properties.regY = 0;
-                                properties.y -= heightOffset;
-                            }
-                            properties.y = mapOffsetY + properties.y * transformY;
-
-                            if (entity.ellipse) {
-                                properties.shape = {};
-                                properties.shape.type = 'circle';//'ellipse';
-                                properties.shape.width = properties.width;
-                                properties.shape.height = properties.height;
-
-                                // Tiled has ellipses, but Platypus only accepts circles. Setting a radius based on the average of width and height in case a non-circular ellipse is imported.
-                                properties.shape.radius = (properties.width + properties.height) / 4;
-                            } else if (entity.width && entity.height) {
-                                properties.shape = {};
-                                properties.shape.type = 'rectangle';
-                                properties.shape.width = properties.width;
-                                properties.shape.height = properties.height;
-                            }
+                            addCollisionShapes(object, properties);
                         }
 
                         if (entityDefProps) {
                             properties.scaleX *= (entityDefProps.scaleX || 1);
                             properties.scaleY *= (entityDefProps.scaleY || 1);
                         }
-                        properties.scaleX *= transformX;
-                        properties.scaleY *= transformY;
+                        properties.scaleX *= flipX;
+                        properties.scaleY *= flipY;
                         properties.layerZ = this.layerZ;
 
                         //Setting the z value. All values are getting added to the layerZ value.
@@ -1320,7 +1338,7 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
                     } else {
                         this.updateLoadingProgress(progress);
                     }
-                }
+                });
             };
         }()),
 
