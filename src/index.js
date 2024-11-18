@@ -58,12 +58,14 @@ const
         const
             logDiv = document.createElement('ul'),
             toggleLogDiv = document.createElement('button');
+        let firstTime = true;
 
         logDiv.style.display = 'none';
         logDiv.id = "platypus-logging";
         logDiv.classList.add('platypus-debugging');
         document.body.appendChild(logDiv);
 
+        toggleLogDiv.style.display = 'none';
         toggleLogDiv.id = 'toggle-platypus-debugging';
         toggleLogDiv.innerText = 'log';
         toggleLogDiv.addEventListener('click', () => {
@@ -91,6 +93,11 @@ const
             });
 
             logDiv.appendChild(newLog);
+
+            if (firstTime) {
+                firstTime = false;
+                toggleLogDiv.style.display = 'block';
+            }
         };
     })() : () => {},
     debugWrapper = function (method, ...args) {
