@@ -28,16 +28,15 @@ const
     };
 
 export default (function () {
-    var createShape = function (shape, color, left, top, width, height, z, outline) {
+    var createShape = function ({radius, color, left, top, width, height, z, outline, points}) {
             var newShape = new Graphics();
 
-            switch (shape) {
-            case 'rectangle':
+            if (radius) {
+                newShape.circle(left + radius, top + radius, radius);
+            } else if (points) {
+                newShape.poly(points);
+            } else if (width && height) {
                 newShape.rect(left, top, width, height);
-                break;
-            case 'circle':
-                newShape.circle(0, 0, width);
-                break;
             }
             newShape.z = z;
             newShape.fill(color, 0.1);
@@ -176,7 +175,14 @@ export default (function () {
                 if (this.owner.getCollisionGroupAABB) {
                     aabb = this.owner.getCollisionGroupAABB();
                     if (!this.groupShape) {
-                        this.groupShape = createShape('rectangle', this.groupColor, offset, offset, 1, 1, this.offsetZ);
+                        this.groupShape = createShape({
+                            color: this.groupColor,
+                            left: offset,
+                            top: offset,
+                            width: 1,
+                            height: 1,
+                            z: this.offsetZ
+                        });
                         this.container.addChild(this.groupShape);
                     }
                     this.groupShape.scaleX = aabb.width;
@@ -202,7 +208,19 @@ export default (function () {
         },
         
         methods: {
-            update: function () {
+            addShape (properties) {
+                const
+                    shape = createShape({
+                        z: this.offsetZ,
+                        ...properties
+                    });
+
+                this.shapes.push(shape);
+                this.container.addChild(shape);
+                this.offsetZ -= 0.0001;
+            },
+
+            update () {
                 const
                     {container, owner} = this;
 
@@ -217,55 +235,71 @@ export default (function () {
             },
 
             updateSprites: function () {
-                var owner = this.owner,
-                    z        = this.offsetZ,
-                    i        = 0,
-                    j        = 0,
-                    lineWidth = 2,
-                    width    = this.width,
-                    height   = this.height,
-                    shapes   = null,
-                    aabb     = null,
-                    shape    = null;
+                const
+                    {owner} = this;
 
-                for (i = 0; i < this.shapes.length; i++) {
+                for (let i = 0; i < this.shapes.length; i++) {
                     this.container.removeChild(this.shapes[i]);
                 }
                 this.shapes.length = 0;
-
+                
                 if (owner.getAABB) {
-                    for (j = 0; j < owner.collisionTypes.length; j++) {
+                    for (let j = 0; j < owner.collisionTypes.length; j++) {
                         const
-                            collisionType = owner.collisionTypes[j];
+                            collisionType = owner.collisionTypes[j],
+                            aabb = owner.getAABB(collisionType),
+                            lineWidth = 2,
+                            shapes = owner.getShapes(collisionType),
+                            width = this.initialWidth = aabb.width,
+                            height = this.initialHeight = aabb.height;
 
                         let collisionColor = this.collisionColor || collisionColors[collisionType];
 
                         if (!collisionColor) {
                             collisionColor = collisionColors[collisionType] = createCollisionColor(collisionType);
                         }
+                        
+                        this.addShape({
+                            color: this.aabbColor,
+                            left: aabb.left - owner.x,
+                            top: aabb.top - owner.y,
+                            width,
+                            height
+                        });
+                        
+                        for (let i = 0; i < shapes.length; i++) {
+                            const
+                                w = shapes[i].width - lineWidth,
+                                h = shapes[i].height - lineWidth;
 
-                        aabb   = owner.getAABB(collisionType);
-                        width  = this.initialWidth  = aabb.width;
-                        height = this.initialHeight = aabb.height;
-                        shapes = owner.getShapes(collisionType);
-                        
-                        shape  = createShape('rectangle', this.aabbColor, aabb.left - owner.x, aabb.top - owner.y, width, height, z--);
-                        this.shapes.push(shape);
-                        this.container.addChild(shape);
-                        
-                        for (i = 0; i < shapes.length; i++) {
-                            width = shapes[i].width - lineWidth;
-                            height = shapes[i].height - lineWidth;
-                            shape = createShape(shapes[i].type, collisionColor, shapes[i].offsetX - width / 2, shapes[i].offsetY - height / 2, (shapes[i].radius ? shapes[i].radius - lineWidth : width), height, z--, lineWidth);
-                            this.shapes.push(shape);
-                            this.container.addChild(shape);
+                            this.addShape({
+                                color: collisionColor,
+                                left: shapes[i].offsetX - w / 2,
+                                top: shapes[i].offsetY - h / 2,
+                                radius: shapes[i].radius ? shapes[i].radius - lineWidth : 0,
+                                width,
+                                height,
+                                outline: lineWidth,
+                                points: shapes[i].points
+                            });
                         }
                     }
                 } else {
-                    shape = createShape('rectangle', this.renderColor, -width / 2, -height / 2, width, height, z--);
-                    this.shapes.push(shape);
-                    this.container.addChild(shape);
+                    this.addShape({
+                        color: this.renderColor,
+                        left: -this.width / 2,
+                        top: -this.height / 2,
+                        width,
+                        height
+                    });
                 }
+                this.addShape({
+                    color: 0x000000,
+                    left: -1,
+                    outline: 1,
+                    top: -1,
+                    radius: 1
+                });
             },
             
             destroy: function () {

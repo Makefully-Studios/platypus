@@ -1,9 +1,14 @@
+import AABB from '../AABB.js';
 import Data from '../Data.js';
 import createComponentClass from '../factory.js';
+import Vector from '../Vector.js';
+
+const
+    DEFAULT_SIZE = 100;
 
 export default (function () {
     return createComponentClass(/** @lends platypus.components.CameraFollowMe.prototype */{
-        id: 'CameraFollowMe',
+        id: 'EntityCamera',
         
         properties: {
             /**
@@ -59,6 +64,19 @@ export default (function () {
              */
             pause: false
         },
+
+        publicProperties: {
+            cameraBounds: null,
+            cameraFocus: 1,
+            cameraOffset: null,
+            cameraOffsetX: 0,
+            cameraOffsetY: 0,
+            cameraSize: null,
+            cameraWidth: 0,
+            cameraHeight: 0,
+            x: 0,
+            y: 0
+        },
         
         /**
          * This component can request that the camera focus on this entity.
@@ -72,10 +90,24 @@ export default (function () {
          * @fires platypus.Entity#pause-render
          */
         initialize: function () {
+            const
+                {cameraOffsetX, cameraOffsetY, cameraHeight, cameraWidth, x, y} = this;
+
             this.pauseGame = (this.pause && this.camera.time) ? {
                 time: this.camera.time
             } : null;
             
+            Vector.assign(this.owner, 'cameraOffset', 'cameraOffsetX', 'cameraOffsetY');
+            Vector.assign(this.owner, 'cameraSize', 'cameraWidth', 'cameraHeight');
+            this.cameraBounds = AABB.setUp(x + cameraOffsetX, y + cameraOffsetY, cameraWidth, cameraHeight);
+
+            if (!this.cameraWidth) {
+                this.cameraWidth = this.owner.width || DEFAULT_SIZE;
+            }
+            if (!this.cameraHeight) {
+                this.cameraHeight = this.owner.height || DEFAULT_SIZE;
+            }
+
             this.camera = Data.setUp(
                 "entity", this.owner,
                 "mode", this.camera.mode || this.mode,
@@ -90,6 +122,13 @@ export default (function () {
         },
         
         events: {
+            'handle-movement': function () {
+                const
+                    {cameraBounds, cameraOffsetX, cameraOffsetY, cameraHeight, cameraWidth, x, y} = this;
+
+                cameraBounds.setAll(x + cameraOffsetX, y + cameraOffsetY, cameraWidth, cameraHeight);
+            },
+
             /**
              * On receiving this message, the component will trigger a message requesting that the parent camera begin following this entity.
              *

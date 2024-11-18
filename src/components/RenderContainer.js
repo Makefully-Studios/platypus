@@ -310,12 +310,13 @@ export default createComponentClass(/** @lends platypus.components.RenderContain
      */
     initialize: function () {
         const
-            owner = this.owner,
-            container = this.container = this.owner.container = new Container(),
+            {owner} = this,
+            container = this.container = owner.container = new Container(),
             initialTint = this.tint;
 
         container.sortableChildren = true;
         container.cullable = this.cullable;
+        container.label = owner.id;
 
         if (this.rotate === true) {
             this.rotate = 'rotation';
