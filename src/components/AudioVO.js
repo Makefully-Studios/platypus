@@ -81,6 +81,7 @@ export default createComponentClass(/** @lends platypus.components.AudioVO.proto
         this.eventList = TimeEventList.setUp();
 
         this.playingAudio = false;
+        this.stopping = false;
         this.player = platypus.game.voPlayer;
 
         if (audioMap) {
@@ -141,6 +142,7 @@ export default createComponentClass(/** @lends platypus.components.AudioVO.proto
 
         destroy: function () {
             if (this.playingAudio) {
+                this.stopping = true; // used to make sure events don't start new plays
                 this.player.stop(true);
                 this.player.voList = []; // Workaround to prevent a Springroll bug wherein stopping throws an error due to `voList` being `null`.
             }
@@ -149,48 +151,50 @@ export default createComponentClass(/** @lends platypus.components.AudioVO.proto
         },
 
         playSound: function (soundDefinition, value) {
-            const
-                {eventList, owner, player} = this,
-                onComplete = (completed) => {
-                    this.playingAudio = false;
-                    if (!owner.destroyed) {
-                        this.checkTimeEvents(true, completed);
+            if (!this.stopping) {
+                const
+                    {eventList, owner, player} = this,
+                    onComplete = (completed) => {
+                        this.playingAudio = false;
+                        if (!owner.destroyed) {
+                            this.checkTimeEvents(true, completed);
 
-                        /**
-                         * When an audio sequence is finished playing, this event is triggered.
-                         *
-                         * @event platypus.Entity#sequence-complete
-                         */
-                        owner.triggerEvent('sequence-complete');
-                    }
-                    arrayCache.recycle(soundList);
-                };
-            let soundList = null;
+                            /**
+                             * When an audio sequence is finished playing, this event is triggered.
+                             *
+                             * @event platypus.Entity#sequence-complete
+                             */
+                            owner.triggerEvent('sequence-complete');
+                        }
+                        arrayCache.recycle(soundList);
+                    };
+                let soundList = null;
 
-            eventList.clear();
+                eventList.clear();
 
-            if (typeof soundDefinition === 'string') {
-                soundList = arrayCache.setUp(soundDefinition);
-            } else if (Array.isArray(soundDefinition)) {
-                soundList = this.setupEventList(soundDefinition, eventList);
-            } else {
-                if (soundDefinition.events) {
-                    eventList.addEvents(soundDefinition.events);
-                }
-                if (Array.isArray(soundDefinition.sound)) {
-                    soundList = this.setupEventList(soundDefinition.sound, eventList);
+                if (typeof soundDefinition === 'string') {
+                    soundList = arrayCache.setUp(soundDefinition);
+                } else if (Array.isArray(soundDefinition)) {
+                    soundList = this.setupEventList(soundDefinition, eventList);
                 } else {
-                    soundList = arrayCache.setUp(soundDefinition.sound);
+                    if (soundDefinition.events) {
+                        eventList.addEvents(soundDefinition.events);
+                    }
+                    if (Array.isArray(soundDefinition.sound)) {
+                        soundList = this.setupEventList(soundDefinition.sound, eventList);
+                    } else {
+                        soundList = arrayCache.setUp(soundDefinition.sound);
+                    }
                 }
-            }
-            
-            if (value && value.events) {
-                eventList.addEvents(value.events);
-            }
+                
+                if (value && value.events) {
+                    eventList.addEvents(value.events);
+                }
 
-            player.play(soundList, onComplete.bind(this, true), onComplete.bind(this, false), this.interrupt);
+                player.play(soundList, onComplete.bind(this, true), onComplete.bind(this, false), this.interrupt);
 
-            this.playingAudio = true;
+                this.playingAudio = true;
+            }
         },
 
         setupEventList (sounds, eventList) { // This function merges events from individual sounds into a full list queued to sync with the SpringRoll voPlayer.
