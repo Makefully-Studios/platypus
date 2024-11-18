@@ -141,7 +141,7 @@ export default createComponentClass(/** @lends platypus.components.AudioVO.proto
 
         destroy: function () {
             if (this.playingAudio) {
-                this.player.stop();
+                this.player.stop(true);
                 this.player.voList = []; // Workaround to prevent a Springroll bug wherein stopping throws an error due to `voList` being `null`.
             }
             this.eventList.recycle();

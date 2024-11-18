@@ -566,7 +566,7 @@ class VOPlayer extends Messenger {
      * @method platypus.VOPlayer#stop
      * @public
      */
-    stop () {
+    stop (completeStop = false) {
         if (this.currentlyLoadingAudio) {
             this.stoppedWhileLoading = true;
             return;
@@ -610,7 +610,7 @@ class VOPlayer extends Messenger {
             c();
         }
         if (!this.startingNewTrack) {
-            if (this.interruptable) {
+            if (this.interruptable || completeStop) {
                 this.clearQueue();
             } else {
                 this.checkQueue();
