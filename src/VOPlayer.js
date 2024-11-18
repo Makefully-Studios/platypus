@@ -567,6 +567,10 @@ class VOPlayer extends Messenger {
      * @public
      */
     stop (completeStop = false) {
+        if (!this.startingNewTrack && (this.interruptable || completeStop)) {
+            this.clearQueue();
+        }
+
         if (this.currentlyLoadingAudio) {
             this.stoppedWhileLoading = true;
             return;
@@ -609,12 +613,8 @@ class VOPlayer extends Messenger {
         if (c) {
             c();
         }
-        if (!this.startingNewTrack) {
-            if (this.interruptable || completeStop) {
-                this.clearQueue();
-            } else {
-                this.checkQueue();
-            }
+        if (!this.startingNewTrack && !this.interruptable && !completeStop) {
+            this.checkQueue();
         }
     }
 
