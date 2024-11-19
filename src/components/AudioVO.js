@@ -80,7 +80,7 @@ export default createComponentClass(/** @lends platypus.components.AudioVO.proto
     
         this.eventList = TimeEventList.setUp();
 
-        this.playingAudio = false;
+        this.playingAudio = 0;
         this.stopping = false;
         this.player = platypus.game.voPlayer;
 
@@ -141,7 +141,7 @@ export default createComponentClass(/** @lends platypus.components.AudioVO.proto
         },
 
         destroy: function () {
-            if (this.playingAudio) {
+            if (this.playingAudio > 0) {
                 this.stopping = true; // used to make sure events don't start new plays
                 this.player.stop(true);
                 this.player.voList = []; // Workaround to prevent a Springroll bug wherein stopping throws an error due to `voList` being `null`.
@@ -155,7 +155,7 @@ export default createComponentClass(/** @lends platypus.components.AudioVO.proto
                 const
                     {eventList, owner, player} = this,
                     onComplete = (completed) => {
-                        this.playingAudio = false;
+                        this.playingAudio -= 1;
                         if (!owner.destroyed) {
                             this.checkTimeEvents(true, completed);
 
@@ -193,7 +193,7 @@ export default createComponentClass(/** @lends platypus.components.AudioVO.proto
 
                 player.play(soundList, onComplete.bind(this, true), onComplete.bind(this, false), this.interrupt);
 
-                this.playingAudio = true;
+                this.playingAudio += 1;
             }
         },
 
