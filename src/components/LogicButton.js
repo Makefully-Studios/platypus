@@ -1,5 +1,6 @@
 import AABB from '../AABB.js';
 import Data from '../Data.js';
+import StateMap from '../StateMap.js';
 import createComponentClass from '../factory.js';
 
 export default (function () {
@@ -78,7 +79,34 @@ export default (function () {
              * @type Boolean
              * @default false
              */
-            "pressed": false
+            "pressed": false,
+
+            /**
+             * State that entity match be in for LogicButton to be enabled.
+             * 
+             * @property validState
+             * @type String|StateMap
+             * @default '!disabled'
+             */
+            validState: '!disabled',
+
+            /**
+             * State that parent entity match be in for LogicButton to be enabled. Default is "" unless "baton" is true in which case the default is "!baton"
+             * 
+             * @property validParentState
+             * @type String|StateMap
+             * @default ''
+             */
+            validParentState: '',
+
+            /**
+             * Whether multitouch is disallowed for this button to work: ie no other "baton: true" button may be currently pressed in order for this button to be enabled. This is useful for instances where a button may cause a conflict if another button is also activated.
+             * 
+             * @property baton
+             * @type Boolean
+             * @default false
+             */
+            baton: false
         },
 
         publicProperties: {
@@ -155,9 +183,15 @@ export default (function () {
             state.set('released', !this.pressed);
             state.set('pressed', this.pressed);
             state.set('highlighted', false);
+            this.validParentState = StateMap.setUp(this.validParentState);
+            this.validState = StateMap.setUp(this.validState);
+            if (this.baton) {
+                this.validParentState.set('baton', false);
+                this.owner.parent.state.set('baton', false);
+                this.batonIsMine = false;
+            }
             this.owner.container.cursor = this.disabled ? null : 'pointer';
             this.cancelled = false;
-
             this.readyToToggle = false;
         },
 
@@ -183,10 +217,15 @@ export default (function () {
             },
 
             "pointerdown": function (eventData) {
-                if (!this.state.get('disabled')) {
+                if (this.checkStateValidity()) {
                     if (this.toggle) {
                         this.readyToToggle = true;
                     } else {
+                        if (this.baton) {
+                            this.batonIsMine = true;
+                            this.owner.parent.state.set('baton', true);
+                        }
+
                         if (this.onPress) {
                             this.owner.trigger(this.onPress);
                         }
@@ -210,9 +249,15 @@ export default (function () {
             },
 
             "pressup": function (eventData) {
-                var state = this.state;
+                const
+                    {state} = this;
 
-                if (!state.get('disabled')) {
+                if (this.baton && this.batonIsMine) {
+                    this.batonIsMine = false;
+                    this.owner.parent.state.set('baton', false);
+                }
+                
+                if (this.checkStateValidity()) {
                     if (this.cancelled) {
                         if (this.onCancel) {
                             this.owner.trigger(this.onCancel);
@@ -349,7 +394,14 @@ export default (function () {
         },
         
         methods: {
-            updatePosition: function (vp) {
+            checkStateValidity () {
+                const
+                    {owner, validParentState, validState} = this;
+
+                return owner.state.includes(validState) && owner.parent.state.includes(validParentState);
+            },
+
+            updatePosition (vp) {
                 var bottom = this.bottom,
                     left = this.left,
                     owner = this.owner,
@@ -369,7 +421,7 @@ export default (function () {
                 }
             },
 
-            updateStateAndTrigger: function (event) {
+            updateStateAndTrigger (event) {
                 var message = null,
                     owner = this.owner,
                     state = this.state,
@@ -400,6 +452,11 @@ export default (function () {
             },
 
             destroy: function () {
+                if (this.baton && this.batonIsMine) {
+                    this.batonIsMine = false;
+                    this.owner.parent.state.set('baton', false);
+                }
+
                 this.aabb.recycle();
                 this.aabb = null;
                 this.owner.container.cursor = null;
