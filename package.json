@@ -1,6 +1,6 @@
 {
     "name": "platypus",
-    "version": "3.6.7",
+    "version": "3.6.8",
     "description": "Platypus",
     "license": "MIT",
     "main": "lib/platypus.js",
@@ -24,7 +24,7 @@
         "webpack-cli": "^3.3.5"
     },
     "peerDependencies": {
-        "@pixi/sound": "^6.0.0",
+        "@pixi/sound": "github:Makefully-Studios/sound#feature/media-file",
         "@pixi/spine-pixi": "^2.1.1",
         "@tweenjs/tween.js": "^23.1.1",
         "pako": "^2.1.0",
