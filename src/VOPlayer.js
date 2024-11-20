@@ -452,7 +452,7 @@ class VOPlayer extends Messenger {
                 });
                 this.audioEventQueue = null;
                 if (this.tagReader) {
-                    this.tagReader.read(sound.url, {
+                    this.tagReader.read(sound.media?.file ?? sound.url, {
                         onSuccess: ({tags}) => {
                             const
                                 {SYLT} = tags;

@@ -37,7 +37,7 @@ const
 
             if (tagReader) {
                 this.getCaption = (audio) => new Promise((resolve, reject) => {
-                    tagReader.read(audio.url, {
+                    tagReader.read(audio.media?.file ?? audio.url, {
                         onSuccess: (tags) => resolve(findAndFormatCaptionsFromTags(tags, (audio.duration * 1000) >> 0)),
                         onError: reject
                     });
