@@ -59,6 +59,8 @@ proto.linkEntity = function (entity) {
 
     this.entities[id] = entity;
     this.attemptRecycle();
+
+    return entity;
 };
 
 proto.getEntity = function (id, property) {
