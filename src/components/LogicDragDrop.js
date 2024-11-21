@@ -76,7 +76,7 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
         this.dragContainer.zIndex = Infinity;
 
         if (this.stickyClick === undefined) {
-            this.stickyClick = platypus.supports.mobile;
+            this.stickyClick = !platypus.supports.mobile;
         }
         this.releaseStick = false;
     },
