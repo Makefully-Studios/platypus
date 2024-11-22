@@ -1199,19 +1199,25 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
 
                 objects.forEach((object) => {
                     const
-                        entityPositionX = getProperty(layerProperties, 'entityPositionX') ?? this.entityPositionX,
-                        entityPositionY = getProperty(layerProperties, 'entityPositionY') ?? this.entityPositionY,
-                        {flipX = 1, flipY = 1, height, rotation, width, x, y} = object,
-                        hw = width / 2,
-                        hh = height / 2,
-                        angle = (rotation) / 180 * Math.PI,
-                        tiledLoaderOffset = Vector.setUp(hw * POSITIONS[entityPositionX] * flipX, hh * POSITIONS[entityPositionY] * flipY).rotate(angle),
-                        registrationPoint = Vector.setUp(tiledLoaderOffset).add(hw, hh),
-                        entityLocation = Vector.setUp(mapOffsetX + x, mapOffsetY + y).addVector(tiledLoaderOffset),
                         entityData = getEntityData(object, tilesets, entityLinker);
                     
                     if (entityData) {
                         const
+                            entityPositionX = getProperty(layerProperties, 'entityPositionX') ?? this.entityPositionX,
+                            entityPositionY = getProperty(layerProperties, 'entityPositionY') ?? this.entityPositionY,
+                            {flipX = 1, flipY = 1, height, point, polygon, polyline, rotation, width, x, y} = object,
+                            angle = (rotation) / 180 * Math.PI,
+                            tiledLoaderOffset = Vector.setUp(width / 2 * POSITIONS[entityPositionX] * flipX, height / 2 * POSITIONS[entityPositionY] * flipY).rotate(angle),
+                            entityLocation = Vector.setUp(mapOffsetX + x, mapOffsetY + y).addVector(tiledLoaderOffset),
+                            {gid = -1, type: entityType, properties} = entityData,
+                            entityPackage = {
+                                properties
+                            },
+                            entityDefinition = platypus.game.settings.entities[entityType],
+                            entityDefProps = entityDefinition?.properties ?? null,
+                            hh = (point ? (entityDefProps?.height ?? 0) * (1 + POSITIONS[entityPositionY]) : height) / 2,
+                            hw = (point ? (entityDefProps?.width ?? 0) * (1 + POSITIONS[entityPositionX]) : width) / 2,
+                            registrationPoint = Vector.setUp(tiledLoaderOffset).add(hw, hh),
                             addShape = (shape, properties) => {
                                 if (!properties.shapes) {
                                     properties.shapes = [];
@@ -1238,18 +1244,7 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
                                         height,
                                     }, properties);
                                 }
-                            },
-                            {polygon, polyline, rotation} = object,
-                            {
-                                gid = -1,
-                                type: entityType,
-                                properties
-                            } = entityData,
-                            entityPackage = {
-                                properties
-                            },
-                            entityDefinition = platypus.game.settings.entities[entityType],
-                            entityDefProps = entityDefinition?.properties ?? null;
+                            };
                             
                         entityPackage[entityDefinition ? 'type' : 'id'] = entityType;
 
