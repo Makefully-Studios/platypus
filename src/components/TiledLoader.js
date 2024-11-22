@@ -858,7 +858,7 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
                                 offsetY = mapOffsetY + tileHeight * y,
                                 definition = tilesetObjectGroups.get(transform.id);
                                 
-                            this.setUpEntities(definition.objects.map((object) => getObjectCentered(object)).map((object) => getObjectTransformed(object, transform, tileWidth, tileHeight)), definition, offsetX, offsetY, tileWidth, tileHeight, tilesets, transform, progress, entityLinker);
+                            this.setUpEntities(definition.objects.map((object) => getObjectCentered(object)).map((object) => getObjectTransformed(object, transform, tileWidth, tileHeight)), definition, offsetX, offsetY, tilesets, progress, entityLinker);
                         }
                     }
                 }
@@ -1111,7 +1111,7 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
                     layer = this.createLayer(getProperty(layer.properties, 'entity') || 'image-layer', layer, x, y, layer.tilewidth, layer.tileheight, [layer.tileset], null, images, layer, progress, entityLinker);
                     break;
                 case 'objectgroup':
-                    this.setUpEntities(layerDefinition.objects, layerDefinition, x, y, tileWidth, tileHeight, tilesets, null, progress, entityLinker);
+                    this.setUpEntities(layerDefinition.objects, layerDefinition, x, y, tilesets, progress, entityLinker);
                     layer = null;
                     this.updateLoadingProgress(progress);
                     break;
@@ -1183,14 +1183,9 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
                     return shape;
                 };
 
-            return function (objects, layer, offsetX, offsetY, tileWidth, tileHeight, tilesets, transform, progress, entityLinker) {
+            return function (objects, layer, offsetX, offsetY, tilesets, progress, entityLinker) {
                 const
-                    clamp = 1000,
-                    {
-                        offsetx: layerOffsetX = 0,
-                        offsety: layerOffsetY = 0,
-                        properties: layerProperties
-                    } = layer,
+                    {offsetx: layerOffsetX = 0, offsety: layerOffsetY = 0, properties: layerProperties} = layer,
                     mapOffsetX = offsetX + layerOffsetX,
                     mapOffsetY = offsetY + layerOffsetY,
                     len = objects.length;
@@ -1209,7 +1204,7 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
                             angle = (rotation) / 180 * Math.PI,
                             tiledLoaderOffset = Vector.setUp(width / 2 * POSITIONS[entityPositionX] * flipX, height / 2 * POSITIONS[entityPositionY] * flipY).rotate(angle),
                             entityLocation = Vector.setUp(mapOffsetX + x, mapOffsetY + y).addVector(tiledLoaderOffset),
-                            {gid = -1, type: entityType, properties} = entityData,
+                            {type: entityType, properties} = entityData,
                             entityPackage = {
                                 properties
                             },
