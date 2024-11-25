@@ -13,31 +13,42 @@ const
     },
     updateLogic = function (tick) {
         const
-            delta = tick.delta,
-            instances = this.timelineInstances;
-        let i = instances.length;
+            {executionFlow, owner, timelineInstances} = this,
+            delta = tick.delta;
+        let i = timelineInstances.length,
+            removalOccurred = false;
         
         while (i--) {
             const
-                instance = instances[i];
+                instance = timelineInstances[i];
 
             if (instance.remove) {
-                greenSplice(instances, i);
+                greenSplice(timelineInstances, i);
                 instance.timeline.recycle();
                 instance.recycle();
+                removalOccurred = true;
             } else if (instance.active) {
                 if (instance.timeline.list.length === 0) {
-                    greenSplice(instances, i);
+                    greenSplice(timelineInstances, i);
                     instance.timeline.recycle();
                     instance.recycle();
+                    removalOccurred = true;
                 } else {
                     this.progressTimeline(instance, delta);
                 }
             }
         }
-
-        if (instances.length) {
-            this.owner.triggerEvent('timeline-progress', this.timelineInstances);
+        
+        if (timelineInstances.length) {
+            if (removalOccurred && executionFlow === 'serial') {
+                const
+                    timeline = timelineInstances[0];
+                    
+                if (!timeline.active) {
+                    timeline.play();
+                }
+            }
+            owner.triggerEvent('timeline-progress', timelineInstances);
         }
     };
 
@@ -46,6 +57,15 @@ export default createComponentClass(/** @lends platypus.components.Timeline.prot
     id: 'Timeline',
     
     properties: {
+        /**
+         * Sets the execution flow if multiple timelines are triggered.
+         *     * "parallel" - Each timeline begins immediately when triggered and does not directly affect other timelines.
+         *     * "serial" - A timeline doesn't start if another timeline is currently active: it will append itself to a queue of timelines and run eventually.
+         *     * "exclusive" - Timeline begins immediately and will stop any other active timeline.
+         *     * "tentative" - Timeline begins if no other timelines are active, otherwise it is ignored.
+         */
+        executionFlow: 'parallel',
+
         /**
          * Defines the set of timelines. Triggering the key for one of the events will run the timeline. A timeline can contain three different types integers >= 0, strings, and objects. Integers are interpreted as waits and define
          * pauses between events. Strings are intepreted as event calls. Objects can contain several parameters: entity, event, message. The entity is the id of the entity that
@@ -70,7 +90,7 @@ export default createComponentClass(/** @lends platypus.components.Timeline.prot
          * @type Object
          * @default {}
          */
-        "timelines": {}
+        timelines: {}
     },
     
     /**
@@ -109,19 +129,50 @@ export default createComponentClass(/** @lends platypus.components.Timeline.prot
         },
 
         "play-timelines": function () {
-            this.timelineInstances.forEach((timeline) => {
-                if (!timeline.active) {
-                    timeline.play();
+            const
+                {executionFlow, timelineInstances} = this;
+
+            if (executionFlow === 'serial') {
+                if (timelineInstances.length) { 
+                    const
+                        timeline = timelineInstances[0];
+                        
+                    if (!timeline.active) {
+                        timeline.play();
+                    }
                 }
-            });
+            } else {
+                timelineInstances.forEach((timeline) => {
+                    if (!timeline.active) {
+                        timeline.play();
+                    }
+                });
+            }
+        },
+
+        /**
+         * Stops active timelines.
+         *
+         * @event platypus.Entity#stop-active-timelines
+         */
+        "stop-active-timelines": function () {
+            const
+                instances = this.timelineInstances;
+            let i = instances.length;
+
+            while (i--) {
+                if (instances[i].active) {
+                    instances[i].remove = true;
+                }
+            }
         },
 
         /**
          * Stops all timelines.
          *
-         * @event platypus.Entity#stop-active-timelines
+         * @event platypus.Entity#stop-all-timelines
          */
-        "stop-active-timelines": function () {
+        "stop-all-timelines": function () {
             const
                 instances = this.timelineInstances;
             let i = instances.length;
@@ -140,16 +191,24 @@ export default createComponentClass(/** @lends platypus.components.Timeline.prot
          */
         "add-timeline": function (eventId, timeline) {
             this.addTimeline(eventId, timeline);
+        },
+
+        /**
+         * Play a timeline dynamically.
+         *
+         * @event platypus.Entity#start-timeline
+         * @param timeline {Array} The array of timeline data.
+         */
+        "start-timeline": function (timeline) {
+            this.startTimeline(timeline);
         }
     },
     
     methods: {
         addTimeline: function (eventId, timeline) {
-            this.addEventListener(eventId, () => {
-                this.timelineInstances.push(this.createTimeStampedTimeline(timeline));
-            });
+            this.addEventListener(eventId, () => this.startTimeline(timeline));
         },
-        createTimeStampedTimeline: function (timeline) {
+        createTimeStampedTimeline: function (timeline, active = 1) {
             const
                 timeStampedTimeline = TimeEventList.setUp(timeline);
 
@@ -163,7 +222,30 @@ export default createComponentClass(/** @lends platypus.components.Timeline.prot
                 "remove", false
             );
         },
-        progressTimeline: function (instance, delta) {
+        startTimeline (timeline) {
+            const
+                {executionFlow, timelineInstances} = this;
+
+            switch (executionFlow) {
+            case 'serial':
+                timelineInstances.push(this.createTimeStampedTimeline(timeline), timelineInstances.some(({active}) => active) ? 0 : 1);
+                return true;
+            case 'exclusive':
+                timelineInstances.forEach((instance) => instance.remove = true);
+                timelineInstances.push(this.createTimeStampedTimeline(timeline));
+                return true;
+            case 'tentative':
+                if (!timelineInstances.some(({active}) => active)) {
+                    timelineInstances.push(this.createTimeStampedTimeline(timeline));
+                    return true;
+                }
+                return false;
+            default:
+                timelineInstances.push(this.createTimeStampedTimeline(timeline));
+                return true;
+            }
+        },
+        progressTimeline (instance, delta) {
             const
                 timeline = instance.timeline;
             
@@ -223,10 +305,9 @@ export default createComponentClass(/** @lends platypus.components.Timeline.prot
         // asynchronous wait that incorporates ticker pauses.
         wait (time) {
             return new Promise ((resolve, reject) => {
-                this.timelineInstances.push(this.createTimeStampedTimeline([
-                    time,
-                    resolve
-                ]));
+                if (!this.startTimeline([time, resolve])) {
+                    reject();
+                }
             });
         }
     }
