@@ -8,6 +8,24 @@ export default (function () {
 
         publicProperties: {
             /**
+             * Specifies the current count.
+             *
+             * @property count
+             * @type number
+             * @default 0
+             */
+            count: 0,
+
+            /**
+             * If total is supplied, progress reports part complete, 0-1.
+             *
+             * @property progress
+             * @type number
+             * @default 0
+             */
+            progress: 0,
+
+            /**
              * A total the counter is incrementing toward.
              *
              * @property total
@@ -30,9 +48,8 @@ export default (function () {
          * @fires platypus.Entity#update-content
          */
         initialize: function () {
-            this.count = 0;
-            this.lastTotal = 0;
-            this.lastCount = 0;
+            this.lastTotal = -1;
+            this.lastCount = -1;
             this.message = Data.setUp(
                 "text", ""
             );
@@ -67,6 +84,10 @@ export default (function () {
                      * @param update.text {string} String describing the current count.
                      */
                     this.owner.triggerEvent('update-content', msg);
+
+                    if (this.total) {
+                        this.progress = this.count / this.total;
+                    }
                 }
             },
 
@@ -97,6 +118,15 @@ export default (function () {
              */
             "increment-count": function () {
                 this.count += 1;
+            },
+
+            /**
+             * Decrements the count by 1.
+             *
+             * @event platypus.Entity#decrement-count
+             */
+            "decrement-count": function () {
+                this.count -= 1;
             }
         },
         
