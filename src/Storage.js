@@ -68,11 +68,14 @@ class Storage {
             handleData(JSON.parse(unconnectedData));
         } catch (e) {}
 
-        springroll.container.on('connected', () => {
+        // Using Bellhop's "connected" event because springroll.state.ready doesn't ensure that Bellhop is also ready.
+        springroll.container.on('connected', async () => {
             this.connected = true;
-            UserData.read(this.storageKey).then(handleData).catch((e) => {
+            try {
+                handleData(await UserData.read(this.storageKey));
+            } catch (e) {
                 platypus.debug.warn('Storage: connected but received an error', e);
-            });
+            }
         });
     }
 
@@ -115,13 +118,15 @@ class Storage {
      * Takes the current game storage and saves it to local storage or Springroll UserData
      *
      */
-    save () {
+    async save () {
         const save = this.map.toJSON();
         
         if (this.connected) {
-            UserData.write(this.storageKey, save).catch((e) => {
+            try {
+                await UserData.write(this.storageKey, save);
+            } catch (e) {
                 platypus.debug.warn('Storage: tried to save but received an error', e);
-            });
+            }
         } else {
             window.localStorage.setItem(this.storageKey, JSON.stringify(save));
         }

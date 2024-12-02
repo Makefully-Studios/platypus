@@ -1,10 +1,22 @@
 import Data from '../Data.js';
 import createComponentClass from '../factory.js';
 
+/* global platypus */
 export default (function () {
     return createComponentClass(/** @lends platypus.components.Counter.prototype */{
 
         id: 'Counter',
+
+        properties: {
+            /**
+             * Sets whether count is stored permanently. Can be set to a storage key or if `true` will use entity's type.
+             * 
+             * @property persistentStorage
+             * @type Boolean|String
+             * @default false
+             */
+            persistentStorage: false
+        },
 
         publicProperties: {
             /**
@@ -53,6 +65,16 @@ export default (function () {
             this.message = Data.setUp(
                 "text", ""
             );
+            if (this.persistentStorage) {
+                const
+                    storage = this.storage = platypus.game.storage;
+
+                if (this.persistentStorage === true) {
+                    this.persistentStorage = this.owner.type;
+                }
+
+                this.count = storage.get(this.persistentStorage) || 0;
+            }
         },
 
         events: {
@@ -67,6 +89,9 @@ export default (function () {
                 
                 if (this.count !== this.lastCount) {
                     this.lastCount = this.count;
+                    if (this.persistentStorage) {
+                        this.storage.set(this.persistentStorage, this.count);
+                    }
                     update = true;
                 }
                 

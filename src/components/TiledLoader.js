@@ -19,6 +19,7 @@ const
         center: 0,
         middle: 0
     },
+    defaultEntityModifier = (object) => object,
     maskId = 0x0fffffff,
     maskXFlip = 0x80000000,
     maskYFlip = 0x40000000,
@@ -249,6 +250,9 @@ const
             properties.scaleY = 1;
         }
         
+        if (obj.name) {
+            properties.name = obj.name; // Unlike "type", this specifies particular entities. Unlike "id", entities can share the same name.
+        }
         if (entityLinker) {
             entityLinker.linkObject(data.properties.tiledId = obj.id);
         }
@@ -585,6 +589,15 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
          * @default null
          */
         level: null,
+
+        /**
+         * Specifies a function that entity definitions should be passed through before becoming entities to allow for specific changes apart from the level definition (like stored data or meta game mechanics)
+         * 
+         * @property entityModifier
+         * @type Function
+         * @default defaultEntityModifier (identity function)
+         */
+        entityModifier: defaultEntityModifier,
 
         /**
          * Can be "left", "right", or "center". Defines where entities registered X position should be when spawned. Available on the entity as `entity.entityPositionX`.
@@ -1307,22 +1320,31 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
                             properties.z = this.layerZ;
                         }
 
-                        if (properties.lazyLoad || (entityDefProps && entityDefProps.lazyLoad)) {
-                            entityPackage.aabb = AABB.setUp(properties.x + properties.width / 2 - properties.regX, properties.y + properties.height / 2 - properties.regY, properties.width || 1, properties.height || 1);
-                            entityPackage.entityLinker = entityLinker;
-                            this.lazyLoads.push(entityPackage);
-                            this.updateLoadingProgress(progress);
-                        } else {
+                        {
                             const
-                                createdEntity = this.owner.addEntity(entityPackage, this.updateLoadingProgress.bind(this, progress));
-                            
-                            entityLinker.linkEntity(createdEntity);
+                                proofedPackage = this.entityModifier(entityPackage);
 
-                            if (createdEntity && createdEntity.camera) {
-                                this.followEntity = {
-                                    entity: createdEntity,
-                                    mode: createdEntity.camera
-                                }; //used by camera
+                            if (proofedPackage) {
+                                if (properties.lazyLoad || (entityDefProps && entityDefProps.lazyLoad)) {
+                                    proofedPackage.aabb = AABB.setUp(properties.x + properties.width / 2 - properties.regX, properties.y + properties.height / 2 - properties.regY, properties.width || 1, properties.height || 1);
+                                    proofedPackage.entityLinker = entityLinker;
+                                    this.lazyLoads.push(proofedPackage);
+                                    this.updateLoadingProgress(progress);
+                                } else {
+                                    const
+                                        createdEntity = this.owner.addEntity(proofedPackage, this.updateLoadingProgress.bind(this, progress));
+                                    
+                                    entityLinker.linkEntity(createdEntity);
+        
+                                    if (createdEntity && createdEntity.camera) {
+                                        this.followEntity = {
+                                            entity: createdEntity,
+                                            mode: createdEntity.camera
+                                        }; //used by camera
+                                    }
+                                }
+                            } else {
+                                this.updateLoadingProgress(progress);
                             }
                         }
                     } else {

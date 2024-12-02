@@ -63,23 +63,46 @@ const
             outs.recycle();
         }
     },
-    handleResult = function (title, state, last, checks, changed, self, queue) {
+    handleResult = function ({title, state, last, checks, changed, self, queue, appendDetails}) {
         const
             keys = checks.keys,
             message = checks.message ?? (checks.message === 0) ?? (checks.message === false);
 
         if (changed) {
             if (typeof checks === 'string') {
-                self.triggerEvent(checks);
+                if (appendDetails) {
+                    const
+                        stateCopy = StateMap.setUp(state);
+
+                    self.triggerEvent(checks, {
+                        entity: self,
+                        state: stateCopy
+                    });
+
+                    stateCopy.recycle();
+                } else {
+                    self.triggerEvent(checks);
+                }
                 return;
             } else if (Array.isArray(checks)) {
                 for (let i = 0; i < checks.length; i++) {
-                    handleResult(title, state, last, checks[i], changed, self, queue);
+                    handleResult({title, state, last, checks: checks[i], changed, self, queue, appendDetails});
                 }
                 return;
             } else if (checks.event && (message || checks.delay)) {
                 if (checks.delay) {
                     queue.push(checks);
+                } else if (appendDetails) {
+                    const
+                        stateCopy = StateMap.setUp(state);
+
+                    self.trigger(checks.event, {
+                        ...checks.message ?? {},
+                        entity: self,
+                        state: stateCopy
+                    });
+
+                    stateCopy.recycle();
                 } else {
                     self.trigger(checks.event, checks.message);
                 }
@@ -89,7 +112,7 @@ const
                     value = checks.get('true');
 
                 if (value) {
-                    handleResult(title, state, last, value, changed, self, queue);
+                    handleResult({title, state, last, checks: value, changed, self, queue, appendDetails});
                 }
             }
         }
@@ -102,12 +125,12 @@ const
                     key = keys[i];
 
                 if (key !== 'true') {
-                    handleOutput(key, state, last, checks.get(key), changed, self, queue);
+                    handleOutput({title: key, state, last, checks: checks.get(key), changed, self, queue, appendDetails});
                 }
             }
         }
     },
-    handleOutput = function (title, state, last, checks, changed, self, queue) {
+    handleOutput = function ({title, state, last, checks, changed, self, queue, appendDetails}) {
         let c = changed,
             value = false;
 
@@ -131,7 +154,7 @@ const
         }
 
         if (value || (title === 'outputs')) {
-            handleResult(title, state, last, checks, c, self, queue);
+            handleResult({title, state, last, checks, changed: c, self, queue, appendDetails});
         }
     };
 
@@ -139,6 +162,15 @@ export default createComponentClass(/** @lends platypus.components.LogicStateMac
     id: 'LogicStateMachine',
     
     properties: {
+        /**
+         * Whether `entity` and `state` values should be appended to output messages on events.
+         * 
+         * @property appendDetails
+         * @type Boolean
+         * @default false
+         */
+        appendDetails: false,
+
         /**
          * This is the list of events containing key/value pairs that describe state changes to make for the given event.
          *
@@ -297,7 +329,16 @@ export default createComponentClass(/** @lends platypus.components.LogicStateMac
                     queue = arrayCache.setUp();
 
                 ss.update(state);
-                handleOutput('outputs', ss, this.last, this.outputs, false, this.owner, queue);
+                handleOutput({
+                    title: 'outputs',
+                    state: ss,
+                    last: this.last,
+                    checks: this.outputs,
+                    changed: false,
+                    self: this.owner,
+                    queue,
+                    appendDetails: this.appendDetails
+                });
                 
                 let i = queue.length;
                 
