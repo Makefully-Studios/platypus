@@ -1124,7 +1124,7 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
                     layer = this.createLayer(getProperty(layer.properties, 'entity') || 'image-layer', layer, x, y, layer.tilewidth, layer.tileheight, [layer.tileset], null, images, layer, progress, entityLinker);
                     break;
                 case 'objectgroup':
-                    this.setUpEntities(layerDefinition.objects, layerDefinition, x, y, tilesets, progress, entityLinker);
+                    this.setUpEntities(layerDefinition.objects.map((object) => getObjectCentered(object)), layerDefinition, x, y, tilesets, progress, entityLinker);
                     layer = null;
                     this.updateLoadingProgress(progress);
                     break;
