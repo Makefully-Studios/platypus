@@ -861,7 +861,7 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
                     index += 1; // So collision map matches original src indexes. Render (above) should probably be changed at some point as well. DDD 3/30/2016
                     importCollision[x][y] = index;
 
-                    if (tilesetObjectGroups) {
+                    if (tilesetObjectGroups && !layerDefinitionProperties.ignoreTileCollision) {
                         const
                             transform = entityTransformCheck(index);
 
