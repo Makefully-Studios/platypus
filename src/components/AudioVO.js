@@ -103,7 +103,7 @@ export default createComponentClass(/** @lends platypus.components.AudioVO.proto
 
     events: {
         "handle-render": function () {
-            if (!this.paused) {
+            if (!this.paused && this.eventList) {
                 this.checkTimeEvents(false);
             }
         },
@@ -126,18 +126,22 @@ export default createComponentClass(/** @lends platypus.components.AudioVO.proto
     methods: {
         checkTimeEvents: function (finished, completed) {
             const
-                {eventList, owner} = this,
-                currentTime = finished ? Infinity : this.player.getElapsed(),
-                events = eventList.getEvents(currentTime);
+                {eventList, owner} = this;
 
-            events.forEach((event) => {
-                if (!finished || completed || !event.interruptable) {
-                    owner.trigger(event);
-                }
-                event.recycle();
-            });
+            if (eventList) {
+                const
+                    currentTime = finished ? Infinity : this.player.getElapsed(),
+                    events = eventList.getEvents(currentTime);
 
-            arrayCache.recycle(events);
+                events.forEach((event) => {
+                    if (!finished || completed || !event.interruptable) {
+                        owner.trigger(event);
+                    }
+                    event.recycle();
+                });
+
+                arrayCache.recycle(events);
+            }
         },
 
         destroy: function () {
@@ -146,19 +150,26 @@ export default createComponentClass(/** @lends platypus.components.AudioVO.proto
                 this.player.stop(true);
                 this.player.voList = []; // Workaround to prevent a Springroll bug wherein stopping throws an error due to `voList` being `null`.
             }
-            this.eventList.recycle();
-            this.eventList = null;
+            if (this.eventList) {
+                this.eventList.recycle();
+                this.eventList = null;
+            }
         },
 
         playSound: function (soundDefinition, value) {
             if (!this.stopping) {
                 const
-                    {eventList, owner, player} = this,
+                    {owner, player} = this,
                     onComplete = (completed) => {
                         this.playingAudio -= 1;
                         if (!owner.destroyed) {
                             this.checkTimeEvents(true, completed);
 
+                            eventList.recycle();
+                            if (this.eventList === eventList) {
+                                this.eventList = null;
+                            }
+                            
                             /**
                              * When an audio sequence is finished playing, this event is triggered.
                              *
@@ -167,10 +178,9 @@ export default createComponentClass(/** @lends platypus.components.AudioVO.proto
                             owner.triggerEvent('sequence-complete');
                         }
                         arrayCache.recycle(soundList);
-                    };
+                    },
+                    eventList = this.eventList = TimeEventList.setUp(); // Create a new copy so the old one can run its course if needed.
                 let soundList = null;
-
-                eventList.clear();
 
                 if (typeof soundDefinition === 'string') {
                     soundList = arrayCache.setUp(soundDefinition);
