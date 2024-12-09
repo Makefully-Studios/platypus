@@ -483,7 +483,7 @@ class VOPlayer extends Messenger {
                     });
                 }
                 if (this._captions) {
-                    this._captions.start(sound, soundId, -0.001); // Negative start time prevents caption from appearing if caption start time is `0` but sound is not yet loaded.
+                    this._captions.start(sound, soundId, 0);
                     this.game.on("tick", this._syncCaptionToSound);
                 }
                 if (this.playQueue.length && this.interruptable) { // We need to skip on ahead, because new VO was played while this or a prior one was loading.

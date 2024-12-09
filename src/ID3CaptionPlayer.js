@@ -1,4 +1,4 @@
-import {CaptionFactory, CaptionPlayer, TextRenderer} from 'springroll';
+import {CaptionFactory, CaptionPlayer, HtmlRenderer} from 'springroll';
 
 const
     nullCaption = [{
@@ -22,7 +22,7 @@ const
 
                     return {
                         content,
-                        start,
+                        start: Math.max(start, 0.001), // Prevents CaptionPlayer from playing caption before the audio is loaded/playing.
                         end: next ? next.timeStamp : length
                     };
                 }));
@@ -33,7 +33,7 @@ const
     },
     ID3CaptionPlayer = class extends CaptionPlayer {
         constructor (captions = {nullCaption}, captionsElement, tagReader = null) {
-            super(captions, new TextRenderer(captionsElement));
+            super(captions, new HtmlRenderer(captionsElement));
 
             if (tagReader) {
                 this.getCaption = (audio) => new Promise((resolve, reject) => {
