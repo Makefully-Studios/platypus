@@ -1,7 +1,21 @@
+div#captions {
+    user-select: none;
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    -webkit-touch-callout: none;
+}
+
 canvas.platypus-canvas {
     height: 100%;
     position: relative;
     width: 100%;
+
+    user-select: none;
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    -webkit-touch-callout: none;
 }
 
 .platypus-debugging {
