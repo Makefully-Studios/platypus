@@ -34,6 +34,15 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
 
     publicProperties: {
         /**
+         * Whether dragged items must stay within the camera frame.
+         * 
+         * @property stayInViewport
+         * @type Boolean
+         * @default false
+         */
+        stayInViewport: false,
+
+        /**
          * Sets whether a click-move should start the dragging behavior in addition to click-drag. Defaults to `true` on desktop and `false` on mobile devices.
          *
          * @property stickyClick
@@ -129,6 +138,9 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
                 this.sticking = null;
                 this.nextX = eventData.x - this.grabOffsetX;
                 this.nextY = eventData.y - this.grabOffsetY;
+                if (this.stayInViewport) {
+                    this.checkCamera();
+                }
                 this.releaseStick = true; // Delay release until logic runs in case of collision checks, etc.
             } else {
                 const
@@ -210,6 +222,9 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
             if (this.sticking) {
                 this.nextX = eventData.x - this.grabOffsetX;
                 this.nextY = eventData.y - this.grabOffsetY;
+                if (this.stayInViewport) {
+                    this.checkCamera();
+                }
                 
                 eventData.event.preventDefault();
                 eventData.pixiEvent.stopPropagation();
@@ -227,6 +242,9 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
 
                 this.nextX = eventData.x - this.grabOffsetX;
                 this.nextY = eventData.y - this.grabOffsetY;
+                if (this.stayInViewport) {
+                    this.checkCamera();
+                }
                 if (sticking && (Math.pow(this.nextX - sticking.x, 2) + Math.pow(this.nextY - sticking.y, 2) > Math.pow(stickiness, 2))) {
                     this.sticking = null;
                 }
@@ -249,14 +267,25 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
     methods: {// These are methods that are called by this component.
         checkCamera () {
             const
-                {state} = this;
+                {state, stayInViewport} = this,
+                dragging = state?.get('dragging');
 
-            if (state?.get('dragging')) {
+            if (dragging || stayInViewport) {
                 const
                     {aabb} = this;
 
-                if (!aabb.containsPoint(this.nextX + this.grabOffsetX, this.nextY + this.grabOffsetY)) {
-                    this.release();
+                if (!aabb.containsPoint(dragging ? this.nextX + this.grabOffsetX : this.owner.x, dragging ? this.nextY + this.grabOffsetY : this.owner.y)) {
+                    if (this.stayInViewport) {
+                        if (dragging) {
+                            this.nextX = Math.min(aabb.right, Math.max(aabb.left, this.nextX + this.grabOffsetX)) - this.grabOffsetX;
+                            this.nextY = Math.min(aabb.bottom, Math.max(aabb.top, this.nextY + this.grabOffsetY)) - this.grabOffsetY;
+                        } else {
+                            this.owner.x = Math.min(aabb.right, Math.max(aabb.left, this.owner.x));
+                            this.owner.y = Math.min(aabb.bottom, Math.max(aabb.top, this.owner.y));
+                        }
+                    } else {
+                        this.release();
+                    }
                 } else { // adjust container if needed.
                     const
                         {cameraScaleX, cameraScaleY, dragContainer} = this;
