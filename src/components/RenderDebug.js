@@ -285,10 +285,13 @@ export default (function () {
                         }
                     }
                 } else {
+                    const
+                        {height = 1, width = 1} = this;
+
                     this.addShape({
                         color: this.renderColor,
-                        left: -this.width / 2,
-                        top: -this.height / 2,
+                        left: -width / 2,
+                        top: -height / 2,
                         width,
                         height
                     });
