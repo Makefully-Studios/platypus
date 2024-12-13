@@ -1294,6 +1294,10 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
                                 properties.rotation = rotation;
                             }
                         } else {
+                            if (!point) {
+                                properties.width = width;
+                                properties.height = height;
+                            }
                             properties.x = entityLocation.x;
                             properties.y = entityLocation.y;
                             properties.rotation = object.rotation;
