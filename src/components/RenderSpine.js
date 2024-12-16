@@ -596,6 +596,27 @@ export default (function () {
              */
             "switch-skin": function (skin) {
                 this.switchSkin(skin);
+            },
+            /**
+             * Tint a slot(s) and its attachment.
+             *
+             * @event platypus.Entity#tint-slot
+             * @param array[String] {Array[String]} The slot[s] you would like to tint.
+             * @param color {String} The string of the hexidecimal color you would like to apply (e.g. "FF0000" for red)
+             */
+            "tint-slot": function (slots, color) {
+                let slot = null,
+                    x = 0;
+
+                for (x = 0; x < slots.length; x++) {
+                    slot = this.spine.skeleton.findSlot(slots[x]);
+                    if (slot) {
+                        if (slot.attachment) {
+                            slot.attachment.color.setFromString(color);
+                        }
+                        slot.color.setFromString(color); 
+                    }
+                }
             }
         },
 
