@@ -16,6 +16,7 @@ export {default as CollisionFilter} from "./CollisionFilter.js";
 export {default as CollisionGroup} from "./CollisionGroup.js";
 export {default as CollisionTiles} from "./CollisionTiles.js";
 export {default as ComponentSwitcher} from "./ComponentSwitcher.js";
+export {default as ControllerInput} from "./ControllerInput.js";
 export {default as Counter} from "./Counter.js";
 export {default as EntityContainer} from "./EntityContainer.js";
 export {default as EntityController} from "./EntityController.js";

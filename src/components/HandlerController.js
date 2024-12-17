@@ -170,6 +170,9 @@ export default createComponentClass(/** @lends platypus.components.HandlerContro
         window.addEventListener('keydown', this.callbackKeyDown, true);
         window.addEventListener('keyup',   this.callbackKeyUp,   true);
 
+        this.addEventListener('controller-input-down', (event) => this.triggerControlAction(event.code, 'down', event));
+        this.addEventListener('controller-input-up', (event) => this.triggerControlAction(event.code, 'up', event));
+
         if (this.useHandleLogic) {
             this.addEventListener('handle-logic', broadcastHandleController);
         } else {
