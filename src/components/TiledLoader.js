@@ -139,11 +139,10 @@ const
             
             if (tiles) {
                 for (let j = 0; j < tiles.length; j++) {
-                    const tile = tiles[j];
+                    const
+                        tile = tiles[j];
 
-                    if (tile.objectgroup) { // Could just be other information, like terrain
-                        reference.set(tile.id + tileset.firstgid, tile.objectgroup);
-                    }
+                    reference.set(tile.id + tileset.firstgid, tile);
                 }
             }
         }
@@ -699,7 +698,7 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
     },
 
     methods: {
-        createLayer: function (entityKind, rawLayer, offsetX, offsetY, tileWidth, tileHeight, tilesets, tilesetObjectGroups, images, combineRenderLayer, progress, entityLinker) {
+        createLayer: function (entityKind, rawLayer, offsetX, offsetY, tileWidth, tileHeight, tilesets, tileSetTileData, images, combineRenderLayer, progress, entityLinker) {
             const
                 //This builds in parallaxing support by allowing the addition of width and height properties into Tiled layers so they pan at a separate rate than other layers.
                 checkParallax = ({data, height, properties, width}) => {
@@ -861,17 +860,25 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
                     index += 1; // So collision map matches original src indexes. Render (above) should probably be changed at some point as well. DDD 3/30/2016
                     importCollision[x][y] = index;
 
-                    if (tilesetObjectGroups && !layerDefinitionProperties.ignoreTileCollision) {
+                    if (tileSetTileData) {
                         const
                             transform = entityTransformCheck(index);
 
-                        if (tilesetObjectGroups.has(transform.id)) {
+                        if (tileSetTileData.has(transform.id)) {
                             const
-                                offsetX = mapOffsetX + tileWidth * x,
-                                offsetY = mapOffsetY + tileHeight * y,
-                                definition = tilesetObjectGroups.get(transform.id);
-                                
-                            this.setUpEntities(definition.objects.map((object) => getObjectCentered(object)).map((object) => getObjectTransformed(object, transform, tileWidth, tileHeight)), definition, offsetX, offsetY, tilesets, progress, entityLinker);
+                                {objectgroup, properties} = tileSetTileData.get(transform.id);
+
+                            if (objectgroup && !layerDefinitionProperties.ignoreTileCollision) {
+                                const
+                                    offsetX = mapOffsetX + tileWidth * x,
+                                    offsetY = mapOffsetY + tileHeight * y;
+                                    
+                                this.setUpEntities(objectgroup.objects.map((object) => getObjectCentered(object)).map((object) => getObjectTransformed(object, transform, tileWidth, tileHeight)), objectgroup, offsetX, offsetY, tilesets, progress, entityLinker);
+                            }
+
+                            if (properties && getProperty(properties, 'hide')) {
+                                importRender[x][y] = 'tile-1'; // hide this tile's art.
+                            }
                         }
                     }
                 }
@@ -977,7 +984,7 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
                 level = (typeof levelData.level === 'string') ? platypus.game.settings.levels[levelData.level] : levelData.level, //format level appropriately
                 layers = level.layers,
                 progress = Data.setUp('count', 0, 'progress', 0, 'total', 0),
-                tilesetObjectGroups = DataMap.setUp(),
+                tileSetTileData = DataMap.setUp(),
                 tilesets = importTilesetData(level.tilesets),
                 tileWidth = this.tileWidth = level.tilewidth,
                 tileHeight = this.tileHeight = level.tileheight,
@@ -987,7 +994,7 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
                 y = offsetMap ? getPowerOfTen(height) : 0;
             let layer = null;
 
-            createTilesetObjectGroupReference(tilesetObjectGroups, tilesets);
+            createTilesetObjectGroupReference(tileSetTileData, tilesets);
 
             if (level.properties) {
                 entityLinker.linkObject(owner.tiledId = 0); // Level
@@ -1129,7 +1136,7 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
                     this.updateLoadingProgress(progress);
                     break;
                 case 'tilelayer':
-                    layer = this.setupLayer(layerDefinition, layer, x, y, tileWidth, tileHeight, tilesets, tilesetObjectGroups, images, progress, entityLinker);
+                    layer = this.setupLayer(layerDefinition, layer, x, y, tileWidth, tileHeight, tilesets, tileSetTileData, images, progress, entityLinker);
                     break;
                 default:
                     platypus.debug.warn('Component TiledLoader: Platypus does not support Tiled layers of type "' + layerDefinition.type + '". This layer will not be loaded.');
@@ -1138,7 +1145,7 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
                 this.layerZ += this.layerIncrement;
             }
 
-            tilesetObjectGroups.recycle();
+            tileSetTileData.recycle();
         },
         
         setUpEntities: (function () {
@@ -1358,7 +1365,7 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
             };
         }()),
 
-        setupLayer: function (layer, combineRenderLayer, mapOffsetX, mapOffsetY, tileWidth, tileHeight, tilesets, tilesetObjectGroups, images, progress, entityLinker) {
+        setupLayer: function (layer, combineRenderLayer, mapOffsetX, mapOffsetY, tileWidth, tileHeight, tilesets, tileSetTileData, images, progress, entityLinker) {
             const
                 entity = getProperty(layer.properties, 'entity') ?? 'render-layer', // default
                 entityDefinition = platypus.game.settings.entities[entity] ?? standardEntityLayers[entity];
@@ -1377,9 +1384,9 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
             }
 
             if (canCombine) {
-                return this.createLayer(entity, layer, mapOffsetX, mapOffsetY, tileWidth, tileHeight, tilesets, tilesetObjectGroups, images, combineRenderLayer, progress, entityLinker);
+                return this.createLayer(entity, layer, mapOffsetX, mapOffsetY, tileWidth, tileHeight, tilesets, tileSetTileData, images, combineRenderLayer, progress, entityLinker);
             } else {
-                this.createLayer(entity, layer, mapOffsetX, mapOffsetY, tileWidth, tileHeight, tilesets, tilesetObjectGroups, images, combineRenderLayer, progress, entityLinker);
+                this.createLayer(entity, layer, mapOffsetX, mapOffsetY, tileWidth, tileHeight, tilesets, tileSetTileData, images, combineRenderLayer, progress, entityLinker);
                 return null;
             }
         },
