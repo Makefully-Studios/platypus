@@ -246,6 +246,10 @@ class Game extends Messenger {
                 state.ready.subscribe(resolve);
     
                 this.storage = new Storage(springroll, {name, storageKeys});
+
+                if (options?.beforeReady) {
+                    options.beforeReady(this);
+                }
             }),
             load = async function (settings) {
                 const
