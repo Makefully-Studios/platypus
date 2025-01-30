@@ -684,7 +684,14 @@ export default (function () {
                     lastBounds = AABB.setUp(currentBounds);
 
                 currentBounds.setBounds(l, t, r, b);
-                this.matchAspectRatio(currentBounds);
+                if (this.width !== currentBounds.width || this.height !== currentBounds.height) {
+                    this.width = currentBounds.width;
+                    this.height = currentBounds.height;
+                    this.matchAspectRatio();
+                    this.resize();
+                } else {
+                    this.matchAspectRatio();
+                }
 
                 if (width) {
                     if (width < currentBounds.width) {
@@ -714,30 +721,26 @@ export default (function () {
                 }
             },
 
-            matchAspectRatio (bounds) {
+            matchAspectRatio () {
                 const
-                    {height, owner, viewport, width} = this,
+                    {height, owner, width, worldCamera} = this,
+                    {viewport} = worldCamera,
                     worldAspectRatio = width / height,
                     windowAspectRatio = owner.width / owner.height;
                 
-                //The dimensions of the camera in the window
-                //viewport.setAll(owner.width / 2, owner.height / 2, owner.width, owner.height);
-                
                 if (windowAspectRatio > worldAspectRatio) {
-                    bounds.resize(height * windowAspectRatio, height);
+                    viewport.resize(height * windowAspectRatio, height);
                 } else {
-                    bounds.resize(width, width / windowAspectRatio);
+                    viewport.resize(width, width / windowAspectRatio);
                 }
             },
             
-            clampAspectRatio (bounds) {
+            clampAspectRatio () {
                 const
                     {height, owner, viewport, width} = this,
                     worldAspectRatio = width / height,
                     windowAspectRatio = owner.width / owner.height;
                 
-                //The dimensions of the camera in the window
-                //viewport.setAll(owner.width / 2, owner.height / 2, owner.width, owner.height);
                 if (windowAspectRatio > worldAspectRatio) {
                     viewport.resize(viewport.height * worldAspectRatio, viewport.height);
                 } else {
