@@ -617,6 +617,31 @@ export default (function () {
                         slot.color.setFromString(color); 
                     }
                 }
+            },
+
+            /**
+             * Apply physics to the entire skeleton.
+             * 
+             * Accepts an object with translate and rotate objects.
+             * {
+             *      translate: {x: 0, y: 0}, 
+             *      rotate: {x: 0, y: 0, degrees: 0}
+             * }
+             * 
+             * Has known vibration issues. Until pixi-spine 4.3, recommend 120 FPS on physics constraints on joints.
+             * Potential fixes: https://esotericsoftware.com/forum/d/28093-jittering-when-applying-physicstranslate-pixispine/5
+             *
+             * @event platypus.Entity#apply-spine-physics
+             * @param object An object describing how the entity moved to generate the physics response.
+             */
+            "apply-spine-physics": function (changes) {
+                if (changes.translate) {
+                    this.spine.skeleton.physicsTranslate(changes.translate.x, changes.translate.y);
+                }
+
+                if (changes.rotate) {
+                    this.spine.skeleton.physicsTranslate(changes.rotate.x, changes.rotate.y, changes.rotate.degrees);
+                }
             }
         },
 
