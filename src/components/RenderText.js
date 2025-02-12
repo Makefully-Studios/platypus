@@ -68,6 +68,7 @@ export default createComponentClass(/** @lends platypus.components.RenderText.pr
          *         "fill": "#ffffff",
          *         "align": "center", // Can be `left`, `center`, or `right`
          *         "fontFamily": "arial", // Any CSS font that has been loaded by the browser
+         *         "fontWeight": 700, //Numerical weight of the font.
          *         "verticalAlign": "bottom" // Can be `top`, `center`, or `bottom`
          *     }
          *

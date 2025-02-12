@@ -613,8 +613,9 @@ export default (function () {
                     if (slot) {
                         if (slot.attachment) {
                             slot.attachment.color.setFromString(color);
+                        } else{
+                            slot.color.setFromString(color);
                         }
-                        slot.color.setFromString(color); 
                     }
                 }
             },
