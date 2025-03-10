@@ -7,791 +7,805 @@ import RenderContainer from './RenderContainer.js';
 import StateMap from '../StateMap.js';
 import createComponentClass from '../factory.js';
 
-export default (function () {
-    const
-        createTest = function (testStates, skin) {
-            if (testStates === 'default') {
-                return () => skin;
-            } else {
-                //TODO: Better clean-up: Create a lot of these without removing them later... DDD 2/5/2016
-                const
-                    states = StateMap.setUp(testStates);
+const
+    createTest = function (testStates, skin) {
+        if (testStates === 'default') {
+            return () => skin;
+        } else {
+            //TODO: Better clean-up: Create a lot of these without removing them later... DDD 2/5/2016
+            const
+                states = StateMap.setUp(testStates);
 
-                return (ownerState) => ownerState.includes(states) ? skin : null;
+            return (ownerState) => ownerState.includes(states) ? skin : null;
+        }
+    };
+
+export default createComponentClass(/** @lends platypus.components.RenderSpine.prototype */{
+
+    id: 'RenderSpine',
+
+    properties: {
+        /**
+         * An object containg key-value pairs that define a mapping from entity states to the animation that should play. The list is processed from top to bottom, so the most important actions should be listed first (for example, a jumping animation might take precedence over an idle animation). If not specified, an 1-to-1 animation map is created from the list of animations in the sprite sheet definition using the animation names as the keys.
+         *
+         *  "animationStates":{
+         *      "standing": "default-animation"  // On receiving a "standing" event, or when this.owner.state.standing === true, the "default" animation will begin playing.
+         *      "ground,moving": "walking",  // Comma separated values have a special meaning when evaluating "state-changed" messages. The above example will cause the "walking" animation to play ONLY if the entity's state includes both "moving" and "ground" equal to true.
+         *      "ground,striking": "swing!", // Putting an exclamation after an animation name causes this animation to complete before going to the next animation. This is useful for animations that would look poorly if interrupted.
+         *      "default": "default-animation" // Optional. "default" is a special property that matches all states. If none of the above states are valid for the entity, it will use the default animation listed here.
+         *  }
+         *
+         * If `stateBased` is `true` and this property is not set, this component will use the `animationMap` property value to define state mappings.
+         *
+         * @property animationStates
+         * @type Object
+         * @default animationMap
+         */
+        animationStates: null,
+
+        /**
+         * An object containg key-value pairs that define a mapping from triggered events to the animation that should play.
+         *
+         *     "animationEvents":{
+         *         "move": "walk-animation",
+         *         "jump": "jumping-animation"
+         *     }
+         *
+         * The above will create two event listeners on the entity, "move" and "jump", that will play their corresponding animations when the events are triggered.
+         *
+         * If `eventBased` is `true` and this property is not set, this component will use the `animationMap` property value to define event mappings.
+         *
+         * @property animationEvents
+         * @type Object
+         * @default animationMap
+         */
+        animationEvents: null,
+
+        /**
+         * Optional. An object containing key-value pairs that define a mapping from triggered events or entity states to the animation that should play. The list is processed from top to bottom, so the most important actions should be listed first (for example, a jumping animation might take precedence over an idle animation). If not specified, an 1-to-1 animation map is created from the list of animations in the skeleton definition using the animation names as the keys.
+         *
+         *  "animationMap":{
+         *      "standing": "default-animation"  // On receiving a "standing" event, or when this.owner.state.standing === true, the "default" animation will begin playing.
+         *      "ground,moving": "walking",  // Comma separated values have a special meaning when evaluating "state-changed" messages. The above example will cause the "walking" animation to play ONLY if the entity's state includes both "moving" and "ground" equal to true.
+         *      "ground,striking": "swing!", // Putting an exclamation after an animation name causes this animation to complete before going to the next animation. This is useful for animations that would look poorly if interrupted.
+         *      "default": "default-animation" // Optional. "default" is a special property that matches all states. If none of the above states are valid for the entity, it will use the default animation listed here.
+         *  }
+         *
+         * @property animationMap
+         * @type Object
+         * @default null
+         */
+        animationMap: null,
+
+        /**
+         * Optional. No, this isn't a Stephen R. Lawhead novel. Use this to specify a skin according to the entity's state.
+         *
+         *  "skinMap":{
+         *      "cloaked": "cloak"  // On receiving a "cloaked" event, or when `this.owner.state.get('cloaked') === true`, this skin will be activated.
+         *      "default": "normal_attire" // Optional. "default" is a special property that matches all states. If none of the above states are valid for the entity, it will use the default skin listed here.
+         *  }
+         *
+         * @property skinMap
+         * @type Object
+         * @default null
+         */
+        skinMap: null,
+
+        /**
+         * The scaling factor for this sprite relative to the scale of the container.
+         *
+         * @property localScaleX
+         * @type Number|Array|Object
+         * @default 1
+         */
+        localScaleX: 1,
+
+        /**
+        * The scaling factor for this sprite relative to the scale of the container.
+        *
+        * @property localScaleY
+        * @type Number|Array|Object
+        * @default 1
+        */
+        localScaleY: 1,
+
+        /**
+         * Optional. A mask definition that determines where the image should clip. A string can also be used to create more complex shapes via the PIXI graphics API like: "mask": "r(10,20,40,40).circle(30,10,12)". Defaults to no mask or, if simply set to true, a rectangle using the entity's dimensions.
+         *
+         *  "mask": {
+         *      "x": 10,
+         *      "y": 10,
+         *      "width": 40,
+         *      "height": 40
+         *  },
+         *
+         *  -OR-
+         *
+         *  "mask": "r(10,20,40,40).circle(30,10,12)"
+         *
+         * @property mask
+         * @type Object
+         * @default null
+         */
+        mask: null,
+
+        /**
+         * Defines whether the entity will respond to touch and click events. Setting this value will create an Interactive component on this entity with these properties. For example:
+         *
+         *  "interactive": {
+         *      "hover": false,
+         *      "hitArea": {
+         *          "x": 10,
+         *          "y": 10,
+         *          "width": 40,
+         *          "height": 40
+         *      }
+         *  }
+         *
+         * @property interactive
+         * @type Boolean|Object
+         * @default false
+         */
+        interactive: false,
+
+        /**
+         * Sets the transition time between animations. If a number is defined, the transition time applies to all animation changes. If an object is specified, the key value pairs should match this syntax where the first part of the key lists the animation currently playing and the second part of the key lists the animation being transitioned to:
+         *
+         *     {
+         *         "jump:walk": 0.4,
+         *         "walk:jump": 0.2
+         *     }
+         *
+         * @property mixTimes
+         * @type Number|Object
+         * @default 0
+         */
+        mixTimes: 0,
+
+        /**
+         * The offset of the x-axis position of the sprite from the entity's x-axis position.
+         *
+         * @property offsetX
+         * @type Number
+         * @default 0
+         */
+        offsetX: 0,
+
+        /**
+         * The offset of the y-axis position of the sprite from the entity's y-axis position.
+         *
+         * @property offsetY
+         * @type Number
+         * @default 0
+         */
+        offsetY: 0,
+
+        /**
+         * The z-index relative to other render components on the entity.
+         *
+         * @property offsetZ
+         * @type Number
+         * @default 0
+         */
+        offsetZ: 0,
+
+        /**
+         * Text describing an atlas of graphic assets for the Spine animation or an asset id for the same.
+         *
+         * @property atlas
+         * @type String
+         * @default ""
+         */
+        atlas: "",
+
+        /**
+         * A JSON structure defining a Spine skeleton and behaviors for the animation, or an asset id for the same.
+         *
+         * @property skeleton
+         * @type String|Object
+         * @default null
+         */
+        skeleton: null,
+
+        /**
+         * Whether this object can be mirrored over X. To mirror it over X set the this.owner.rotation value to be > 90  and < 270.
+         *
+         * @property mirror
+         * @type Boolean
+         * @default false
+         */
+        mirror: false,
+
+        /**
+         * Optional. Whether this object can be flipped over Y. To flip it over Y set the this.owner.rotation to be > 180.
+         *
+         * @property flip
+         * @type Boolean
+         * @default false
+         */
+        flip: false,
+
+        /**
+         * Optional. Whether this object is visible or not. To change the visible value dynamically set this.owner.state.visible to true or false.
+         *
+         * @property visible
+         * @type Boolean
+         * @default false
+         */
+        visible: true,
+
+        /**
+         * Optional. Specifies whether this component should create a RenderAnimator component to listen to events matching the animationMap to animate. Set this to true if the component should animate for on events. Default is `false`.
+         *
+         * @property eventBased
+         * @type Boolean
+         * @default false
+         */
+        eventBased: false,
+
+        /**
+         * Optional. Specifies whether the spine image alpha has been premultiplied. Set this to `false` if you see bright borders around image parts. Make sure it's `true` if you see thin black lines around image pieces.
+         *
+         * @property preMultipliedAlpha
+         * @type Boolean
+         * @default true
+         */
+        preMultipliedAlpha: true,
+
+        /**
+         * Optional. Specifies whether this component should create a RenderAnimator component to handle changes in the entity's state that match the animationMap to animate. Set this to true if the component should animate based on `this.owner.state`. Default is `true`.
+         *
+         * @property stateBased
+         * @type Boolean
+         * @default true
+         */
+        stateBased: true
+    },
+
+    publicProperties: {
+        /**
+         * Prevents the spine from becoming invisible out of frame and losing mouse input connection.
+         *
+         * @property dragMode
+         * @type Boolean
+         * @default false
+         */
+        dragMode: false,
+
+        /**
+         * Optional. The X scaling factor for the image. Defaults to 1.
+         *
+         * @property scaleX
+         * @type Number
+         * @default 1
+         */
+        scaleX: 1,
+
+        /**
+         * Optional. The Y scaling factor for the image. Defaults to 1.
+         *
+         * @property scaleY
+         * @type Number
+         * @default 1
+         */
+        scaleY: 1,
+
+        /**
+         * Optional. The X swek factor of the sprite. Defaults to 0.
+         *
+         * @property skewX
+         * @type Number
+         * @default 0
+         */
+        skewX: 0,
+
+        /**
+         * Optional. The Y skew factor for the image. Defaults to 0.
+         *
+         * @property skewY
+         * @type Number
+         * @default 0
+         */
+        skewY: 0,
+
+        /**
+         * Optional. The x position of the entity. Defaults to 0.
+         *
+         * @property x
+         * @type Number
+         * @default 0
+         */
+        x: 0,
+        
+        /**
+         * Optional. The y position of the entity. Defaults to 0.
+         *
+         * @property y
+         * @type Number
+         * @default 0
+         */
+        y: 0,
+        
+        /**
+         * Optional. The z position of the entity. Defaults to 0.
+         *
+         * @property z
+         * @type Number
+         * @default 0
+         */
+        z: 0
+    },
+
+    /**
+     * This component is attached to entities that will appear in the game world. It renders a spine-based puppet. It listens for messages triggered on the entity or changes in the logical state of the entity to play a corresponding animation.
+     *
+     * @memberof platypus.components
+     * @uses platypus.Component
+     * @constructs
+     * @listens platypus.Entity#handle-render
+     * @listens platypus.Entity#hide
+     * @listens platypus.Entity#play-animation
+     * @listens platypus.Entity#set-mix-times
+     * @listens platypus.Entity#show
+     * @listens platypus.Entity#state-changed
+     * @listens platypus.Entity#stop-animation
+     * @fires platypus.Entity#animation-ended
+     * @fires platypus.Entity#update-animation
+     */
+    initialize: (function () {
+        const
+            createAnimationMap = function (animationMap, animations) {
+                if (animationMap) {
+                    return animationMap;
+                } else {
+                    // Create 1-to-1 animation map since none was defined
+                    return Object.keys(animations).reduce((map, value) => {
+                        map[value] = value;
+                        return map;
+                    }, {});
+                }
+            };
+        
+        return function () {
+            // If PIXI.spine is unavailable, this component doesn't work.
+            if (!Spine) {
+                platypus.debug.error('RenderSpine requires `PIXI.spine` to function.');
+            } else {
+                const
+                    skeleton = platypus.assetCache.get(this.skeleton),
+                    spineAtlas = platypus.assetCache.get(this.atlas),
+                    spineJsonParser = new SkeletonJson(new AtlasAttachmentLoader(spineAtlas)),
+                    skeletonData = spineJsonParser.readSkeletonData(skeleton),
+                    spine = this.spine = new Spine(skeletonData),
+                    map = createAnimationMap(this.animationMap, skeleton.animations);
+
+                let animation = '';
+
+                spine.state.addListener({
+                    event: (entry, event) => {
+                        const
+                            eventName = event.data.name;
+    
+                        if (this.playAnimation(eventName)) {
+                            this.spine.update(0.000001);
+                        }
+    
+                        this.owner.trigger(eventName, event.data);
+                    },
+                    complete: (animationData) => {
+                        const
+                            animationName = animationData.animation.name;
+                            
+                        if (this.playSequence) {
+                            const
+                                last = this.playIndex === this.playSequence.length - 1;
+
+                            this.playIndex += 1;
+                            if (this.playIndex < this.playSequence.length || this.loopSequence) {
+                                this.playIndex = this.playIndex % this.playSequence.length;
+                                this.innerPlayAnimation(this.playSequence[this.playIndex], false);
+                                if (last) {
+                                    this.owner.triggerEvent('animation-looped');
+                                }
+                                return;
+                            }
+                        }
+    
+                        this.owner.triggerEvent('animation-ended', animationName);
+                    }
+                });
+                spine.autoUpdate = false;
+
+                this.stateBased = map && this.stateBased;
+                this.eventBased = map && this.eventBased;
+                if (map) {
+                    const
+                        definition = Data.setUp(
+                            'animationEvents', this.eventBased ? this.animationEvents || map : null,
+                            'animationStates', this.stateBased ? this.animationStates || map : null,
+                            'forcePlayThrough', this.forcePlayThrough,
+                            'component', this
+                        );
+
+                    this.owner.addComponent(new RenderAnimator(this.owner, definition));
+                    definition.recycle();
+
+                    animation = map.default || '';
+                }
+
+                // set up the mixes!
+                if (this.mixTimes) {
+                    this.setMixTimes(this.mixTimes);
+                }
+
+                // play animation
+                this.currentAnimations = arrayCache.setUp();
+                if (animation) {
+                    this.playAnimation(animation);
+                }
+
+                this.playSequence = null;
+                this.playIndex = 0;
+
+                spine.x = this.offsetX;
+                spine.y = this.offsetY;
+                spine.zIndex = this.offsetZ;
+                spine.scale.x = this.localScaleX;
+                spine.scale.y = this.localScaleY;
+
+                if (this.skinMap) { // Set up skin map handling.
+                    const map = this.skinMap;
+    
+                    this.currentSkin = null;
+
+                    //Handle Events:
+                    if (this.eventBased) {
+                        const
+                            keys = Object.keys(map),
+                            {length} = keys;
+
+                        for (let i = 0; i < length; i++) {
+                            const
+                                key = keys[i];
+
+                            this.addEventListener(key, () => this.switchSkin(map[key]));
+                        }
+                    }
+    
+                    //Handle States:
+                    if (this.stateBased) {
+                        const
+                            keys = Object.keys(map),
+                            {length} = keys;
+
+                        this.state = this.owner.state;
+                        this.stateChange = true; //Check state against entity's prior state to update skin if necessary on instantiation.
+                        this.checkStates = arrayCache.setUp();
+                        this.skins = arrayCache.setUp();
+
+                        for (let i = 0; i < length; i++) {
+                            const
+                                key = keys[i];
+
+                            this.checkStates.push(createTest(key, map[key]));
+                            this.skins.push(key);
+                        }
+
+                        this.addEventListener('state-changed', () => {
+                            this.stateChange = true;
+                        });
+                        this.addEventListener('handle-render', () => {
+                            if (this.stateChange) {
+                                for (let i = 0; i < this.checkStates.length; i++) {
+                                    const testCase = this.checkStates[i](this.state);
+
+                                    if (testCase !== null) {
+                                        this.switchSkin(testCase);
+                                        break;
+                                    }
+                                }
+                                this.stateChange = false;
+                            }
+                        });
+
+                        // set skin for initial state.
+                        for (let i = 0; i < this.checkStates.length; i++) {
+                            const testCase = this.checkStates[i](this.state);
+
+                            if (testCase !== null) {
+                                this.switchSkin(testCase);
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (!this.owner.container) {
+                    const
+                        definition = Data.setUp(
+                            'interactive', this.interactive,
+                            'mask', this.mask,
+                            'mirror', this.mirror,
+                            'flip', this.flip,
+                            'visible', this.visible,
+                            'cache', this.cache,
+                            'ignoreOpacity', this.ignoreOpacity,
+                            'scaleX', this.scaleX,
+                            'scaleY', this.scaleY,
+                            'skewX', this.skewX,
+                            'skewY', this.skewY
+                        );
+                    this.owner.addComponent(new RenderContainer(this.owner, definition, () => this.addToContainer()));
+                    definition.recycle();
+                } else {
+                    this.addToContainer();
+                }
             }
         };
-    
-    return createComponentClass(/** @lends platypus.components.RenderSpine.prototype */{
+    }()),
 
-        id: 'RenderSpine',
+    events: {
+        "handle-render": function (renderData) {
+            if (this.spine && !this.paused) {
+                this.owner.triggerEvent('update-animation', true);
 
-        properties: {
-            /**
-             * An object containg key-value pairs that define a mapping from entity states to the animation that should play. The list is processed from top to bottom, so the most important actions should be listed first (for example, a jumping animation might take precedence over an idle animation). If not specified, an 1-to-1 animation map is created from the list of animations in the sprite sheet definition using the animation names as the keys.
-             *
-             *  "animationStates":{
-             *      "standing": "default-animation"  // On receiving a "standing" event, or when this.owner.state.standing === true, the "default" animation will begin playing.
-             *      "ground,moving": "walking",  // Comma separated values have a special meaning when evaluating "state-changed" messages. The above example will cause the "walking" animation to play ONLY if the entity's state includes both "moving" and "ground" equal to true.
-             *      "ground,striking": "swing!", // Putting an exclamation after an animation name causes this animation to complete before going to the next animation. This is useful for animations that would look poorly if interrupted.
-             *      "default": "default-animation" // Optional. "default" is a special property that matches all states. If none of the above states are valid for the entity, it will use the default animation listed here.
-             *  }
-             *
-             * If `stateBased` is `true` and this property is not set, this component will use the `animationMap` property value to define state mappings.
-             *
-             * @property animationStates
-             * @type Object
-             * @default animationMap
-             */
-            animationStates: null,
-
-            /**
-             * An object containg key-value pairs that define a mapping from triggered events to the animation that should play.
-             *
-             *     "animationEvents":{
-             *         "move": "walk-animation",
-             *         "jump": "jumping-animation"
-             *     }
-             *
-             * The above will create two event listeners on the entity, "move" and "jump", that will play their corresponding animations when the events are triggered.
-             *
-             * If `eventBased` is `true` and this property is not set, this component will use the `animationMap` property value to define event mappings.
-             *
-             * @property animationEvents
-             * @type Object
-             * @default animationMap
-             */
-            animationEvents: null,
-
-            /**
-             * Optional. An object containing key-value pairs that define a mapping from triggered events or entity states to the animation that should play. The list is processed from top to bottom, so the most important actions should be listed first (for example, a jumping animation might take precedence over an idle animation). If not specified, an 1-to-1 animation map is created from the list of animations in the skeleton definition using the animation names as the keys.
-             *
-             *  "animationMap":{
-             *      "standing": "default-animation"  // On receiving a "standing" event, or when this.owner.state.standing === true, the "default" animation will begin playing.
-             *      "ground,moving": "walking",  // Comma separated values have a special meaning when evaluating "state-changed" messages. The above example will cause the "walking" animation to play ONLY if the entity's state includes both "moving" and "ground" equal to true.
-             *      "ground,striking": "swing!", // Putting an exclamation after an animation name causes this animation to complete before going to the next animation. This is useful for animations that would look poorly if interrupted.
-             *      "default": "default-animation" // Optional. "default" is a special property that matches all states. If none of the above states are valid for the entity, it will use the default animation listed here.
-             *  }
-             *
-             * @property animationMap
-             * @type Object
-             * @default null
-             */
-            animationMap: null,
-
-            /**
-             * Optional. No, this isn't a Stephen R. Lawhead novel. Use this to specify a skin according to the entity's state.
-             *
-             *  "skinMap":{
-             *      "cloaked": "cloak"  // On receiving a "cloaked" event, or when `this.owner.state.get('cloaked') === true`, this skin will be activated.
-             *      "default": "normal_attire" // Optional. "default" is a special property that matches all states. If none of the above states are valid for the entity, it will use the default skin listed here.
-             *  }
-             *
-             * @property skinMap
-             * @type Object
-             * @default null
-             */
-            skinMap: null,
-
-            /**
-             * The scaling factor for this sprite relative to the scale of the container.
-             *
-             * @property localScaleX
-             * @type Number|Array|Object
-             * @default 1
-             */
-            localScaleX: 1,
-
-           /**
-            * The scaling factor for this sprite relative to the scale of the container.
-            *
-            * @property localScaleY
-            * @type Number|Array|Object
-            * @default 1
-            */
-            localScaleY: 1,
-
-            /**
-             * Optional. A mask definition that determines where the image should clip. A string can also be used to create more complex shapes via the PIXI graphics API like: "mask": "r(10,20,40,40).circle(30,10,12)". Defaults to no mask or, if simply set to true, a rectangle using the entity's dimensions.
-             *
-             *  "mask": {
-             *      "x": 10,
-             *      "y": 10,
-             *      "width": 40,
-             *      "height": 40
-             *  },
-             *
-             *  -OR-
-             *
-             *  "mask": "r(10,20,40,40).circle(30,10,12)"
-             *
-             * @property mask
-             * @type Object
-             * @default null
-             */
-            mask: null,
-
-            /**
-             * Defines whether the entity will respond to touch and click events. Setting this value will create an Interactive component on this entity with these properties. For example:
-             *
-             *  "interactive": {
-             *      "hover": false,
-             *      "hitArea": {
-             *          "x": 10,
-             *          "y": 10,
-             *          "width": 40,
-             *          "height": 40
-             *      }
-             *  }
-             *
-             * @property interactive
-             * @type Boolean|Object
-             * @default false
-             */
-            interactive: false,
-
-            /**
-             * Sets the transition time between animations. If a number is defined, the transition time applies to all animation changes. If an object is specified, the key value pairs should match this syntax where the first part of the key lists the animation currently playing and the second part of the key lists the animation being transitioned to:
-             *
-             *     {
-             *         "jump:walk": 0.4,
-             *         "walk:jump": 0.2
-             *     }
-             *
-             * @property mixTimes
-             * @type Number|Object
-             * @default 0
-             */
-            mixTimes: 0,
-
-            /**
-             * The offset of the x-axis position of the sprite from the entity's x-axis position.
-             *
-             * @property offsetX
-             * @type Number
-             * @default 0
-             */
-            offsetX: 0,
-
-            /**
-             * The offset of the y-axis position of the sprite from the entity's y-axis position.
-             *
-             * @property offsetY
-             * @type Number
-             * @default 0
-             */
-            offsetY: 0,
-
-            /**
-             * The z-index relative to other render components on the entity.
-             *
-             * @property offsetZ
-             * @type Number
-             * @default 0
-             */
-            offsetZ: 0,
-
-            /**
-             * Text describing an atlas of graphic assets for the Spine animation or an asset id for the same.
-             *
-             * @property atlas
-             * @type String
-             * @default ""
-             */
-            atlas: "",
-
-            /**
-             * A JSON structure defining a Spine skeleton and behaviors for the animation, or an asset id for the same.
-             *
-             * @property skeleton
-             * @type String|Object
-             * @default null
-             */
-            skeleton: null,
-
-            /**
-             * Whether this object can be mirrored over X. To mirror it over X set the this.owner.rotation value to be > 90  and < 270.
-             *
-             * @property mirror
-             * @type Boolean
-             * @default false
-             */
-            mirror: false,
-
-            /**
-             * Optional. Whether this object can be flipped over Y. To flip it over Y set the this.owner.rotation to be > 180.
-             *
-             * @property flip
-             * @type Boolean
-             * @default false
-             */
-            flip: false,
-
-            /**
-             * Optional. Whether this object is visible or not. To change the visible value dynamically set this.owner.state.visible to true or false.
-             *
-             * @property visible
-             * @type Boolean
-             * @default false
-             */
-            visible: true,
-
-            /**
-             * Optional. Specifies whether this component should create a RenderAnimator component to listen to events matching the animationMap to animate. Set this to true if the component should animate for on events. Default is `false`.
-             *
-             * @property eventBased
-             * @type Boolean
-             * @default false
-             */
-            eventBased: false,
-
-            /**
-             * Optional. Specifies whether the spine image alpha has been premultiplied. Set this to `false` if you see bright borders around image parts. Make sure it's `true` if you see thin black lines around image pieces.
-             *
-             * @property preMultipliedAlpha
-             * @type Boolean
-             * @default true
-             */
-            preMultipliedAlpha: true,
-
-            /**
-             * Optional. Specifies whether this component should create a RenderAnimator component to handle changes in the entity's state that match the animationMap to animate. Set this to true if the component should animate based on `this.owner.state`. Default is `true`.
-             *
-             * @property stateBased
-             * @type Boolean
-             * @default true
-             */
-            stateBased: true
-        },
-
-        publicProperties: {
-            /**
-             * Prevents the spine from becoming invisible out of frame and losing mouse input connection.
-             *
-             * @property dragMode
-             * @type Boolean
-             * @default false
-             */
-            dragMode: false,
-
-            /**
-             * Optional. The X scaling factor for the image. Defaults to 1.
-             *
-             * @property scaleX
-             * @type Number
-             * @default 1
-             */
-            scaleX: 1,
-
-            /**
-             * Optional. The Y scaling factor for the image. Defaults to 1.
-             *
-             * @property scaleY
-             * @type Number
-             * @default 1
-             */
-            scaleY: 1,
-
-            /**
-             * Optional. The X swek factor of the sprite. Defaults to 0.
-             *
-             * @property skewX
-             * @type Number
-             * @default 0
-             */
-            skewX: 0,
-
-            /**
-             * Optional. The Y skew factor for the image. Defaults to 0.
-             *
-             * @property skewY
-             * @type Number
-             * @default 0
-             */
-            skewY: 0,
-
-            /**
-             * Optional. The x position of the entity. Defaults to 0.
-             *
-             * @property x
-             * @type Number
-             * @default 0
-             */
-            x: 0,
-            
-            /**
-             * Optional. The y position of the entity. Defaults to 0.
-             *
-             * @property y
-             * @type Number
-             * @default 0
-             */
-            y: 0,
-            
-            /**
-             * Optional. The z position of the entity. Defaults to 0.
-             *
-             * @property z
-             * @type Number
-             * @default 0
-             */
-            z: 0
+                this.spine.update(renderData.delta / 1000);
+            }
         },
 
         /**
-         * This component is attached to entities that will appear in the game world. It renders a spine-based puppet. It listens for messages triggered on the entity or changes in the logical state of the entity to play a corresponding animation.
+         * This sets the mix times.
          *
-         * @memberof platypus.components
-         * @uses platypus.Component
-         * @constructs
-         * @listens platypus.Entity#handle-render
-         * @listens platypus.Entity#hide
-         * @listens platypus.Entity#play-animation
-         * @listens platypus.Entity#set-mix-times
-         * @listens platypus.Entity#show
-         * @listens platypus.Entity#state-changed
-         * @listens platypus.Entity#stop-animation
-         * @fires platypus.Entity#animation-ended
-         * @fires platypus.Entity#update-animation
+         * @event platypus.Entity#set-mix-times
+         * @param mixTimes {Object} This matches the syntax required for this component's `mixTimes` property
          */
-        initialize: (function () {
-            const
-                createAnimationMap = function (animationMap, animations) {
-                    if (animationMap) {
-                        return animationMap;
-                    } else {
-                        // Create 1-to-1 animation map since none was defined
-                        return Object.keys(animations).reduce((map, value) => {
-                            map[value] = value;
-                            return map;
-                        }, {});
-                    }
-                };
-            
-            return function () {
-                // If PIXI.spine is unavailable, this component doesn't work.
-                if (!Spine) {
-                    platypus.debug.error('RenderSpine requires `PIXI.spine` to function.');
-                } else {
-                    const
-                        skeleton = platypus.assetCache.get(this.skeleton),
-                        spineAtlas = platypus.assetCache.get(this.atlas),
-                        spineJsonParser = new SkeletonJson(new AtlasAttachmentLoader(spineAtlas)),
-                        skeletonData = spineJsonParser.readSkeletonData(skeleton),
-                        spine = this.spine = new Spine(skeletonData),
-                        map = createAnimationMap(this.animationMap, skeleton.animations);
-
-                    let animation = '';
-
-                    spine.state.addListener({
-                        event: (entry, event) => {
-                            const
-                                eventName = event.data.name;
+        "set-mix-times": function (mixTimes) {
+            this.setMixTimes(mixTimes);
+        },
         
-                            if (this.playAnimation(eventName)) {
-                                this.spine.update(0.000001);
-                            }
+        /**
+         * This event makes the spine invisible.
+         *
+         * @event platypus.Entity#hide
+         */
+        "hide": function () {
+            this.visible = false;
+        },
+
+        /**
+         * This event makes the spine visible.
+         *
+         * @event platypus.Entity#show
+         */
+        "show": function () {
+            this.visible = true;
+        },
+
+        "stop-animation": function (animation) {
+            this.stopAnimation(animation);
+        },
         
-                            this.owner.trigger(eventName, event.data);
-                        },
-                        complete: (animationData) => {
-                            const
-                                animationName = animationData.animation.name;
-                                
-                            if (this.playSequence) {
-                                const
-                                    last = this.playIndex === this.playSequence.length - 1;
+        "play-animation": function (animation, loop) {
+            this.playAnimation(animation, loop);
+        },
 
-                                this.playIndex += 1;
-                                if (this.playIndex < this.playSequence.length || this.loopSequence) {
-                                    this.playIndex = this.playIndex % this.playSequence.length;
-                                    this.innerPlayAnimation(this.playSequence[this.playIndex], false);
-                                    if (last) {
-                                        this.owner.triggerEvent('animation-looped');
-                                    }
-                                    return;
-                                }
-                            }
-        
-                            this.owner.triggerEvent('animation-ended', animationName);
-                        }
-                    });
-                    spine.autoUpdate = false;
-    
-                    this.stateBased = map && this.stateBased;
-                    this.eventBased = map && this.eventBased;
-                    if (map) {
-                        const
-                            definition = Data.setUp(
-                                'animationEvents', this.eventBased ? this.animationEvents || map : null,
-                                'animationStates', this.stateBased ? this.animationStates || map : null,
-                                'forcePlayThrough', this.forcePlayThrough,
-                                'component', this
-                            );
+        "pause-animation": function () {
+            this.paused = true;
+        },
 
-                        this.owner.addComponent(new RenderAnimator(this.owner, definition));
-                        definition.recycle();
+        "unpause-animation": function () {
+            this.paused = false;
+        },
 
-                        animation = map.default || '';
+        /**
+         * Change the skin of the character.
+         *
+         * @event platypus.Entity#switch-skin
+         * @param skin {String or Array} The skin or set of skins you would like to apply.
+         */
+        "switch-skin": function (skin) {
+            this.switchSkin(skin);
+        },
+        /**
+         * Tint a slot(s) and its attachment.
+         *
+         * @event platypus.Entity#tint-slot
+         * @param array[String] {Array[String]} The slot[s] you would like to tint.
+         * @param color {String} The string of the hexidecimal color you would like to apply (e.g. "FF0000" for red)
+         */
+        "tint-slot": function (slots, color) {
+            let slot = null,
+                x = 0;
+
+            for (x = 0; x < slots.length; x++) {
+                slot = this.spine.skeleton.findSlot(slots[x]);
+                if (slot) {
+                    if (slot.attachment) {
+                        slot.attachment.color.setFromString(color);
+                    } else{
+                        slot.color.setFromString(color);
                     }
-    
-                    // set up the mixes!
-                    if (this.mixTimes) {
-                        this.setMixTimes(this.mixTimes);
-                    }
-    
-                    // play animation
-                    this.currentAnimations = arrayCache.setUp();
-                    if (animation) {
-                        this.playAnimation(animation);
-                    }
-
-                    this.playSequence = null;
-                    this.playIndex = 0;
-    
-                    spine.x = this.offsetX;
-                    spine.y = this.offsetY;
-                    spine.zIndex = this.offsetZ;
-                    spine.scale.x = this.localScaleX;
-                    spine.scale.y = this.localScaleY;
-    
-                    if (this.skinMap) { // Set up skin map handling.
-                        const map = this.skinMap;
-        
-                        this.currentSkin = null;
-
-                        //Handle Events:
-                        if (this.eventBased) {
-                            const
-                                keys = Object.keys(map),
-                                {length} = keys;
-
-                            for (let i = 0; i < length; i++) {
-                                const
-                                    key = keys[i];
-
-                                this.addEventListener(key, () => this.switchSkin(map[key]));
-                            }
-                        }
-        
-                        //Handle States:
-                        if (this.stateBased) {
-                            const
-                                keys = Object.keys(map),
-                                {length} = keys;
-
-                            this.state = this.owner.state;
-                            this.stateChange = true; //Check state against entity's prior state to update skin if necessary on instantiation.
-                            this.checkStates = arrayCache.setUp();
-                            this.skins = arrayCache.setUp();
-
-                            for (let i = 0; i < length; i++) {
-                                const
-                                    key = keys[i];
-
-                                this.checkStates.push(createTest(key, map[key]));
-                                this.skins.push(key);
-                            }
-
-                            this.addEventListener('state-changed', () => {
-                                this.stateChange = true;
-                            });
-                            this.addEventListener('handle-render', () => {
-                                if (this.stateChange) {
-                                    for (let i = 0; i < this.checkStates.length; i++) {
-                                        const testCase = this.checkStates[i](this.state);
-
-                                        if (testCase !== null) {
-                                            this.switchSkin(testCase);
-                                            break;
-                                        }
-                                    }
-                                    this.stateChange = false;
-                                }
-                            });
-                        }
-                    }
-    
-                    if (!this.owner.container) {
-                        const
-                            definition = Data.setUp(
-                                'interactive', this.interactive,
-                                'mask', this.mask,
-                                'mirror', this.mirror,
-                                'flip', this.flip,
-                                'visible', this.visible,
-                                'cache', this.cache,
-                                'ignoreOpacity', this.ignoreOpacity,
-                                'scaleX', this.scaleX,
-                                'scaleY', this.scaleY,
-                                'skewX', this.skewX,
-                                'skewY', this.skewY
-                            );
-                        this.owner.addComponent(new RenderContainer(this.owner, definition, () => this.addToContainer()));
-                        definition.recycle();
-                    } else {
-                        this.addToContainer();
-                    }
-                }
-            };
-        }()),
-
-        events: {
-            "handle-render": function (renderData) {
-                if (this.spine && !this.paused) {
-                    this.owner.triggerEvent('update-animation', true);
-
-                    this.spine.update(renderData.delta / 1000);
-                }
-            },
-
-            /**
-             * This sets the mix times.
-             *
-             * @event platypus.Entity#set-mix-times
-             * @param mixTimes {Object} This matches the syntax required for this component's `mixTimes` property
-             */
-            "set-mix-times": function (mixTimes) {
-                this.setMixTimes(mixTimes);
-            },
-            
-            /**
-             * This event makes the spine invisible.
-             *
-             * @event platypus.Entity#hide
-             */
-            "hide": function () {
-                this.visible = false;
-            },
-
-            /**
-             * This event makes the spine visible.
-             *
-             * @event platypus.Entity#show
-             */
-            "show": function () {
-                this.visible = true;
-            },
-
-            "stop-animation": function (animation) {
-                this.stopAnimation(animation);
-            },
-            
-            "play-animation": function (animation, loop) {
-                this.playAnimation(animation, loop);
-            },
-
-            "pause-animation": function () {
-                this.paused = true;
-            },
-
-            "unpause-animation": function () {
-                this.paused = false;
-            },
-
-            /**
-             * Change the skin of the character.
-             *
-             * @event platypus.Entity#switch-skin
-             * @param skin {String or Array} The skin or set of skins you would like to apply.
-             */
-            "switch-skin": function (skin) {
-                this.switchSkin(skin);
-            },
-            /**
-             * Tint a slot(s) and its attachment.
-             *
-             * @event platypus.Entity#tint-slot
-             * @param array[String] {Array[String]} The slot[s] you would like to tint.
-             * @param color {String} The string of the hexidecimal color you would like to apply (e.g. "FF0000" for red)
-             */
-            "tint-slot": function (slots, color) {
-                let slot = null,
-                    x = 0;
-
-                for (x = 0; x < slots.length; x++) {
-                    slot = this.spine.skeleton.findSlot(slots[x]);
-                    if (slot) {
-                        if (slot.attachment) {
-                            slot.attachment.color.setFromString(color);
-                        } else{
-                            slot.color.setFromString(color);
-                        }
-                    }
-                }
-            },
-
-            /**
-             * Apply physics to the entire skeleton.
-             * 
-             * Accepts an object with translate and rotate objects.
-             * {
-             *      translate: {x: 0, y: 0}, 
-             *      rotate: {x: 0, y: 0, degrees: 0}
-             * }
-             * 
-             * Has known vibration issues. Until pixi-spine 4.3, recommend 120 FPS on physics constraints on joints.
-             * Potential fixes: https://esotericsoftware.com/forum/d/28093-jittering-when-applying-physicstranslate-pixispine/5
-             *
-             * @event platypus.Entity#apply-spine-physics
-             * @param object An object describing how the entity moved to generate the physics response.
-             */
-            "apply-spine-physics": function (changes) {
-                if (changes.translate) {
-                    this.spine.skeleton.physicsTranslate(changes.translate.x, changes.translate.y);
-                }
-
-                if (changes.rotate) {
-                    this.spine.skeleton.physicsTranslate(changes.rotate.x, changes.rotate.y, changes.rotate.degrees);
                 }
             }
         },
 
-        methods: {
-            switchSkin: function (newSkin) {
-                const skeletonData = this.spine.skeleton.data;
-                const skin = new Skin("custom");
-                let x = 0,
-                    foundSkin = null;
-
-                if (typeof newSkin === 'string') {
-                    newSkin = [newSkin];
-                }
-
-                for (x = 0; x < newSkin.length; x++) {
-                    foundSkin = skeletonData.findSkin(newSkin[x]);
-                    if (foundSkin) {
-                        skin.addSkin(foundSkin);
-                    } else {
-                        console.warn('Cannot find skin: ' + newSkin[x]);
-                    }
-                }
-
-                this.spine.skeleton.setSkin(skin);
-                this.spine.skeleton.setSlotsToSetupPose();
-            },
-            addToContainer: function () {
-                this.owner.container.cullable = false;
-                this.owner.container.addChild(this.spine);
-            },
-            
-            playAnimation: function (animation, loop = true) {
-                if (Array.isArray(animation)) {
-                    if (animation !== this.playSequence) {
-                        this.playSequence = animation;
-                        this.playIndex = 0;
-                        this.loopSequence = loop;
-                        return this.innerPlayAnimation(animation[0], false);
-                    } else {
-                        return 0; //not sure if this is used
-                    }
-                } else {
-                    this.playSequence = null;
-                    this.playIndex = 0;
-                    return this.innerPlayAnimation(animation, loop);
-                }
-            },
-
-            innerPlayAnimation: function (animation, loop) {
-                const
-                    {currentAnimations, spine} = this,
-                    {state, skeleton} = spine,
-                    {data} = skeleton;
-                let animated = 0,
-                    remaining = animation;
-
-                while (remaining) {
-                    const
-                        semicolon = remaining.indexOf(';'),
-                        next = (semicolon >= 0) ? remaining.substring(0, semicolon) : remaining;
-                    
-                    remaining = (semicolon >= 0) ? remaining.substring(semicolon + 1) : '';
-
-                    if (data.findAnimation(next)) {
-                        currentAnimations[animated] = next;
-                        state.setAnimation(animated, next, loop);
-                    }
-                    animated += 1;
-                }
-
-                return animated;
-            },
-
-            stopAnimation: function (animation) {
-                const
-                    {currentAnimations, spine} = this,
-                    {state, skeleton} = spine,
-                    {data} = skeleton;
-                let animated = 0,
-                    remaining = animation;
-
-                while (remaining) {
-                    const
-                        semicolon = remaining.indexOf(';'),
-                        next = (semicolon >= 0) ? remaining.substring(0, semicolon) : remaining;
-                    
-                    remaining = (semicolon >= 0) ? remaining.substring(semicolon + 1) : '';
-
-                    if (data.findAnimation(next)) {
-                        currentAnimations[animated] = next;
-                        state.setAnimation(animated, next, false);
-                    }
-                    animated += 1;
-                }
-
-                return animated;
-            },
-
-            setMixTimes: function (mixTimes) {
-                const
-                    {spine} = this,
-                    {animations} = spine.skeleton.data,
-                    {data: stateData} = spine.state;
-
-                if (typeof mixTimes === 'number') {
-                    let i = animations.length;
-                    while (i--) {
-                        let j = animations.length;
-                        while (j--) {
-                            if (i !== j) {
-                                stateData.setMix(animations[i].name, animations[j].name, mixTimes);
-                            }
-                        }
-                    }
-                } else {
-                    const
-                        keys = Object.keys(mixTimes),
-                        {length} = keys;
-
-                    for (let i = 0; i < length; i++) {
-                        const
-                            key = keys[i],
-                            colon = key.indexOf(':');
-
-                        if (colon >= 0) {
-                            stateData.setMix(key.substring(0, colon), key.substring(colon + 1), mixTimes[key]);
-                        }
-                    }
-                }
-
-                this.mixTimes = stateData.animationToMixTime;
-            },
-
-            destroy: function () {
-                this.owner.container.removeChild(this.spine);
-                this.spine.destroy();
-                this.spine = null;
-                this.mixTimes = null;
+        /**
+         * Apply physics to the entire skeleton.
+         * 
+         * Accepts an object with translate and rotate objects.
+         * {
+         *      translate: {x: 0, y: 0}, 
+         *      rotate: {x: 0, y: 0, degrees: 0}
+         * }
+         * 
+         * Has known vibration issues. Until pixi-spine 4.3, recommend 120 FPS on physics constraints on joints.
+         * Potential fixes: https://esotericsoftware.com/forum/d/28093-jittering-when-applying-physicstranslate-pixispine/5
+         *
+         * @event platypus.Entity#apply-spine-physics
+         * @param object An object describing how the entity moved to generate the physics response.
+         */
+        "apply-spine-physics": function (changes) {
+            if (changes.translate) {
+                this.spine.skeleton.physicsTranslate(changes.translate.x, changes.translate.y);
             }
-        },
-        
-        getAssetList (component, props, defaultProps) {
-            return [{
-                alias: [component?.atlas ?? props?.atlas ?? defaultProps?.atlas],
-                src: component?.atlas ?? props?.atlas ?? defaultProps?.atlas
-            }, {
-                alias: [component?.skeleton ?? props?.skeleton ?? defaultProps?.skeleton],
-                src: component?.skeleton ?? props?.skeleton ?? defaultProps?.skeleton
-            }];
+
+            if (changes.rotate) {
+                this.spine.skeleton.physicsTranslate(changes.rotate.x, changes.rotate.y, changes.rotate.degrees);
+            }
         }
-    });
-})();
+    },
+
+    methods: {
+        switchSkin: function (newSkin) {
+            const skeletonData = this.spine.skeleton.data;
+            const skin = new Skin("custom");
+            let x = 0,
+                foundSkin = null;
+
+            if (typeof newSkin === 'string') {
+                newSkin = [newSkin];
+            }
+
+            for (x = 0; x < newSkin.length; x++) {
+                foundSkin = skeletonData.findSkin(newSkin[x]);
+                if (foundSkin) {
+                    skin.addSkin(foundSkin);
+                } else {
+                    console.warn('Cannot find skin: ' + newSkin[x]);
+                }
+            }
+
+            this.spine.skeleton.setSkin(skin);
+            this.spine.skeleton.setSlotsToSetupPose();
+        },
+        addToContainer: function () {
+            this.owner.container.cullable = false;
+            this.owner.container.addChild(this.spine);
+        },
+        
+        playAnimation: function (animation, loop = true) {
+            if (Array.isArray(animation)) {
+                if (animation !== this.playSequence) {
+                    this.playSequence = animation;
+                    this.playIndex = 0;
+                    this.loopSequence = loop;
+                    return this.innerPlayAnimation(animation[0], false);
+                } else {
+                    return 0; //not sure if this is used
+                }
+            } else {
+                this.playSequence = null;
+                this.playIndex = 0;
+                return this.innerPlayAnimation(animation, loop);
+            }
+        },
+
+        innerPlayAnimation: function (animation, loop) {
+            const
+                {currentAnimations, spine} = this,
+                {state, skeleton} = spine,
+                {data} = skeleton;
+            let animated = 0,
+                remaining = animation;
+
+            while (remaining) {
+                const
+                    semicolon = remaining.indexOf(';'),
+                    next = (semicolon >= 0) ? remaining.substring(0, semicolon) : remaining;
+                
+                remaining = (semicolon >= 0) ? remaining.substring(semicolon + 1) : '';
+
+                if (next === '_') {
+                    currentAnimations[animated] = next;
+                    state.setEmptyAnimation(animated);
+                } else if (next && data.findAnimation(next)) {
+                    currentAnimations[animated] = next;
+                    state.setAnimation(animated, next, loop);
+                }
+                animated += 1;
+            }
+
+            return animated;
+        },
+
+        stopAnimation: function (animation) {
+            const
+                {currentAnimations, spine} = this,
+                {state, skeleton} = spine,
+                {data} = skeleton;
+            let animated = 0,
+                remaining = animation;
+
+            while (remaining) {
+                const
+                    semicolon = remaining.indexOf(';'),
+                    next = (semicolon >= 0) ? remaining.substring(0, semicolon) : remaining;
+                
+                remaining = (semicolon >= 0) ? remaining.substring(semicolon + 1) : '';
+
+                if (next === '_') {
+                    currentAnimations[animated] = next;
+                    state.setEmptyAnimation(animated);
+                } else if (next && data.findAnimation(next)) {
+                    currentAnimations[animated] = next;
+                    state.setAnimation(animated, next, false);
+                }
+                animated += 1;
+            }
+
+            return animated;
+        },
+
+        setMixTimes: function (mixTimes) {
+            const
+                {spine} = this,
+                {animations} = spine.skeleton.data,
+                {data: stateData} = spine.state;
+
+            if (typeof mixTimes === 'number') {
+                let i = animations.length;
+                while (i--) {
+                    let j = animations.length;
+                    while (j--) {
+                        if (i !== j) {
+                            stateData.setMix(animations[i].name, animations[j].name, mixTimes);
+                        }
+                    }
+                }
+            } else {
+                const
+                    keys = Object.keys(mixTimes),
+                    {length} = keys;
+
+                for (let i = 0; i < length; i++) {
+                    const
+                        key = keys[i],
+                        colon = key.indexOf(':');
+
+                    if (colon >= 0) {
+                        stateData.setMix(key.substring(0, colon), key.substring(colon + 1), mixTimes[key]);
+                    }
+                }
+            }
+
+            this.mixTimes = stateData.animationToMixTime;
+        },
+
+        destroy: function () {
+            this.owner.container.removeChild(this.spine);
+            this.spine.destroy();
+            this.spine = null;
+            this.mixTimes = null;
+        }
+    },
+    
+    getAssetList (component, props, defaultProps) {
+        return [{
+            alias: [component?.atlas ?? props?.atlas ?? defaultProps?.atlas],
+            src: component?.atlas ?? props?.atlas ?? defaultProps?.atlas
+        }, {
+            alias: [component?.skeleton ?? props?.skeleton ?? defaultProps?.skeleton],
+            src: component?.skeleton ?? props?.skeleton ?? defaultProps?.skeleton
+        }];
+    }
+});
