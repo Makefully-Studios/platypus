@@ -96,6 +96,7 @@ class Storage {
 
                 this.save();
             },
+            configurable: true,
             enumerable: true
         });
     }
