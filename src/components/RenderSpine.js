@@ -606,26 +606,48 @@ export default createComponentClass(/** @lends platypus.components.RenderSpine.p
         "switch-skin": function (skin) {
             this.switchSkin(skin);
         },
+
         /**
-         * Tint a slot(s) and its attachment.
+         * Tint a slot(s).
          *
-         * @event platypus.Entity#tint-slot
-         * @param array[String] {Array[String]} The slot[s] you would like to tint.
+         * @event platypus.Entity#tint-slots
+         * @param slots {Array[String]} The slot[s] you would like to tint.
          * @param color {String} The string of the hexidecimal color you would like to apply (e.g. "FF0000" for red)
          */
-        "tint-slot": function (slots, color) {
+        "tint-slots": function (slots, color) {
             let slot = null,
                 x = 0;
 
             for (x = 0; x < slots.length; x++) {
                 slot = this.spine.skeleton.findSlot(slots[x]);
                 if (slot) {
-                    if (slot.attachment) {
-                        slot.attachment.color.setFromString(color);
-                    } else{
-                        slot.color.setFromString(color);
-                    }
+                    slot.color.setFromString(color);
                 }
+            }
+        },
+
+        /**
+         * Tint an attachment.
+         *
+         * @event platypus.Entity#tint-attachment
+         * @param slot {String} The slot the attachment belongs to
+         * @param attachment {String} The attachment to color
+         * @param color {String} The string of the hexidecimal color you would like to apply (e.g. "FF0000" for red)
+         */
+        "tint-attachment": function (slotName, attachmentName, color) {
+            let slot = null,
+                attachment = null;
+
+            slot = this.spine.skeleton.findSlot(slotName);
+            if (slot) {
+                attachment = this.spine.skeleton.getAttachment(slotName, attachmentName);
+                if (attachment) {
+                    attachment.color.setFromString(color);
+                } else {
+                    console.warn("Cannot tint attachment, doesn't exist");
+                }
+            } else {
+                console.warn("Cannot tint attachment, slot doesn't exist");
             }
         },
 
