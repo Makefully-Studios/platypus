@@ -54,7 +54,7 @@ const
                     platypus.debug.warn(e.type, e.info);
                 }
             }
-            super.start(audioId, ...args);
+            super.start(this.captions[audioId] ? audioId : audio.url, ...args);
         }
     };
 
