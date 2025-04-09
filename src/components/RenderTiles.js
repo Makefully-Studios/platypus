@@ -1064,7 +1064,7 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
                     if (map[x]) {
                         for (let y = 0; y < map.length; y++) {
                             if (map[x][y]) {
-                                map[x][y].recycle();
+                                arrayCache.recycle(map[x][y]);
                             }
                         }
                         arrayCache.recycle(map[x]);
