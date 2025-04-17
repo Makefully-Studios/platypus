@@ -179,7 +179,7 @@ export default createComponentClass(/** @lends platypus.components.AudioVO.proto
                         }
                         arrayCache.recycle(soundList);
                     },
-                    eventList = this.eventList = TimeEventList.setUp(); // Create a new copy so the old one can run its course if needed.
+                    eventList = TimeEventList.setUp(); // Create a new copy so the old one can run its course if needed.
                 let soundList = null;
 
                 if (typeof soundDefinition === 'string') {
@@ -203,6 +203,7 @@ export default createComponentClass(/** @lends platypus.components.AudioVO.proto
 
                 player.play(soundList, onComplete.bind(this, true), onComplete.bind(this, false), this.interrupt);
 
+                this.eventList = eventList; // setting this after play so that cancelled audio still references original event list.
                 this.playingAudio += 1;
             }
         },
