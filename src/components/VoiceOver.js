@@ -230,7 +230,6 @@ export default createComponentClass(/** @lends platypus.components.VoiceOver.pro
             {length: animationLength} = animationKeys,
             componentInit = (Component, definition) => new Promise((resolve) => {
                 owner.addComponent(new Component(owner, definition, resolve));
-                owner.parent.triggerEvent('child-entity-updated', owner);
             }),
             voMapKeys = Object.keys(voiceOverMap),
             {length: voMapLength} = voMapKeys,
