@@ -316,7 +316,7 @@ class Game extends Messenger {
                             frame.style.top = '';
                             w = newWidth * dpi;
                             change = true;
-                        } else if (height !== newHeight && width !== newWidth) {
+                        } else if (height !== newHeight || width !== newWidth) {
                             frame.style.height = '';
                             frame.style.top = '';
                             frame.style.width = '';
