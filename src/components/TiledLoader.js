@@ -1033,12 +1033,13 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
 
             this.finishedLoading = () => {
                 const
+                    {lazyLoads} = this,
                     message = Data.setUp(
                         "level", null,
                         "world", AABB.setUp(),
                         "tile", AABB.setUp(),
                         "camera", null,
-                        "lazyLoads", this.lazyLoads
+                        lazyLoads
                     ),
                     lazyLoad = (entity) => {
                         const
@@ -1051,7 +1052,7 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
                         entityLinker.linkEntity(owner.addEntity(entity));
                     };
     
-                this.lazyLoads.sort((a, b) => b.aabb.left - a.aabb.left); // Maybe a smidge faster since we can cut out once it's too far to the right.
+                lazyLoads.sort(({aabb: a}, {aabb: b}) => b.left > a.left ? 1 : -1); // Maybe a smidge faster since we can cut out once it's too far to the right.
     
                 /**
                  * Once finished loading the map, this message is triggered on the entity to notify other components of completion.
@@ -1077,10 +1078,9 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
                 message.tile.recycle();
                 message.recycle();
                 
-                if (this.lazyLoads.length) {
+                if (lazyLoads.length) {
                     this.addEventListener("camera-update", (camera) => {
                         const
-                            lazyLoads = this.lazyLoads,
                             viewport = AABB.setUp(camera.viewport);
                         let i = lazyLoads.length;
     
@@ -1104,11 +1104,10 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
                     if (this.backgroundLoad) {
                         this.addEventListener('tick', function () {
                             const
-                                lazyLoads = this.lazyLoads,
                                 i = lazyLoads.length;
     
                             if (i) {
-                                lazyLoad(lazyLoads.pop(i - 1));
+                                lazyLoad(lazyLoads.pop());
                             }
                         });
                     }
