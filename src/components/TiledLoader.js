@@ -1052,8 +1052,6 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
                         entityLinker.linkEntity(owner.addEntity(entity));
                     };
     
-                lazyLoads.sort(({aabb: a}, {aabb: b}) => b.left > a.left ? 1 : -1); // Maybe a smidge faster since we can cut out once it's too far to the right.
-    
                 /**
                  * Once finished loading the map, this message is triggered on the entity to notify other components of completion.
                  *
@@ -1096,8 +1094,6 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
                                     lazyLoads[j - 1] = lazyLoads[j];
                                 }
                                 lazyLoads.length -= 1;
-                            } else if (aabb.left > viewport.right) { // we're at the end of viable aabb's
-                                break;
                             }
                         }
                     });

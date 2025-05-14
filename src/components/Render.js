@@ -12,6 +12,15 @@ export default createComponentClass(/** @lends platypus.components.RenderSprite.
     
     properties: {
         /**
+         * Whether the image should auto-resize if the owner's size changes. For NineSliceSprite, this auto-adjusts to the entity's height and width changes. For other types, it modifies the sprite's scale to match the original sprite-to-entity size ratio.
+         * 
+         * @property matchEntity
+         * @type Boolean
+         * @default false
+         */
+        matchEntity: false,
+
+        /**
          * The offset of the x-axis position of the sprite from the entity's x-axis position.
          *
          * @property offsetX
@@ -92,7 +101,11 @@ export default createComponentClass(/** @lends platypus.components.RenderSprite.
             sprite = this.sprite = new spriteTypes[spriteType === 'Sprite' && images && !images ? 'AnimatedSprite' : spriteType]({
                 ...(image ? {texture: platypus.assetCache.get(image)} : {textures: images.map((image) => platypus.assetCache.get(image))}),
                 ...options ?? {}
-            });
+            }),
+            matchEntity = this.matchEntity ? {
+                originalWidth: owner.width,
+                originalHeight: owner.height
+            } : null;
 
         sprite.x = offsetX;
         sprite.y = offsetY;
@@ -108,6 +121,26 @@ export default createComponentClass(/** @lends platypus.components.RenderSprite.
             owner.addComponent(new RenderContainer(this.owner, {interactive, mask, mirror, flip, visible, cache, ignoreOpacity, scaleX, scaleY, skewX, skewY}, () => this.addToContainer()));
         } else {
             this.addToContainer();
+        }
+
+        if (matchEntity) {
+            if (spriteType === 'NineSliceSprite') {
+                sprite.x = offsetX - owner.width / 2;
+                sprite.y = offsetY - owner.height / 2;
+                sprite.width = owner.width;
+                sprite.height = owner.height;
+                this.addEventListener('handle-render', (renderData) => {
+                    sprite.x = offsetX - owner.width / 2;
+                    sprite.y = offsetY - owner.height / 2;
+                    sprite.width = owner.width;
+                    sprite.height = owner.height;
+                });
+            } else {
+                this.addEventListener('handle-render', (renderData) => {
+                    sprite.scale.x = localScaleX * owner.width / matchEntity.originalWidth;
+                    sprite.scale.y = localScaleY * owner.height / matchEntity.originalHeight;
+                });
+            }
         }
 
         if (sprite.update) {
