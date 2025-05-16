@@ -575,7 +575,7 @@ export default (function () {
 
         events: {
             "handle-render": function (renderData) {
-                if (this.spine) {
+                if (this.spine && !this.paused) {
                     this.owner.triggerEvent('update-animation', true);
 
                     this.spine.update(renderData.delta / 1000);
@@ -616,6 +616,14 @@ export default (function () {
             
             "play-animation": function (animation, loop) {
                 this.playAnimation(animation, loop);
+            },
+
+            "pause-animation": function () {
+                this.paused = true;
+            },
+    
+            "unpause-animation": function () {
+                this.paused = false;
             }
         },
 
@@ -660,6 +668,7 @@ export default (function () {
                     animated += 1;
                 }
 
+                this.paused = false;
                 return animated;
             },
 
