@@ -197,14 +197,16 @@ class Messenger {
             const
                 listeners = greenSlice(_listeners[type]);
             let args = null,
-                i = count = listeners.length;
+                i = 0;
+
+            count = listeners.length;
 
             if (arguments.length > 1) {
                 args = greenSlice(arguments);
                 args.shift();
             }
 
-            while (i--) {
+            for (i = 0; i < listeners.length; i++) {
                 const
                     listener = listeners[i];
 
