@@ -1079,6 +1079,47 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
             arrayCache.recycle(this.uninitializedTiles);
         }
     },
+
+    publicMethods: {
+        getMapDimensions: function () {
+            return {
+                tilesWidth: this.tilesWidth,
+                tilesHeight: this.tilesHeight,
+                layerWidth: this.layerWidth,
+                layerHeight: this.layerHeight
+            }
+        },
+        getTileAt: function (x, y, z) {
+            return this.imageMap[z][x][y];
+        },
+        getRootTileIndex: function (tileId) {
+            const nonTransformData = ~(0x80000000 + 0x40000000 + 0x20000000);
+            let index = tileId;
+            
+            if (typeof tileId === 'string') {
+                index = +tileId.slice(('tile').length);
+            }
+
+            return index & nonTransformData;
+        },
+        getTileVariants: function (tileId) {
+            const transformA = 0x80000000,
+                transformB = 0x80000000,
+                transformC = 0x80000000;
+            let index = this.getRootTileIndex(tileId);
+
+            return [
+                index,
+                index + transformA,
+                index + transformB,
+                index + transformC,
+                index + transformA + transformB,
+                index + transformA + transformC,
+                index + transformB + transformC,
+                index + transformA + transformB + transformC
+            ];
+        }
+    },
     
     getAssetList: (function () {
         const
