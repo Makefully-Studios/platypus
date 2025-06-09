@@ -1332,7 +1332,10 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
 
                             if (proofedPackage) {
                                 if (properties.lazyLoad || (entityDefProps && entityDefProps.lazyLoad)) {
-                                    proofedPackage.aabb = AABB.setUp(properties.x + properties.width / 2 - properties.regX, properties.y + properties.height / 2 - properties.regY, properties.width || 1, properties.height || 1);
+                                    const
+                                        {height: h = 1, regX = 0, regY = 0, width: w = 1, x = 0, y = 0} = properties;
+
+                                    proofedPackage.aabb = AABB.setUp(x + w / 2 - regX, y + h / 2 - regY, w, h);
                                     proofedPackage.entityLinker = entityLinker;
                                     this.lazyLoads.push(proofedPackage);
                                     this.updateLoadingProgress(progress);

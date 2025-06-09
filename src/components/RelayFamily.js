@@ -81,22 +81,18 @@ export default (function () {
         },
         
         methods: {
-            broadcast: function (links) {
-                var entities = links || this.owner.familyLinks,
-                    i = 0,
-                    args = greenSlice(arguments);
+            broadcast: function (links, ...args) {
+                const
+                    entities = links || this.owner.familyLinks;
 
-                args.shift();
-
-                for (i = 0; i < entities.length; i++) {
+                for (let i = 0; i < entities.length; i++) {
                     entities[i].trigger.apply(entities[i], args);
                 }
-                
-                arrayCache.recycle(args);
             },
             
             destroy: function () {
-                var familyLinks = this.owner.familyLinks,
+                const
+                    {familyLinks} = this.owner,
                     i = familyLinks.indexOf(this.owner);
                 
                 if (i >= 0) {

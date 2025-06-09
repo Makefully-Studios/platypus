@@ -188,7 +188,7 @@ class Messenger {
      * @param [value.debug] {boolean} This flags whether to output message contents and subscriber information to the console during game development.
      * @return {number} The number of handlers for the triggered message.
      */
-    triggerEvent (type) {
+    triggerEvent (type, ...args) {
         const
             {_listeners} = this;
         let count = 0;
@@ -196,17 +196,10 @@ class Messenger {
         if (!this._destroyed && _listeners.hasOwnProperty(type) && (_listeners[type])) {
             const
                 listeners = greenSlice(_listeners[type]);
-            let args = null,
-                i = 0;
 
             count = listeners.length;
 
-            if (arguments.length > 1) {
-                args = greenSlice(arguments);
-                args.shift();
-            }
-
-            for (i = 0; i < listeners.length; i++) {
+            for (let i = 0; i < listeners.length; i++) {
                 const
                     listener = listeners[i];
 
@@ -217,9 +210,6 @@ class Messenger {
                 listener.apply(this, args);
             }
             
-            if (args) {
-                arrayCache.recycle(args);
-            }
             arrayCache.recycle(listeners);
         }
         
