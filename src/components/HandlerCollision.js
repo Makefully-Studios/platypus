@@ -62,7 +62,7 @@ export default createComponentClass(/** @lends platypus.components.HandlerCollis
         this.groupsLive = arrayCache.setUp();
         this.nonColliders = arrayCache.setUp();
         
-        this.terrain = null;
+        this.terrains = [];
         this.owner.previousX = this.owner.previousX || this.owner.x;
         this.owner.previousY = this.owner.previousY || this.owner.y;
         
@@ -236,7 +236,7 @@ export default createComponentClass(/** @lends platypus.components.HandlerCollis
         
         addCollisionEntity: function (entity) {
             if (entity.getTileShapes) { // Has a CollisionTiles component
-                this.terrain = entity;
+                this.terrains.push(entity);
             } else if (entity.collisionTypes && !entity.againstGrid) {
                 entity.againstGrid = arrayCache.setUp();
                 entity.againstAABB = AABB.setUp();
@@ -560,7 +560,7 @@ export default createComponentClass(/** @lends platypus.components.HandlerCollis
             return function (ent, entityOrGroup, ignoredEntities, collisionDataCollection, finalMovementInfo, entityDeltaX, entityDeltaY, collisionTypes) {
                 const
                     potentialCollidingShapes = arrayCache.setUp(),
-                    terrain                  = this.terrain,
+                    terrains                  = this.terrains,
                     solidCollisionMap        = entityOrGroup.getSolidCollisions(),
                     sweepAABB                = sweeper;
                 let i = collisionTypes.length,
@@ -609,16 +609,19 @@ export default createComponentClass(/** @lends platypus.components.HandlerCollis
                                 }
                             }
                             arrayCache.recycle(otherEntities);
-                        } else if (terrain) {
+                        } else if (terrains.length) {
                             //Do our sweep check against the tiles and add potentially colliding shapes to our list.
-                            const
-                                otherShapes = terrain.getTileShapes(sweepAABB, previousAABB, otherCollisionType);
-                            let k = otherShapes.length;
+                            let l = 0;
 
-                            while (k--) {
-                                //Push the shapes on the end!
-                                pcsGroup.push(otherShapes[k]);
-                                potentialCollision = true;
+                            for (l = 0; l < terrains.length; l++) {
+                                const otherShapes = terrains[l].getTileShapes(sweepAABB, previousAABB, otherCollisionType);
+                                let k = otherShapes.length;
+
+                                while (k--) {
+                                    //Push the shapes on the end!
+                                    pcsGroup.push(otherShapes[k]);
+                                    potentialCollision = true;
+                                }
                             }
                         }
                     }
@@ -941,7 +944,8 @@ export default createComponentClass(/** @lends platypus.components.HandlerCollis
         
         checkEntityForSoftCollisions: function (ent, callback) {
             const
-                message = triggerMessage;
+                message = triggerMessage,
+                terrains = this.terrains;
             let i   = ent.collisionTypes.length;
 
             message.x = 0;
@@ -999,6 +1003,30 @@ export default createComponentClass(/** @lends platypus.components.HandlerCollis
                             }
                         }
                         arrayCache.recycle(otherEntities);
+                    }
+
+                    if (terrains.length) {
+                        //Do our sweep check against the tiles and add potentially colliding shapes to our list.
+                        let l = 0;
+
+                        for (l = 0; l < terrains.length; l++) {
+                            //Sending the same AABB twice because we don't do sweep or jumpThrough checks with soft collision.
+                            const entAABB = ent.getAABB(collisionType),
+                                otherShapes = terrains[l].getTileShapes(entAABB, entAABB, otherCollisionType);
+                            let k = otherShapes.length;
+
+                            while (k--) {
+                                message.entity  = terrains[l];
+                                message.target  = ent;
+                                message.type    = otherCollisionType;
+                                message.myType  = collisionType;
+                                message.shape   = otherShapes[k];
+                                message.hitType = 'soft';
+                                
+                                callback(message);
+                            }
+                        }
+
                     }
                 }
                 againstGrid.recycle();
@@ -1149,13 +1177,13 @@ export default createComponentClass(/** @lends platypus.components.HandlerCollis
         },
         
         /**
-         * This method returns an entity representing the collision map of the world.
+         * This method returns an array of entities representing the collision maps of the world.
          *
          * @method platypus.components.HandlerCollision#getWorldTerrain
-         * @return {Entity} - An entity describing the collision map of the world. This entity typically includes a `CollisionTiles` component.
+         * @return {Array[Entity]} - An array of entities describing the collision maps of the world. This entity typically includes a `CollisionTiles` component.
          */
         getWorldTerrain: function () {
-            return this.terrain;
+            return this.terrains;
         },
         
         /**
