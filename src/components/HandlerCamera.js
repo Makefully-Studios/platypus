@@ -258,6 +258,8 @@ export default createComponentClass(/** @lends platypus.components.Camera.protot
             "world", this.worldDimensions
         );
 
+        this.unbounded = true; // no bounds on camera movement
+
         //Whether the map has finished loading.
         this.worldIsLoaded = false;
         
@@ -352,6 +354,7 @@ export default createComponentClass(/** @lends platypus.components.Camera.protot
             
             message.viewport.set(this.worldCamera.viewport);
             this.worldDimensions.set(values.world);
+            this.unbounded = !!values.level.infinite;
             
             this.worldIsLoaded = true;
             if (values.camera) {
@@ -655,7 +658,7 @@ export default createComponentClass(/** @lends platypus.components.Camera.protot
         
         lockedFollow (entities) {
             const
-                {worldCamera: {viewport: currentBounds}, worldDimensions: {top, bottom, left, right, height, width, x, y}} = this,
+                {worldCamera: {viewport: currentBounds}, worldDimensions: {top, bottom, left, right, height, width, x, y}, unbounded} = this,
                 sum = entities.reduce((prev, {cameraFocus}) => prev + cameraFocus, 0),
                 useCurrentBounds = sum < 1,
                 list = entities.filter(({cameraFocus}) => cameraFocus > 0),
@@ -690,22 +693,24 @@ export default createComponentClass(/** @lends platypus.components.Camera.protot
                 this.matchAspectRatio();
             }
 
-            if (width) {
-                if (width < currentBounds.width) {
-                    currentBounds.moveX(x);
-                } else if (left > currentBounds.left) {
-                    currentBounds.moveX(left + currentBounds.halfWidth);
-                } else if (right < currentBounds.right) {
-                    currentBounds.moveX(right - currentBounds.halfWidth);
+            if (!unbounded) {
+                if (width) {
+                    if (width < currentBounds.width) {
+                        currentBounds.moveX(x);
+                    } else if (left > currentBounds.left) {
+                        currentBounds.moveX(left + currentBounds.halfWidth);
+                    } else if (right < currentBounds.right) {
+                        currentBounds.moveX(right - currentBounds.halfWidth);
+                    }
                 }
-            }
-            if (height) {
-                if (height < currentBounds.height) {
-                    currentBounds.moveY(y);
-                } else if (top > currentBounds.top) {
-                    currentBounds.moveY(top + currentBounds.halfHeight);
-                } else if (bottom < currentBounds.bottom) {
-                    currentBounds.moveY(bottom - currentBounds.halfHeight);
+                if (height) {
+                    if (height < currentBounds.height) {
+                        currentBounds.moveY(y);
+                    } else if (top > currentBounds.top) {
+                        currentBounds.moveY(top + currentBounds.halfHeight);
+                    } else if (bottom < currentBounds.bottom) {
+                        currentBounds.moveY(bottom - currentBounds.halfHeight);
+                    }
                 }
             }
 
@@ -856,11 +861,11 @@ export default createComponentClass(/** @lends platypus.components.Camera.protot
             
             return function () {
                 const
-                    {threshold, worldCamera, worldDimensions} = this,
+                    {threshold, unbounded, worldCamera, worldDimensions} = this,
                     {viewport} = worldCamera,
                     {height, width} = worldDimensions;
                 
-                if (!width) {
+                if (unbounded || !width) {
                     this.moveX = allX;
                 } else if (width < viewport.width) {
                     this.moveX = centerX;
@@ -868,7 +873,7 @@ export default createComponentClass(/** @lends platypus.components.Camera.protot
                     this.moveX = containX;
                 }
 
-                if (!height) {
+                if (unbounded || !height) {
                     this.moveY = allY;
                 } else if (height < viewport.height) {
                     this.moveY = centerY;
