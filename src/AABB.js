@@ -246,6 +246,46 @@ proto.include = function (aabb) {
 };
 
 /**
+ * Changes the size and position of the bounding box so that it contains the current area and the point described in the incoming Vector.
+ *
+ * @method platypus.AABB#includeVector
+ * @param vector {platypus.Vector} The Vector point that will be included in the area of the current AABB.
+ * @chainable
+ */
+proto.includeVector = function (args) {
+    args.forEach(({x, y}) => {
+        if (this.empty) {
+            this.empty = false;
+            this.x = x;
+            this.y = y;
+            this.resize();
+        } else {
+            if (this.left > x) {
+                this.left = x;
+            }
+            if (this.right < x) {
+                this.right = x;
+            }
+            if (this.top > y) {
+                this.top = y;
+            }
+            if (this.bottom < y) {
+                this.bottom = y;
+            }
+            
+            this.width      = this.right  - this.left;
+            this.height     = this.bottom - this.top;
+            this.halfWidth  = this.width / 2;
+            this.halfHeight = this.height / 2;
+            this.x          = this.left + this.halfWidth;
+            this.y          = this.top  + this.halfHeight;
+        }
+    });
+    
+    return this;
+};
+
+/**
  * Moves the AABB to the specified location.
  *
  * @method platypus.AABB#move
