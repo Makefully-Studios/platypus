@@ -252,7 +252,7 @@ proto.include = function (aabb) {
  * @param vector {platypus.Vector} The Vector point that will be included in the area of the current AABB.
  * @chainable
  */
-proto.includeVector = function (args) {
+proto.includeVector = function (...args) {
     args.forEach(({x, y}) => {
         if (this.empty) {
             this.empty = false;
