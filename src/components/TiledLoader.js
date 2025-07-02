@@ -1232,8 +1232,6 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
                                 if (!properties.shapes) {
                                     properties.shapes = [];
                                 }
-                                // Box2D collision uses a single shape.
-                                properties.shape = {...shape};
                                 // Platypus collision uses a shapes array.
                                 shape.regX = registrationPoint.x;
                                 shape.regY = registrationPoint.y;
@@ -1241,12 +1239,18 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
                             },
                             addCollisionShapes = ({ellipse, height, width}, properties) => {
                                 if (ellipse) {
-                                    addShape({
-                                        type: 'circle', //'ellipse'
-                                        width,
-                                        height,
-                                        radius: (width + height) / 4 // Tiled has ellipses, but Platypus only accepts circles. Setting a radius based on the average of width and height in case a non-circular ellipse is imported.
-                                    }, properties);
+                                    if (width === height) {
+                                        addShape({
+                                            type: 'circle',
+                                            radius: width / 2
+                                        }, properties);
+                                    } else {
+                                        addShape({
+                                            type: 'ellipse',
+                                            width,
+                                            height
+                                        }, properties);
+                                    }
                                 } else if (width && height) {
                                     addShape({
                                         type: 'rectangle',
