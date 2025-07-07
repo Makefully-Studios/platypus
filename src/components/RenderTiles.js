@@ -40,6 +40,19 @@ const
             tile.rotation = Math.PI / 2;
         }
     },
+    createTeardown = (component, map) => {
+        const
+            tds = Object.keys(map).map((key) => {
+                const
+                    handler = component.addEventListener(key, map[key]);
+
+                return () => component.removeEventListener(key, handler);
+            });
+
+        return () => {
+            tds.forEach((td) => td());
+        };
+    },
     Template = function (tileSpriteSheet, id, uninitializedTiles) {
         this.id = id;
         this.instances = arrayCache.setUp();
@@ -258,7 +271,16 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
      */
     initialize: function (definition) {
         const
-            imgMap = this.imageMap;
+            imgMap = this.imageMap,
+            handleRender = this.addEventListener('handle-render', function () {
+                 // Pre-render any tiles left to be prerendered to reduce lag on camera movement
+                if (this.uninitializedTiles.length) {
+                    this.uninitializedTiles[0].initialize();
+                } else {
+                    this.removeEventListener('handle-render', handleRender);
+                    this.owner.parent.triggerEvent('child-entity-updated', this.owner);
+                }
+            });
 
         this.doMap            = null; //list of display objects that should overlay tile map.
         this.cachedDisplayObjects = null;
@@ -305,17 +327,18 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
         this.cacheWidth  = Math.min(getPowerOfTwo(this.layerWidth  + this.edgesBleed), this.maximumBuffer);
         this.cacheHeight = Math.min(getPowerOfTwo(this.layerHeight + this.edgesBleed), this.maximumBuffer);
 
-        if (!this.tileCache) {
-            this.buffer = 0; // prevents buffer logic from running if tiles aren't being cached.
-            this.cacheAll = false; // so tiles are updated as camera moves.
+        if (!this.owner.container) {
+            this.owner.addComponent(new RenderContainer(this.owner, definition));
         }
 
-        this.ready = false;
+        this.addToContainer();
 
-        if (!this.owner.container) {
-            this.owner.addComponent(new RenderContainer(this.owner, definition, () => this.addToContainer()));
+        if (!this.tileCache) {
+            this.teardown = this.setupNoCache();
+        } else if (this.cacheAll) {
+            this.teardown = this.setupFullCache();
         } else {
-            this.addToContainer();
+            this.teardown = this.setupPanningCache();
         }
     },
 
@@ -378,51 +401,215 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
             if (this.buffer && !this.cacheAll) { // do this here to set the correct mask before the first caching.
                 this.updateBufferRegion(camera.viewport);
             }
-        },
-
-        "camera-update": function (camera) {
-            if (this.ready) {
-                this.updateCamera(camera);
-            }
-        },
-
-        "handle-render": function () {
-            if (this.updateCache) {
-                this.updateCache = false;
-                if (this.cacheGrid) {
-                    this.updateGrid();
-                } else {
-                    this.update(this.cacheTexture, this.cache);
-                }
-            } else if (this.uninitializedTiles.length) { // Pre-render any tiles left to be prerendered to reduce lag on camera movement
-                this.uninitializedTiles[0].initialize();
-            }
         }
     },
 
     methods: {
+        setupFullCache () {
+            return createTeardown(this, {
+                'camera-update': function (camera) {
+                    const
+                        {cacheClipHeight, cacheClipWidth, cacheGrid, cachePixels, laxCam, left, top} = this,
+                        {viewport: vp} = camera;
+                        
+                    this.convertCamera(vp);
+
+                    cacheGrid.forEach((col, x) => {
+                        col.forEach((sprite, y) => {
+                            cachePixels.setAll((x + 0.5) * cacheClipWidth + left, (y + 0.5) * cacheClipHeight + top, cacheClipWidth, cacheClipHeight);
+
+                            const
+                                inFrame = cachePixels.intersects(laxCam);
+
+                            if (sprite.visible && !inFrame) {
+                                sprite.visible = false;
+                            } else if (!sprite.visible && inFrame) {
+                                sprite.visible = true;
+                            }
+                            
+                            if (sprite.visible && inFrame) {
+                                sprite.x = vp.left - laxCam.left + x * cacheClipWidth + left;
+                                sprite.y = vp.top  - laxCam.top  + y * cacheClipHeight + top;
+                            }
+                        });
+                    });
+                },
+                'handle-render': function () {
+                    if (this.updateCache) {
+                        const
+                            {cache, cacheGrid, cacheTilesHeight, cacheTilesWidth, tilesHeight, tilesWidth} = this,
+                            tsh = tilesHeight - 1,
+                            tsw = tilesWidth - 1;
+
+                        this.updateCache = false;
+
+                        for (let x = 0; x < cacheGrid.length; x++) {
+                            for (let y = 0; y < cacheGrid[x].length; y++) {
+                                cache.setBounds(x * cacheTilesWidth, y * cacheTilesHeight, Math.min((x + 1) * cacheTilesWidth, tsw), Math.min((y + 1) * cacheTilesHeight, tsh));
+
+                                this.populate(cache, null);
+                                this.render(cache, cacheGrid[x][y].texture, this.mapContainer, this.mapContainerWrapper);
+                            }
+                        }
+                    }
+                },
+                'refresh-cache': function () {
+                    this.updateCache = true;
+                }
+            });
+        },
+
+        setupPanningCache () {
+            return createTeardown(this, {
+                'camera-update': function (camera) {
+                    const
+                        {buffer, cache, cachePixels, laxCam} = this,
+                        {viewport: vp} = camera,
+                        resized = (buffer && ((vp.width !== laxCam.width) || (vp.height !== laxCam.height))),
+                        tempC   = tempCache;
+
+                    this.convertCamera(vp);
+
+                    if ((cachePixels.empty || !cachePixels.contains(laxCam)) && (this.imageMap.length > 0)) {
+                        if (resized) {
+                            this.updateBufferRegion(laxCam);
+                        }
+
+                        const
+                            ctw     = this.cacheTilesWidth - 1,
+                            cth     = this.cacheTilesHeight - 1,
+                            ctw2    = ctw / 2,
+                            cth2    = cth / 2;
+
+                        //only attempt to draw children that are relevant
+                        tempC.setAll(Math.round((laxCam.x - this.left) / this.tileWidth - ctw2) + ctw2, Math.round((laxCam.y - this.top) / this.tileHeight - cth2) + cth2, ctw, cth);
+                        if (tempC.left < 0) {
+                            tempC.moveX(tempC.halfWidth);
+                        } else if (tempC.right > this.tilesWidth - 1) {
+                            tempC.moveX(this.tilesWidth - 1 - tempC.halfWidth);
+                        }
+                        if (tempC.top < 0) {
+                            tempC.moveY(tempC.halfHeight);
+                        } else if (tempC.bottom > this.tilesHeight - 1) {
+                            tempC.moveY(this.tilesHeight - 1 - tempC.halfHeight);
+                        }
+                        
+                        this.tilesSpriteCache.texture = this.cacheTexture;
+                        this.cacheTexture = this.cacheTexture.alternate;
+                        this.tilesSprite.texture = this.cacheTexture;
+
+                        this.populate(tempC, cache);
+
+                        if (this.tilesSpriteCache && !cache.empty) {
+                            this.tilesSpriteCache.x = cache.left * this.tileWidth;
+                            this.tilesSpriteCache.y = cache.top * this.tileHeight;
+                            this.mapContainer.addChild(this.tilesSpriteCache); // To copy last rendering over.
+                        }
+
+                        this.render(tempC, this.cacheTexture, this.mapContainer, this.mapContainerWrapper, this.tilesSpriteCache, cache);
+                        cache.set(tempC);
+
+                        // Store pixel bounding box for checking later.
+                        cachePixels.setAll((cache.x + 0.5) * this.tileWidth + this.left, (cache.y + 0.5) * this.tileHeight + this.top, (cache.width + 1) * this.tileWidth, (cache.height + 1) * this.tileHeight);
+                    }
+
+                    this.tilesSprite.x = vp.left - laxCam.left + cache.left * this.tileWidth + this.left;
+                    this.tilesSprite.y = vp.top  - laxCam.top  + cache.top  * this.tileHeight + this.top;
+                },
+                'handle-render': function () {
+                    if (this.updateCache) {
+                        this.updateCache = false;
+                        this.populate(this.cache);
+                        this.render(this.cache, this.cacheTexture, this.mapContainer, this.mapContainerWrapper);
+                    }
+                },
+                'refresh-cache': function () {
+                    this.updateCache = true;
+                }
+            });
+        },
+
+        setupNoCache () {
+            const
+                {left, mapContainer, owner, scaleX, scaleY, top} = this,
+                {container, z} = owner;
+
+            this.container = container
+            this.updateRegion(0);
+
+            mapContainer.scale.x = scaleX;
+            mapContainer.scale.y = scaleY;
+            mapContainer.x = left;
+            mapContainer.y = top;
+            mapContainer.z = z;
+            container.addChild(mapContainer);
+
+            this.buffer = 0; // prevents buffer logic from running if tiles aren't being cached.
+            this.cacheAll = false; // so tiles are updated as camera moves.
+
+            return createTeardown(this, {
+                'camera-update': function (camera) {
+                    const
+                        {buffer, cache, cachePixels, laxCam} = this,
+                        {viewport: vp} = camera,
+                        resized = (buffer && ((vp.width !== laxCam.width) || (vp.height !== laxCam.height))),
+                        tempC   = tempCache;
+
+                    this.convertCamera(vp);
+
+                    if ((cachePixels.empty || !cachePixels.contains(laxCam)) && (this.imageMap.length > 0)) {
+                        if (resized) {
+                            this.updateBufferRegion(laxCam);
+                        }
+
+                        const
+                            ctw     = this.cacheTilesWidth - 1,
+                            cth     = this.cacheTilesHeight - 1,
+                            ctw2    = ctw / 2,
+                            cth2    = cth / 2;
+
+                        //only attempt to draw children that are relevant
+                        tempC.setAll(Math.round((laxCam.x - this.left) / this.tileWidth - ctw2) + ctw2, Math.round((laxCam.y - this.top) / this.tileHeight - cth2) + cth2, ctw, cth);
+                        if (tempC.left < 0) {
+                            tempC.moveX(tempC.halfWidth);
+                        } else if (tempC.right > this.tilesWidth - 1) {
+                            tempC.moveX(this.tilesWidth - 1 - tempC.halfWidth);
+                        }
+                        if (tempC.top < 0) {
+                            tempC.moveY(tempC.halfHeight);
+                        } else if (tempC.bottom > this.tilesHeight - 1) {
+                            tempC.moveY(this.tilesHeight - 1 - tempC.halfHeight);
+                        }
+                        
+                        this.populate(tempC);
+                        cache.set(tempC);
+
+                        // Store pixel bounding box for checking later.
+                        cachePixels.setAll((cache.x + 0.5) * this.tileWidth + this.left, (cache.y + 0.5) * this.tileHeight + this.top, (cache.width + 1) * this.tileWidth, (cache.height + 1) * this.tileHeight);
+                    }
+                },
+                'handle-render': function () {
+                    if (this.updateCache) {
+                        this.updateCache = false;
+                        this.populate(this.cache);
+                    }
+                },
+                'refresh-cache': function () {
+                    this.updateCache = true;
+                }
+            });
+        },
+
         addToContainer: function () {
             const
                 container = this.container = this.owner.container,
                 extrusionMargin = 2,
                 mapContainer = this.mapContainer,
-                sprite = null,
                 z = this.owner.z;
-
-            this.ready = true;
 
             this.updateRegion(0);
 
-            if (!this.tileCache) {
-                this.render = doNothing;
-
-                mapContainer.scale.x = this.scaleX;
-                mapContainer.scale.y = this.scaleY;
-                mapContainer.x = this.left;
-                mapContainer.y = this.top;
-                mapContainer.z = z;
-                container.addChild(mapContainer);
-            } else {
+            if (this.tileCache) {
                 this.mapContainerWrapper = new Container();
                 this.mapContainerWrapper.addChild(mapContainer);
 
@@ -447,7 +634,9 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
                     sprite.z = z;
 
                     this.cache.setBounds(0, 0, this.tilesWidth - 1, this.tilesHeight - 1);
-                    this.update(this.cacheTexture, this.cache);
+                    this.populate(this.cache);
+                    this.render(this.cache, this.cacheTexture, this.mapContainer, this.mapContainerWrapper);
+
                     container.addChild(sprite);
                 } else if (this.cacheAll || ((this.layerWidth <= this.cacheWidth * 2) && (this.layerHeight <= this.cacheHeight)) || ((this.layerWidth <= this.cacheWidth) && (this.layerHeight <= this.cacheHeight * 2))) { // We cache everything across several textures creating a cache grid.
                     this.cacheAll = true;
@@ -457,6 +646,8 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
                     this.cacheHeight = Math.min(getPowerOfTwo(this.layerHeight + extrusionMargin), this.maximumBuffer);
                     this.updateRegion(extrusionMargin);
 
+                    this.tileContainer.x = -1; // due to extrusion.
+                    this.tileContainer.y = -1;
                     this.render = this.renderCacheWithExtrusion;
                     this.cacheGrid = this.createGrid(container);
 
@@ -570,29 +761,27 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
 
         convertCamera: function (camera) {
             const
-                worldWidth  = this.worldWidth / this.scaleX,
-                worldPosX   = worldWidth - camera.width,
-                worldHeight = this.worldHeight / this.scaleY,
-                worldPosY   = worldHeight - camera.height,
-                laxCam      = this.laxCam;
+                {layerHeight, layerWidth, laxCam, left, scaleX, scaleY, top, worldHeight, worldWidth} = this,
+                scaledWorldWidth = worldWidth / scaleX,
+                worldPosX = scaledWorldWidth - camera.width,
+                scaledWorldHeight = worldHeight / scaleY,
+                worldPosY = scaledWorldHeight - camera.height;
 
-            if ((worldWidth === this.layerWidth) || !worldPosX) {
+            if ((scaledWorldWidth === layerWidth) || !worldPosX) {
                 laxCam.moveX(camera.x);
             } else {
-                laxCam.moveX((camera.left - this.left) * (this.layerWidth - camera.width) / worldPosX + camera.halfWidth + this.left);
+                laxCam.moveX((camera.left - left) * (layerWidth - camera.width) / worldPosX + camera.halfWidth + left);
             }
 
-            if ((worldHeight === this.layerHeight) || !worldPosY) {
+            if ((scaledWorldHeight === layerHeight) || !worldPosY) {
                 laxCam.moveY(camera.y);
             } else {
-                laxCam.moveY((camera.top - this.top) * (this.layerHeight - camera.height) / worldPosY + camera.halfHeight + this.top);
+                laxCam.moveY((camera.top - top) * (layerHeight - camera.height) / worldPosY + camera.halfHeight + top);
             }
 
             if (camera.width !== laxCam.width || camera.height !== laxCam.height) {
                 laxCam.resize(camera.width, camera.height);
             }
-
-            return laxCam;
         },
 
         createTile: function (imageName) {
@@ -619,79 +808,6 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
                 }
                 
                 return map;
-            }
-        },
-        
-        updateCamera: function (camera) {
-            const
-                cache   = this.cache,
-                cacheP  = this.cachePixels,
-                vp      = camera.viewport,
-                resized = (this.buffer && ((vp.width !== this.laxCam.width) || (vp.height !== this.laxCam.height))),
-                tempC   = tempCache,
-                laxCam  = this.convertCamera(vp);
-
-            if (!this.cacheAll && (cacheP.empty || !cacheP.contains(laxCam)) && (this.imageMap.length > 0)) {
-                if (resized) {
-                    this.updateBufferRegion(laxCam);
-                }
-
-                const
-                    ctw     = this.cacheTilesWidth - 1,
-                    cth     = this.cacheTilesHeight - 1,
-                    ctw2    = ctw / 2,
-                    cth2    = cth / 2;
-
-                //only attempt to draw children that are relevant
-                tempC.setAll(Math.round((laxCam.x - this.left) / this.tileWidth - ctw2) + ctw2, Math.round((laxCam.y - this.top) / this.tileHeight - cth2) + cth2, ctw, cth);
-                if (tempC.left < 0) {
-                    tempC.moveX(tempC.halfWidth);
-                } else if (tempC.right > this.tilesWidth - 1) {
-                    tempC.moveX(this.tilesWidth - 1 - tempC.halfWidth);
-                }
-                if (tempC.top < 0) {
-                    tempC.moveY(tempC.halfHeight);
-                } else if (tempC.bottom > this.tilesHeight - 1) {
-                    tempC.moveY(this.tilesHeight - 1 - tempC.halfHeight);
-                }
-                
-                if (!this.tileCache) {
-                    this.update(null, tempC);
-                } else if (cache.empty || !tempC.contains(cache)) {
-                    this.tilesSpriteCache.texture = this.cacheTexture;
-                    this.cacheTexture = this.cacheTexture.alternate;
-                    this.tilesSprite.texture = this.cacheTexture;
-                    this.update(this.cacheTexture, tempC, this.tilesSpriteCache, cache);
-                }
-
-                // Store pixel bounding box for checking later.
-                cacheP.setAll((cache.x + 0.5) * this.tileWidth + this.left, (cache.y + 0.5) * this.tileHeight + this.top, (cache.width + 1) * this.tileWidth, (cache.height + 1) * this.tileHeight);
-            }
-
-            if (this.cacheGrid) {
-                for (let x = 0; x < this.cacheGrid.length; x++) {
-                    for (let y = 0; y < this.cacheGrid[x].length; y++) {
-                        cacheP.setAll((x + 0.5) * this.cacheClipWidth + this.left, (y + 0.5) * this.cacheClipHeight + this.top, this.cacheClipWidth, this.cacheClipHeight);
-
-                        const
-                            sprite = this.cacheGrid[x][y],
-                            inFrame = cacheP.intersects(laxCam);
-
-                        if (sprite.visible && !inFrame) {
-                            sprite.visible = false;
-                        } else if (!sprite.visible && inFrame) {
-                            sprite.visible = true;
-                        }
-                        
-                        if (sprite.visible && inFrame) {
-                            sprite.x = vp.left - laxCam.left + x * this.cacheClipWidth + this.left;
-                            sprite.y = vp.top  - laxCam.top  + y * this.cacheClipHeight + this.top;
-                        }
-                    }
-                }
-            } else if (this.tileCache) {
-                this.tilesSprite.x = vp.left - laxCam.left + cache.left * this.tileWidth + this.left;
-                this.tilesSprite.y = vp.top  - laxCam.top  + cache.top  * this.tileHeight + this.top;
             }
         },
 
@@ -793,16 +909,6 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
             this.mapContainer.mask = new Graphics().rect(0, 0, this.cacheClipWidth, this.cacheClipHeight).fill(0x000000);
         },
 
-        update: function (texture, bounds, tilesSpriteCache, oldBounds) {
-            this.populate(bounds, oldBounds);
-
-            this.render(bounds, texture, this.mapContainer, this.mapContainerWrapper, tilesSpriteCache, oldBounds);
-
-            if (oldBounds) {
-                oldBounds.set(bounds);
-            }
-        },
-        
         populateTiles: function (bounds, oldBounds) {
             const
                 tiles = arrayCache.setUp();
@@ -827,6 +933,9 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
                     }
                 }
             }
+
+            this.mapContainer.removeChildren();
+            this.mapContainer.addChild(this.tileContainer);
 
             // Clear out tile instances
             for (let z = 0; z < tiles.length; z++) {
@@ -902,30 +1011,25 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
             arrayCache.recycle(ents);
         },
         
-        renderCache: function (bounds, renderTexture, src, wrapper, oldCache, oldBounds) {
+        renderCache: function (bounds, target, src, container) {
             const
                 {renderer} = this;
-
-            if (oldCache && !oldBounds.empty) {
-                oldCache.x = oldBounds.left * this.tileWidth;
-                oldCache.y = oldBounds.top * this.tileHeight;
-                src.addChild(oldCache); // To copy last rendering over.
-            }
 
             //clearRenderTexture(renderer, dest);
             src.x = -bounds.left * this.tileWidth;
             src.y = -bounds.top * this.tileHeight;
-            renderer.render(wrapper, {
-                renderTexture
+            renderer.render({
+                container, 
+                target
             });
-            renderTexture.requiresUpdate = true;
         },
 
-        renderCacheWithExtrusion: function (bounds, renderTexture, src, wrapper) {
+        renderCacheWithExtrusion: function (bounds, target, src, container) {
             const
                 extrusion = 1,
                 border = new Graphics(),
-                {renderer} = this;
+                {renderer} = this,
+                rendering = {container, target};
 
             // This mask makes only the extruded border drawn for the next 4 draws so that inner holes aren't extruded in addition to the outer rim.
             border.rect(0.5, 0.5, this.cacheClipWidth + 1, this.cacheClipHeight + 1);
@@ -934,56 +1038,26 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
                 color: 0x000000
             });
 
-            //clearRenderTexture(renderer, dest);
-
             // There is probably a better way to do this. Currently for the extrusion, everything is rendered once offset in the n, s, e, w directions and then once in the middle to create the effect.
-            wrapper.mask = border;
+            container.mask = border;
             src.x = -bounds.left * this.tileWidth;
             src.y = -bounds.top * this.tileHeight + extrusion;
-            renderer.render(wrapper, {
-                renderTexture
-            });
+            renderer.render(rendering);
             src.x = -bounds.left * this.tileWidth + extrusion;
             src.y = -bounds.top * this.tileHeight;
-            renderer.render(wrapper, {
-                renderTexture
-            });
+            renderer.render(rendering);
             src.x = -bounds.left * this.tileWidth + extrusion * 2;
             src.y = -bounds.top * this.tileHeight + extrusion;
-            renderer.render(wrapper, {
-                renderTexture
-            });
+            renderer.render(rendering);
             src.x = -bounds.left * this.tileWidth + extrusion;
             src.y = -bounds.top * this.tileHeight + extrusion * 2;
-            renderer.render(wrapper, {
-                renderTexture
-            });
-            wrapper.mask = null;
+            renderer.render(rendering);
+            container.mask = null;
             src.x = -bounds.left * this.tileWidth + extrusion;
             src.y = -bounds.top * this.tileHeight + extrusion;
-            renderer.render(wrapper, {
-                renderTexture
-            });
-            wrapper.requiresUpdate = true;
+            renderer.render(rendering);
         },
         
-        updateGrid: function () {
-            const
-                cache = this.cache,
-                cth = this.cacheTilesHeight,
-                ctw = this.cacheTilesWidth,
-                tsh = this.tilesHeight - 1,
-                tsw = this.tilesWidth - 1,
-                grid = this.cacheGrid;
-
-            for (let x = 0; x < grid.length; x++) {
-                for (let y = 0; y < grid[x].length; y++) {
-                    cache.setBounds(x * ctw, y * cth, Math.min((x + 1) * ctw, tsw), Math.min((y + 1) * cth, tsh));
-                    this.update(grid[x][y].texture, cache);
-                }
-            }
-        },
-
         toJSON: function () {
             const
                 imageMap = this.imageMap[0],
@@ -1077,6 +1151,8 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
             this.cache.recycle();
             this.cachePixels.recycle();
             arrayCache.recycle(this.uninitializedTiles);
+
+            this.teardown?.();
         }
     },
 
