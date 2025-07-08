@@ -36,6 +36,7 @@ export {default as PIXIAnimation} from './PIXIAnimation.js';
 export {default as RandomSet} from './RandomSet.js';
 export {default as StateMap} from './StateMap.js';
 export {default as Vector} from './Vector.js';
+export * from './shapes/index.js';
 
 // Component creator
 export {default as createComponentClass} from './factory.js';

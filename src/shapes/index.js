@@ -7,7 +7,6 @@ import Rectangle from "./Rectangle";
 import RoundedRectangle from "./RoundedRectangle";
 import Segment from "./Segment";
 import Point from "./Point";
-import castToBox2D from "./castToBox2D";
 import createShape from "./createShape";
 
 export {
@@ -20,6 +19,5 @@ export {
     RoundedRectangle,
     Segment,
     Point,
-    castToBox2D,
     createShape
 }

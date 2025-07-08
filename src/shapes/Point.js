@@ -1,4 +1,5 @@
-import {Vector, default as platypus} from 'platypus';
+/* global platypus */
+import Vector from '../Vector';
 import checkPointsMap from './checkPointsMap';
 import castToBox2D from './castToBox2D';
 import castToPixiGraphics from './castToPixiGraphics';

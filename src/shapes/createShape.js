@@ -1,4 +1,4 @@
-import {default as platypus} from 'platypus';
+/* global platypus */
 import Capsule from './Capsule';
 import Circle from './Circle';
 import Ellipse from './Ellipse';

@@ -1,11 +1,12 @@
+/* global platypus */
 import Polyline from "./Polyline";
 import Segment from "./Segment";
-import decomp from 'poly-decomp';
 
 const
     MIN_VERTICES = 3,
     MAX_VERTICES = 8,
-    SHARED_VERTICES = 2;
+    SHARED_VERTICES = 2,
+    decomp = platypus.game.options.modules?.['poly-decomp'];
 
 export default class Polygon extends Polyline {
     constructor (...args) {
@@ -46,7 +47,7 @@ export default class Polygon extends Polyline {
         const
             polygon = this.toArray2D(true);
 
-        if (decomp.isSimple(polygon)) {
+        if (decomp?.isSimple(polygon)) {
             return decomp.quickDecomp(polygon).map((points) => new Polygon({
                 points
             }));
