@@ -5,8 +5,7 @@ import Segment from "./Segment";
 const
     MIN_VERTICES = 3,
     MAX_VERTICES = 8,
-    SHARED_VERTICES = 2,
-    decomp = platypus.game.options.modules?.['poly-decomp'];
+    SHARED_VERTICES = 2;
 
 export default class Polygon extends Polyline {
     constructor (...args) {
@@ -45,6 +44,7 @@ export default class Polygon extends Polyline {
 
     decompose () {
         const
+            decomp = platypus.game.options.modules?.['poly-decomp'],
             polygon = this.toArray2D(true);
 
         if (decomp?.isSimple(polygon)) {
