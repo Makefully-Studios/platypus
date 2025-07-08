@@ -270,9 +270,9 @@ class Game extends Messenger {
                     loadSpringroll(options)
                 );
                 if (modules['box2d3-wasm']) {
-                    libraries.push(async () => {
+                    libraries.push((async () => {
                         this.box2d = await modules['box2d3-wasm']();
-                    });
+                    })());
                 }
 
                 await Promise.all(libraries);
