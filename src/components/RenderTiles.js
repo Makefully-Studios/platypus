@@ -331,11 +331,13 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
             this.owner.addComponent(new RenderContainer(this.owner, definition));
         }
 
-        this.addToContainer();
+        this.container = this.owner.container;
 
         if (!this.tileCache) {
             this.teardown = this.setupNoCache();
-        } else if (this.cacheAll) {
+        } else if ((this.layerWidth <= this.cacheWidth) && (this.layerHeight <= this.cacheHeight)) { // We never need to recache.
+            this.teardown = this.setupSingleCache();
+        } else if (this.cacheAll || ((this.layerWidth <= this.cacheWidth * 2) && (this.layerHeight <= this.cacheHeight)) || ((this.layerWidth <= this.cacheWidth) && (this.layerHeight <= this.cacheHeight * 2))) { // We cache everything across several textures creating a cache grid.
             this.teardown = this.setupFullCache();
         } else {
             this.teardown = this.setupPanningCache();
@@ -405,7 +407,70 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
     },
 
     methods: {
+        setupSingleCache () {
+            const
+                {container, mapContainer, owner} = this,
+                {z} = owner,
+                cacheTexture = RenderTexture.create({
+                    width: this.cacheWidth,
+                    height: this.cacheHeight
+                }),
+                sprite = new Sprite(cacheTexture);
+
+            this.mapContainerWrapper = new Container();
+            this.mapContainerWrapper.addChild(mapContainer);
+
+            this.cacheAll = true;
+            this.edgeBleed = 0;
+            this.edgesBleed = 0;
+            this.updateRegion(0);
+            this.render = this.renderCache;
+            this.cacheTexture = cacheTexture;
+
+            this.tilesSprite = sprite;
+            sprite.scale.x = this.scaleX;
+            sprite.scale.y = this.scaleY;
+            sprite.z = z;
+
+            this.cache.setBounds(0, 0, this.tilesWidth - 1, this.tilesHeight - 1);
+            this.populate(this.cache);
+            this.render(this.cache, this.cacheTexture, this.mapContainer, this.mapContainerWrapper);
+
+            container.addChild(sprite);
+
+            return createTeardown(this, {
+                'handle-render': function () {
+                    if (this.updateCache) {
+                        this.updateCache = false;
+                        this.populate(this.cache);
+                        this.render(this.cache, this.cacheTexture, this.mapContainer, this.mapContainerWrapper);
+                    }
+                }
+            });
+        },
+
         setupFullCache () {
+            const
+                {container, mapContainer} = this,
+                extrusionMargin = 2;
+                
+            this.mapContainerWrapper = new Container();
+            this.mapContainerWrapper.addChild(mapContainer);
+
+            this.cacheAll = true;
+
+            // Make sure there's room for the one-pixel extrusion around edges of caches
+            this.cacheWidth = Math.min(getPowerOfTwo(this.layerWidth + extrusionMargin), this.maximumBuffer);
+            this.cacheHeight = Math.min(getPowerOfTwo(this.layerHeight + extrusionMargin), this.maximumBuffer);
+            this.updateRegion(extrusionMargin);
+
+            this.tileContainer.x = -1; // due to extrusion.
+            this.tileContainer.y = -1;
+            this.render = this.renderCacheWithExtrusion;
+            this.cacheGrid = this.createGrid(container);
+
+            this.updateCache = true;
+
             return createTeardown(this, {
                 'camera-update': function (camera) {
                     const
@@ -452,14 +517,42 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
                             }
                         }
                     }
-                },
-                'refresh-cache': function () {
-                    this.updateCache = true;
                 }
             });
         },
 
         setupPanningCache () {
+            const
+                {container, mapContainer, owner} = this,
+                {z} = owner;
+                
+            this.mapContainerWrapper = new Container();
+            this.mapContainerWrapper.addChild(mapContainer);
+
+            this.updateRegion(0);
+            this.render = this.renderCache;
+            this.cacheAll = false;
+
+            this.cacheTexture = RenderTexture.create({
+                width: this.cacheWidth,
+                height: this.cacheHeight
+            });
+
+            this.tilesSprite = new Sprite(this.cacheTexture);
+            this.tilesSprite.scale.x = this.scaleX;
+            this.tilesSprite.scale.y = this.scaleY;
+            this.tilesSprite.z = z;
+
+            // Set up copy buffer and circular pointers
+            this.cacheTexture.alternate = RenderTexture.create({
+                width: this.cacheWidth,
+                height: this.cacheHeight
+            });
+            this.tilesSpriteCache = new Sprite(this.cacheTexture.alternate);
+
+            this.cacheTexture.alternate.alternate = this.cacheTexture;
+            container.addChild(this.tilesSprite);
+            
             return createTeardown(this, {
                 'camera-update': function (camera) {
                     const
@@ -522,19 +615,15 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
                         this.populate(this.cache);
                         this.render(this.cache, this.cacheTexture, this.mapContainer, this.mapContainerWrapper);
                     }
-                },
-                'refresh-cache': function () {
-                    this.updateCache = true;
                 }
             });
         },
 
         setupNoCache () {
             const
-                {left, mapContainer, owner, scaleX, scaleY, top} = this,
-                {container, z} = owner;
+                {container, left, mapContainer, owner, scaleX, scaleY, top} = this,
+                {z} = owner;
 
-            this.container = container
             this.updateRegion(0);
 
             mapContainer.scale.x = scaleX;
@@ -593,90 +682,8 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
                         this.updateCache = false;
                         this.populate(this.cache);
                     }
-                },
-                'refresh-cache': function () {
-                    this.updateCache = true;
                 }
             });
-        },
-
-        addToContainer: function () {
-            const
-                container = this.container = this.owner.container,
-                extrusionMargin = 2,
-                mapContainer = this.mapContainer,
-                z = this.owner.z;
-
-            this.updateRegion(0);
-
-            if (this.tileCache) {
-                this.mapContainerWrapper = new Container();
-                this.mapContainerWrapper.addChild(mapContainer);
-
-                if ((this.layerWidth <= this.cacheWidth) && (this.layerHeight <= this.cacheHeight)) { // We never need to recache.
-                    const
-                        cacheTexture = RenderTexture.create({
-                            width: this.cacheWidth,
-                            height: this.cacheHeight
-                        }),
-                        sprite = new Sprite(cacheTexture);
-
-                    this.cacheAll = true;
-                    this.edgeBleed = 0;
-                    this.edgesBleed = 0;
-                    this.updateRegion(0); // reassess since edge bleed is removed.
-                    this.render = this.renderCache;
-                    this.cacheTexture = cacheTexture;
-
-                    this.tilesSprite = sprite;
-                    sprite.scale.x = this.scaleX;
-                    sprite.scale.y = this.scaleY;
-                    sprite.z = z;
-
-                    this.cache.setBounds(0, 0, this.tilesWidth - 1, this.tilesHeight - 1);
-                    this.populate(this.cache);
-                    this.render(this.cache, this.cacheTexture, this.mapContainer, this.mapContainerWrapper);
-
-                    container.addChild(sprite);
-                } else if (this.cacheAll || ((this.layerWidth <= this.cacheWidth * 2) && (this.layerHeight <= this.cacheHeight)) || ((this.layerWidth <= this.cacheWidth) && (this.layerHeight <= this.cacheHeight * 2))) { // We cache everything across several textures creating a cache grid.
-                    this.cacheAll = true;
-
-                    // Make sure there's room for the one-pixel extrusion around edges of caches
-                    this.cacheWidth = Math.min(getPowerOfTwo(this.layerWidth + extrusionMargin), this.maximumBuffer);
-                    this.cacheHeight = Math.min(getPowerOfTwo(this.layerHeight + extrusionMargin), this.maximumBuffer);
-                    this.updateRegion(extrusionMargin);
-
-                    this.tileContainer.x = -1; // due to extrusion.
-                    this.tileContainer.y = -1;
-                    this.render = this.renderCacheWithExtrusion;
-                    this.cacheGrid = this.createGrid(container);
-
-                    this.updateCache = true;
-                } else {
-                    this.render = this.renderCache;
-                    this.cacheAll = false;
-
-                    this.cacheTexture = RenderTexture.create({
-                        width: this.cacheWidth,
-                        height: this.cacheHeight
-                    });
-
-                    this.tilesSprite = new Sprite(this.cacheTexture);
-                    this.tilesSprite.scale.x = this.scaleX;
-                    this.tilesSprite.scale.y = this.scaleY;
-                    this.tilesSprite.z = z;
-
-                    // Set up copy buffer and circular pointers
-                    this.cacheTexture.alternate = RenderTexture.create({
-                        width: this.cacheWidth,
-                        height: this.cacheHeight
-                    });
-                    this.tilesSpriteCache = new Sprite(this.cacheTexture.alternate);
-
-                    this.cacheTexture.alternate.alternate = this.cacheTexture;
-                    container.addChild(this.tilesSprite);
-                }
-            }
         },
 
         cacheSprite: function (entity) {
