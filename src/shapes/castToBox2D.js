@@ -20,9 +20,9 @@ const
             };
         }
     },
-    formatChainSD = (box2d, shapeDefinition) => {
+    formatChainSD = (shapeDefinition) => {
         const
-            {b2DefaultChainDef} = box2d;
+            {b2DefaultChainDef} = platypus.game.box2d;
 
         if (shapeDefinition instanceof b2DefaultChainDef) {
             return shapeDefinition;
@@ -52,9 +52,9 @@ const
             return csd;
         }
     },
-    formatSD = (box2d, shapeDefinition) => {
+    formatSD = (shapeDefinition) => {
         const
-            {b2DefaultShapeDef} = box2d;
+            {b2DefaultShapeDef} = platypus.game.box2d;
 
         if (shapeDefinition instanceof b2DefaultShapeDef) {
             return shapeDefinition;
@@ -103,8 +103,8 @@ const
     },
     createCapsule = (shape, options) => {
         const
-            {bodyId, box2d, scale = 1, shapeDefinition} = options,
-            {b2Capsule, b2CreateCapsuleShape} = box2d,
+            {bodyId, scale = 1, shapeDefinition} = options,
+            {b2Capsule, b2CreateCapsuleShape} = platypus.game.box2d,
             {radius, a, b} = shape,
             {x: ax, y: ay} = adjustedXY(a, options),
             {x: bx, y: by} = adjustedXY(b, options),
@@ -114,12 +114,11 @@ const
         capsule.center1.Set(ax, ay);
         capsule.center2.Set(bx, by);
 
-        return b2CreateCapsuleShape(bodyId, formatSD(box2d, shapeDefinition), capsule);
+        return b2CreateCapsuleShape(bodyId, formatSD(shapeDefinition), capsule);
     },
     createPoint = (shape, options) => {
         const
-            {box2d} = options,
-            v = new box2d.b2Vec2(),
+            v = new platypus.game.box2d.b2Vec2(),
             {x, y} = adjustedXY(shape, options);
 
         v.x = x;
@@ -141,20 +140,20 @@ const
             });
         } else {
             const
-                {bodyId, box2d, local = true, radius = 0, scale = 1, shapeDefinition} = options,
-                {b2CreatePolygonShape, b2ComputeHull, b2MakePolygon} = box2d,
+                {bodyId, local = true, radius = 0, scale = 1, shapeDefinition} = options,
+                {b2CreatePolygonShape, b2ComputeHull, b2MakePolygon} = platypus.game.box2d,
                 polygons = shape.split(3, 8); // break down polygon to chunks equal to or smaller than 8 vertices and make sure these chunks are convex.
                 
-            return polygons.map(({points}) => b2CreatePolygonShape(bodyId, formatSD(box2d, shapeDefinition), b2MakePolygon(b2ComputeHull(points.map((point) => createPoint(point, {box2d, local, scale})), points.length), radius)));
+            return polygons.map(({points}) => b2CreatePolygonShape(bodyId, formatSD(shapeDefinition), b2MakePolygon(b2ComputeHull(points.map((point) => createPoint(point, {local, scale})), points.length), radius)));
         }
     },
-    createPolyline = ({points}, {bodyId, box2d, local = true, scale = 1, shapeDefinition}) => {
+    createPolyline = ({points}, {bodyId, local = true, scale = 1, shapeDefinition}) => {
         const
-            {b2CreateChain} = box2d;
+            {b2CreateChain} = platypus.game.box2d;
             
-        return b2CreateChain(bodyId, formatChainSD(box2d, {
+        return b2CreateChain(bodyId, formatChainSD({
             ...shapeDefinition,
-            points: points.map((point) => createPoint(point, {box2d, local, scale}))
+            points: points.map((point) => createPoint(point, {local, scale}))
         }));
     },
     casts = {
@@ -162,15 +161,15 @@ const
         circle: (shape, options) => {
             const
                 {radius} = shape,
-                {bodyId, box2d, scale = 1, shapeDefinition} = options,
-                {b2Circle, b2CreateCircleShape} = box2d,
+                {bodyId, scale = 1, shapeDefinition} = options,
+                {b2Circle, b2CreateCircleShape} = platypus.game.box2d,
                 {x, y} = adjustedXY(shape, options),
                 circle = new b2Circle();
 
             circle.radius = radius * scale;
             circle.center.Set(x, y);
 
-            return b2CreateCircleShape(bodyId, formatSD(box2d, shapeDefinition), circle);
+            return b2CreateCircleShape(bodyId, formatSD(shapeDefinition), circle);
         },
         ellipse: (shape, ...args) => {
             return createCapsule(shape.toCapsule(), ...args);
@@ -182,8 +181,7 @@ const
         roundedRectangle: createPolygon,
         segment: ({a, b}, options) => {
             const
-                {box2d} = options,
-                s = new box2d.b2Segment(),
+                s = new platypus.game.box2d.b2Segment(),
                 {x: ax, y: ay} = adjustedXY(a, options),
                 {x: bx, y: by} = adjustedXY(b, options);
             
@@ -202,10 +200,7 @@ export default function castToBox2D (shape, options) {
         cast = casts[type];
 
     if (cast) {
-        return cast(shape, {
-            box2d: platypus.game.box2d,
-            options
-        });
+        return cast(shape, options);
     } else {
         platypus.debug.warn(`Unable to cast shape of type "${type}" to Box2D.`, shape);
         return null;
