@@ -1,6 +1,6 @@
 {
     "name": "platypus",
-    "version": "3.12.2",
+    "version": "3.13.0",
     "description": "Platypus",
     "license": "MIT",
     "main": "lib/platypus.js",
@@ -32,6 +32,7 @@
         "springroll": "^2.6.0"
     },
     "optionalDependencies": {
+        "box2d3-wasm": "^4.2.0",
         "jsmediatags": "github:probityrules/jsmediatags"
     },
     "engine": "node >= 0.10.22"

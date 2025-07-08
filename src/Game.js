@@ -254,7 +254,8 @@ class Game extends Messenger {
             load = async function (settings) {
                 const
                     dpi = window.devicePixelRatio || 1,
-                    ticker = options.workerTick ? new TickerClient() : Ticker.shared;
+                    ticker = options.workerTick ? new TickerClient() : Ticker.shared,
+                    libraries = [];
                     
                 platypus.game = this; //Make this instance the only Game instance.
                 
@@ -264,10 +265,17 @@ class Game extends Messenger {
                 
                 this.settings = settings;
 
-                await Promise.all([
+                libraries.push(
                     loadPixiJS(options),
                     loadSpringroll(options)
-                ]);
+                );
+                if (modules['box2d3-wasm']) {
+                    libraries.push(async () => {
+                        this.box2d = await modules['box2d3-wasm']();
+                    });
+                }
+
+                await Promise.all(libraries);
 
                 if (settings.captions || modules.jsmediatags) {
                     this.voPlayer.captions = new ID3CaptionPlayer(settings.captions, document.getElementById("captions") || (() => {
