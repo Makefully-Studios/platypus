@@ -7,7 +7,13 @@ import Rectangle from "./Rectangle";
 import RoundedRectangle from "./RoundedRectangle";
 import Segment from "./Segment";
 import Point from "./Point";
-import createShape from "./createShape";
+import shapeFromBox2D from './castFromBox2D';
+import shapeFromObject from './castFromObject';
+import shapeFromPixiGraphics from './castFromPixiGraphics';
+import shapeFromPixiShape from './castFromPixiShape';
+import shapeToBox2D from './castToBox2D';
+import shapeToPixiGraphics from './castToPixiGraphics';
+import shapeToPixiShape from './castToPixiShape';
 
 export {
     Capsule,
@@ -19,5 +25,11 @@ export {
     RoundedRectangle,
     Segment,
     Point,
-    createShape
+    shapeFromBox2D,
+    shapeFromObject,
+    shapeFromPixiGraphics,
+    shapeFromPixiShape,
+    shapeToBox2D,
+    shapeToPixiGraphics,
+    shapeToPixiShape
 }

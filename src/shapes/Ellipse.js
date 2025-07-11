@@ -1,3 +1,4 @@
+import adjustedXY from "./adjustedXY";
 import Capsule from "./Capsule";
 import Rectangle from "./Rectangle";
 import Segment from "./Segment";
@@ -95,6 +96,21 @@ export default class Ellipse extends Segment {
 
     duplicate () {
         return new Ellipse(this);
+    }
+
+    toObject (options) {
+        const
+            {a, b, height, radius, type, width} = this,
+            {scale = 1} = options;
+
+        return {
+            a: adjustedXY(a, options),
+            b: adjustedXY(b, options),
+            height: height * scale,
+            radius: radius * scale,
+            type,
+            width: width * scale
+        };
     }
 
     static validateDefinition (definition) {

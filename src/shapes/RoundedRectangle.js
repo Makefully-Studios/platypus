@@ -16,6 +16,17 @@ export default class RoundedRectangle extends Rectangle {
         return new RoundedRectangle(this);
     }
 
+    toObject (options) {
+        const
+            {radius} = this,
+            {scale} = options;
+
+        return {
+            ...super.toObject(options),
+            radius: radius * scale
+        }
+    }
+
     static validateDefinition (definition) {
         return Circle.validateDefinition(definition) && Rectangle.validateDefinition(definition);
     }

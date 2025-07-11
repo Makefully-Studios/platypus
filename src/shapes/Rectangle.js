@@ -1,5 +1,23 @@
 import Polygon from "./Polygon";
 
+const
+    errDelta = 0.0001,
+    isRectangle = ({x: ax, y: ay}, {x: bx, y: by}, {x: cx, y: cy}, {x: dx, y: dy}) => {
+        const
+            {abs} = Math,
+            sqr = (a) => a * a,
+            x = (ax + bx + cx + dx) / 4,
+            y = (ay + by + cy + dy) / 4,
+            asqr = sqr(x - ax) + sqr(y - ay),
+            bsqr = sqr(x - bx) + sqr(y - by),
+            csqr = sqr(x - cx) + sqr(y - cy),
+            dsqr = sqr(x - dx) + sqr(y - dy);
+
+      return abs(asqr - bsqr) < errDelta &&
+            abs(asqr - csqr) < errDelta &&
+            abs(asqr - dsqr) < errDelta;
+    };
+
 export default class Rectangle extends Polygon {
     constructor (...args) {
         super(...args);
@@ -57,7 +75,7 @@ export default class Rectangle extends Polygon {
         return new Rectangle(this);
     }
 
-    static validateDefinition ({height, width} = {}) {
-        return typeof height === 'number' && height > 0 && typeof width === 'number' && width > 0;
+    static validateDefinition ({height, width, points} = {}) {
+        return typeof height === 'number' && height > 0 && typeof width === 'number' && width > 0 && (!points || ((points.length === 4) && isRectangle(...points)));
     }
 }

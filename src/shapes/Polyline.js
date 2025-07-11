@@ -29,6 +29,16 @@ export default class Polyline extends Segment {
     duplicate () {
         return new Polyline(this);
     }
+    
+    toObject (options) {
+        const
+            {points, type} = this;
+
+        return {
+            points: points.map((point) => adjustedXY(point, options)),
+            type
+        };
+    }
 
     static validateDefinition ({points} = {}) {
         const

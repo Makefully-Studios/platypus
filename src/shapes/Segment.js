@@ -76,6 +76,17 @@ export default class Segment extends Point {
         return this.points.map((point) => point.toArray(local));
     }
 
+    toObject (options) {
+        const
+            {a, b, type} = this;
+
+        return {
+            a: adjustedXY(a, options),
+            b: adjustedXY(b, options),
+            type
+        };
+    }
+
     static validateDefinition ({a, b, points} = {}) {
         const
             ab = points ?? [a, b];

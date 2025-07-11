@@ -22,7 +22,7 @@ const
         point: Point
     };
 
-export default function createShape (shapeData, prioritizedShapeList = ['roundedRectangle', 'rectangle', 'capsule', 'ellipse', 'segment', 'polygon', 'polyline', 'circle', 'point']) {
+export default function castFromObject (shapeData, prioritizedShapeList = ['roundedRectangle', 'rectangle', 'capsule', 'ellipse', 'segment', 'polygon', 'polyline', 'circle', 'point']) {
     const
         {type} = shapeData;
 

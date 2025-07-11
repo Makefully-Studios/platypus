@@ -1,9 +1,7 @@
 /* global platypus */
 import Vector from '../Vector';
 import checkPointsMap from './checkPointsMap';
-import castToBox2D from './castToBox2D';
-import castToPixiGraphics from './castToPixiGraphics';
-import castToPixiShape from './castToPixiShape';
+import adjustedXY from './adjustedXY';
 
 const
     ORIGIN = {x: 0, y: 0},
@@ -60,15 +58,31 @@ export default class Point {
         this.revolutions = revolutions ?? (rotation / PI2);
     }
 
-    castToBox2D (...args) {
+    // "to" castings (toObject must be defined by inheriting classes)
+
+    toBox2D (...args) {
         return castToBox2D(this, ...args);
     }
 
-    castToPixiShape (...args) {
+    toJSON (options, ...args) {
+        return JSON.stringify(this.toObject(options), ...args);
+    }
+
+    toObject (options) {
+        const
+            {type} = this;
+
+        return {
+            type,
+            ...adjustedXY(this, options)
+        };
+    }
+
+    toPixiShape (...args) {
         return castToPixiShape(this, ...args);
     }
 
-    castToPixiGraphics (...args) {
+    toPixiGraphics (...args) {
         return castToPixiGraphics(this, ...args);
     }
 

@@ -1,27 +1,9 @@
 import {default as platypus} from 'platypus';
 import {Circle, Ellipse, Point, Polygon, Rectangle, RoundedRectangle} from 'pixi.js';
+import adjustedXY from "./adjustedXY";
 
 const
-    adjustedXY = (shape, {local = true, scale = 1}) => {
-        if (local) {
-            const
-                {registration: {x, y}} = shape;
-
-            return {
-                x: x * scale,
-                y: y * scale
-            };
-        } else {
-            const
-                {x, y} = shape;
-
-            return {
-                x: x * scale,
-                y: y * scale
-            };
-        }
-    },
-    casts = {
+    castFrom = {
         circle: (shape, options) => {
             const
                 {radius} = shape,
@@ -68,7 +50,7 @@ const
 export default function castToPixiShape (shape, options) {
     const
         {type} = shape,
-        cast = casts[type];
+        cast = castFrom[type];
 
     if (cast) {
         return cast(shape, options);

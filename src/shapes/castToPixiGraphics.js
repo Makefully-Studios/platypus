@@ -1,26 +1,8 @@
 import {default as platypus} from 'platypus';
 import {Graphics} from 'pixi.js';
+import adjustedXY from "./adjustedXY";
 
 const
-    adjustedXY = (shape, {local = true, scale = 1}) => {
-        if (local) {
-            const
-                {registration: {x, y}} = shape;
-
-            return {
-                x: x * scale,
-                y: y * scale
-            };
-        } else {
-            const
-                {x, y} = shape;
-
-            return {
-                x: x * scale,
-                y: y * scale
-            };
-        }
-    },
     finish = (gfx, {fill, stroke}) => {
         if (fill) {
             gfx.fill(fill);
@@ -30,7 +12,7 @@ const
         }
         return gfx;
     },
-    casts = {
+    castFrom = {
         circle: (shape, options) => {
             const
                 gfx = new Graphics(),
@@ -106,7 +88,7 @@ const
 export default function castToPixiGraphics (shape, options) {
     const
         {type} = shape,
-        cast = casts[type];
+        cast = castFrom[type];
 
     if (cast) {
         return cast(shape, options);

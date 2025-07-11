@@ -1,25 +1,7 @@
+import adjustedXY from "./adjustedXY";
+
 /* global platypus */
-
 const
-    adjustedXY = (shape, {local = true, scale = 1}) => {
-        if (local) {
-            const
-                {registration: {x, y}} = shape;
-
-            return {
-                x: x * scale,
-                y: y * scale
-            };
-        } else {
-            const
-                {x, y} = shape;
-
-            return {
-                x: x * scale,
-                y: y * scale
-            };
-        }
-    },
     formatChainSD = (shapeDefinition) => {
         const
             {b2DefaultChainDef} = platypus.game.box2d;
@@ -156,7 +138,7 @@ const
             points: points.map((point) => createPoint(point, {local, scale}))
         }));
     },
-    casts = {
+    castFrom = {
         capsule: createCapsule,
         circle: (shape, options) => {
             const
@@ -197,7 +179,7 @@ const
 export default function castToBox2D (shape, options) {
     const
         {type} = shape,
-        cast = casts[type];
+        cast = castFrom[type];
 
     if (cast) {
         return cast(shape, options);
