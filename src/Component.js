@@ -27,14 +27,6 @@ export default class Component {
             "events", arrayCache.setUp(),
             "messages", arrayCache.setUp()
         );
-
-        /**
-         * Returns a JSON object describing the component.
-         *
-         * @method platypus.Component#toJSON
-         * @return {Object} Returns a JSON definition that can be used to recreate the component.
-         **/
-        this.toJSON = null; // defined in factory.js
     }
 
     /**
@@ -43,6 +35,14 @@ export default class Component {
      * @method platypus.Component#initialize
      */
     initialize () {}
+
+    /**
+     * Returns a JSON object describing the component.
+     *
+     * @method platypus.Component#toJSON
+     * @return {Object} Returns a JSON definition that can be used to recreate the component.
+     **/
+    /* toJSON () {} */ // defined in factory.js
 
     /**
      * Returns a string describing the component.
