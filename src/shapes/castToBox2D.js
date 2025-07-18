@@ -176,7 +176,7 @@ const
         }
     };
 
-export default function castToBox2D (shape, options) {
+export default function castToBox2D (shape, options = {}) {
     const
         {type} = shape,
         cast = castFrom[type];

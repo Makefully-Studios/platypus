@@ -4,10 +4,10 @@ import adjustedXY from "./adjustedXY";
 
 const
     finish = (gfx, {fill, stroke}) => {
-        if (fill) {
+        if (typeof fill === 'number') {
             gfx.fill(fill);
         }
-        if (stroke) {
+        if (typeof stroke === 'number') {
             gfx.stroke(stroke);
         }
         return gfx;
@@ -85,7 +85,7 @@ const
         }
     };
 
-export default function castToPixiGraphics (shape, options) {
+export default function castToPixiGraphics (shape, options = {}) {
     const
         {type} = shape,
         cast = castFrom[type];

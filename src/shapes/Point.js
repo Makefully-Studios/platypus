@@ -2,6 +2,9 @@
 import Vector from '../Vector';
 import checkPointsMap from './checkPointsMap';
 import adjustedXY from './adjustedXY';
+import castToPixiShape from './castToPixiShape';
+import castToPixiGraphics from './castToPixiGraphics';
+import castToBox2D from './castToBox2D';
 
 const
     ORIGIN = {x: 0, y: 0},

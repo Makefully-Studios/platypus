@@ -429,6 +429,25 @@ proto.intersects = function (aabb) {
 };
 
 /**
+ * Returns an AABB of the intersection. If the AABB's do not intersect, an empty AABB is returned.
+ *
+ * @method platypus.AABB#getIntersection
+ * @param aabb {AABB} The AABB this AABB intersects with.
+ * @return {Number} Returns the area of the intersected AABB's.
+ */
+proto.getIntersection = function (aabb) {
+    const
+        {max, min} = Math;
+    
+    return this.intersects(aabb) ? AABB.setUp().setBounds(
+        max(this.left, aabb.left),
+        max(this.top,  aabb.top),
+        min(this.right,  aabb.right),
+        min(this.bottom, aabb.bottom)
+    ) : AABB.setUp();
+};
+
+/**
  * Returns the area of the intersection. If the AABB's do not intersect, `0` is returned.
  *
  * @method platypus.AABB#getIntersectionArea
@@ -437,8 +456,7 @@ proto.intersects = function (aabb) {
  */
 proto.getIntersectionArea = function (aabb) {
     const
-        max = Math.max,
-        min = Math.min;
+        {max, min} = Math;
     
     return this.intersects(aabb) ? (min(this.bottom, aabb.bottom) - max(this.top,  aabb.top)) * (min(this.right,  aabb.right) - max(this.left, aabb.left)) : 0;
 };
