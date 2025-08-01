@@ -245,7 +245,12 @@ export default createComponentClass(/** @lends platypus.components.HandlerCollis
         },
 
         removeCollisionEntity: function (entity) {
-            if (entity.againstGrid) {
+            if (entity.getTileShapes) { // Has a CollisionTiles component
+                const index = this.terrains.indexOf(entity);
+                if (index !== -1) {
+                    this.terrains.splice(index, 1);
+                }
+            } if (entity.againstGrid) {
                 this.removeAgainst(entity);
                 arrayCache.recycle(entity.againstGrid);
                 entity.againstGrid = null;

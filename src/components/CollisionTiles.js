@@ -264,7 +264,7 @@ export default (function () {
         
         publicProperties: {
             /**
-             * A 2D array describing the tile-map with off (0) and on (!0) states. The indexes match Tiled map data indexes with an additional bit setting (0x2000000) for jumpthrough tiles. Example: `[[0, 0, 0], [1, 0, 0], [1, 1, 1]]`. Available on the entity as `entity.collisionMap`.
+             * A 3D array describing the layers of the tile-map with off (0) and on (!0) states. The indexes match Tiled map data indexes with an additional bit setting (0x2000000) for jumpthrough tiles. Example: `[[[0, 0, 0], [1, 0, 0], [1, 1, 1]], [[0, 1, 0], [1, 0, 0], [1, 0, 0]]]`. Available on the entity as `entity.collisionMap`.
              *
              * @property collisionMap
              * @type Array
@@ -304,8 +304,8 @@ export default (function () {
             this.tileOffsetLeft  = this.tileWidth / 2 + this.left;
             this.tileOffsetTop = this.tileHeight / 2 + this.top;
             
-            this.columns = this.collisionMap.length;
-            this.rows = this.collisionMap[0].length;
+            this.columns = this.collisionMap[0].length;
+            this.rows = this.collisionMap[0][0].length;
             
             this.shapeDefinition = Data.setUp(
                 "x", 0,
@@ -336,6 +336,30 @@ export default (function () {
 
             "translate": function (translate) {
                 this.translate(translate);
+            },
+            /**
+             * This event adds a layer of tiles to the collision map.
+             *
+             * @event platypus.Entity#add-collision-tiles
+             * @param message.imageMap {Array} This is a 2D mapping of tile indexes to be added to the collision map.
+             */
+            "add-collision-tiles": function (definition) {
+                const map = definition.collisionMap[0],
+                    typeMap = definition.collisionTypeMap;
+                let tileIndex = 0;
+
+                if (map) {
+                    this.collisionMap.push(map);
+                }
+
+                if (typeMap) {
+                    for (tileIndex in typeMap) {
+                        if (this.collisionTypeMap[tileIndex]) {
+                            console.warn('Overwriting existing typeMap.');
+                        }
+                        this.collisionTypeMap[tileIndex] = typeMap[tileIndex];
+                    }
+                }
             }
         },
         
@@ -360,8 +384,8 @@ export default (function () {
                 return shape;
             },
             
-            addShape: function (shapes, prevAABB, x, y, collisionType) {
-                var xy = this.collisionMap[x][y],
+            addShape: function (shapes, prevAABB, layer, x, y, collisionType) {
+                var xy = this.collisionMap[layer][x][y],
                     index = xy & maskIndex,
                     jumpThrough = maskJumpThrough,
                     rotation = maskRotation,
@@ -438,7 +462,19 @@ export default (function () {
              * @return {boolean} Returns `true` if the coordinate contains a collision tile, `false` if it does not.
              */
             isTile: function (x, y) {
-                return !((x < 0) || (y < 0) || (x >= this.columns) || (y >= this.rows) || (this.collisionMap[x][y] === -1));
+                let z = 0;
+
+                if ((x < 0) || (y < 0) || (x >= this.columns) || (y >= this.rows)) {
+                    return false;
+                }
+
+                for (z = 0; z < this.collisionMap.length; z++) {
+                    if (this.collisionMap[z][x][y] !== -1) {
+                        return true;
+                    }
+                }
+
+                return false;
             },
             
             /**
@@ -462,16 +498,19 @@ export default (function () {
                     bottom = Math.min(Math.ceil((aabb.bottom - t) / th), this.rows),
                     x      = 0,
                     y      = 0,
+                    z      = 0,
                     shapes = this.serveTiles;
                 
                 shapes.length = 0;
                 this.storedTileIndex = 0;
-                
-                for (x = left; x < right; x++) {
-                    for (y = top; y < bottom; y++) {
-                        this.addShape(shapes, prevAABB, x, y, colType);
+                for (z = 0; z < this.collisionMap.length; z++) {
+                    for (x = left; x < right; x++) {
+                        for (y = top; y < bottom; y++) {
+                            this.addShape(shapes, prevAABB, z, x, y, colType);
+                        }
                     }
                 }
+                
                 
                 return shapes;
             },
@@ -481,22 +520,32 @@ export default (function () {
              *
              * @method platypus.components.CollisionTiles#transform
              * @param [transform] {Object} A list of key/value pairs describing the transform.
+             * @param [transform.layers] {integer array} The layer indexes on which to apply the transform, if not provided transforms all layers. Defaults to the 0th index.
              * @param [transform.type="horizontal"] {String} The type of transform; one of the following: "horizontal", "vertical", "diagonal", "diagonal-inverse", "rotate-90", "rotate-180", "rotate-270". Height and width should match for diagonal flips and 90 degree rotations.
              * @param [transform.left=0] {number} Grid coordinate for the left side of the bounding box.
              * @param [transform.top=0] {number} Grid coordinate for the top of the bounding box.
              * @param [transform.width=grid.width] {number} Cell width of the bounding box.
              * @param [transform.height=grid.height] {number} Cell height of the bounding box.
              */
-            transform: function (transform) {
-                var t      = transform || {},
-                    x      = t.left    || 0,
-                    y      = t.top     || 0,
-                    width  = t.width   || this.rows,
-                    height = t.height  || this.columns,
-                    type   = t.type    || "horizontal";
-                
+            transform: function (transform = {}) {
+                const {
+                    layers = [0],
+                    left: x = 0,
+                    top: y = 0,
+                    width = this.rows,
+                    height = this.columns,
+                    type = "horizontal"
+                } = transform;
+                let k = 0;
+
                 if (transforms[type]) {
-                    return transforms[type](this.collisionMap, x, y, width, height);
+                    for (k = 0; k < this.collisionMap.length; k++) {
+                        if (layers.includes(k)) {
+                            transforms[type](this.collisionMap[k], x, y, width, height);
+                        }
+                    }
+
+                    return this.collisionMap;
                 } else {
                     return null;
                 }
@@ -507,6 +556,7 @@ export default (function () {
              *
              * @method platypus.components.CollisionTiles#translate
              * @param [translate] {Object} A list of key/value pairs describing the translation.
+             * @param [translate.layers] {integer array} The layer indexes on which to apply the translate, if not provided translates all layers. Defaults to the 0th index.
              * @param [translate.dx=0] {number} Movement in columns.
              * @param [translate.dy=0] {number} Movement in rows.
              * @param [translate.left=0] {number} Grid coordinate for the left side of the bounding box.
@@ -514,30 +564,41 @@ export default (function () {
              * @param [translate.width=grid.width] {number} Cell width of the bounding box.
              * @param [translate.height=grid.height] {number} Cell height of the bounding box.
              */
-            translate: function (translate) {
-                var t      = translate || {},
-                    x      = t.left    || 0,
-                    y      = t.top     || 0,
-                    width  = t.width   || this.rows,
-                    height = t.height  || this.columns,
-                    dx     = t.dx      || 0,
-                    dy     = t.dy      || 0;
+            translate: function (translate = {}) {
+                const {
+                    layers = [0],
+                    left: x = 0, 
+                    top: y = 0, 
+                    width = this.rows, 
+                    height = this.columns, 
+                    dx = 0, 
+                    dy = 0
+                } = translate;
+                let k = 0;
+
                 
-                return transforms.translate(this.collisionMap, x, y, width, height, dx, dy);
+                for (k = 0; k < this.collisionMap.length; k++) {
+                    if (!layers || layers.includes(k)) {
+                        transforms.translate(this.collisionMap[k], x, y, width, height, dx, dy);
+                    }
+                }
+                
+                return this.collisionMap;
             },
             
             /**
              * Gets a subset of the collision tile grid as a 2D array.
              *
              * @method platypus.components.CollisionTiles#getCollisionMatrix
+             * @param layer {number} The collision map index from which to copy. 
              * @param originX {number} Grid coordinate for the left side of the bounding box.
              * @param originY {number} Grid coordinate for the top of the bounding box.
              * @param width {number} Cell width of the bounding box.
              * @param height {number} Cell height of the bounding box.
              * @return {Array}
              */
-            getCollisionMatrix: function (originX, originY, width, height) {
-                return copySection(this.collisionMap, originX, originY, width, height);
+            getCollisionMatrix: function (layer, originX, originY, width, height) {
+                return copySection(this.collisionMap[layer], originX, originY, width, height);
             },
             
             /**
@@ -545,13 +606,14 @@ export default (function () {
              *
              * @method platypus.components.CollisionTiles#setCollisionMatrix
              * @param sourceArray {Array} A 2D array describing the collision tiles to insert into the collision tile grid.
+             * @param layer {number} The collision map index into which to paste the collision data. 
              * @param originX {number} Grid coordinate for the left side of the bounding box.
              * @param originY {number} Grid coordinate for the top of the bounding box.
              * @param width {number} Cell width of the bounding box.
              * @param height {number} Cell height of the bounding box.
              */
-            setCollisionMatrix: function (sourceArray, originX, originY, width, height) {
-                return pasteSection(this.collisionMap, sourceArray, originX, originY, width, height);
+            setCollisionMatrix: function (sourceArray, layer, originX, originY, width, height) {
+                return pasteSection(this.collisionMap[layer], sourceArray, originX, originY, width, height);
             }
         }
     });
