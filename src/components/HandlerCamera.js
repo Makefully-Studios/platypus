@@ -1022,8 +1022,8 @@ export default createComponentClass(/** @lends platypus.components.Camera.protot
             windowVector.y = worldVector.y * this.windowPerWorldUnitHeight;
             
             if (withOffset !== false) {
-                windowVector.x += this.viewport.x;
-                windowVector.y += this.viewport.y;
+                windowVector.x -= this.worldCamera.viewport.left * this.windowPerWorldUnitWidth - this.viewport.left;
+                windowVector.y -= this.worldCamera.viewport.top * this.windowPerWorldUnitHeight - this.viewport.top;
             }
 
             return windowVector;
