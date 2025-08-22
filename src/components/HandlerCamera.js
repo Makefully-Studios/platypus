@@ -992,14 +992,15 @@ export default createComponentClass(/** @lends platypus.components.Camera.protot
          */
         windowToWorld: function (windowVector, withOffset, vector) {
             const
+                {worldPerWindowUnitHeight, worldPerWindowUnitWidth, viewport, worldCamera: {viewport: wcViewport}} = this,
                 worldVector = vector || Vector.setUp();
             
-            worldVector.x = windowVector.x * this.worldPerWindowUnitWidth;
-            worldVector.y = windowVector.y * this.worldPerWindowUnitHeight;
+            worldVector.x = windowVector.x * worldPerWindowUnitWidth;
+            worldVector.y = windowVector.y * worldPerWindowUnitHeight;
             
             if (withOffset !== false) {
-                worldVector.x += this.worldCamera.viewport.left;
-                worldVector.y += this.worldCamera.viewport.top;
+                worldVector.x -= viewport.left * worldPerWindowUnitWidth - wcViewport.left;
+                worldVector.y -= viewport.top * worldPerWindowUnitHeight - wcViewport.top;
             }
 
             return worldVector;
@@ -1016,14 +1017,15 @@ export default createComponentClass(/** @lends platypus.components.Camera.protot
          */
         worldToWindow: function (worldVector, withOffset, vector) {
             const
+                {windowPerWorldUnitHeight, windowPerWorldUnitWidth, viewport, worldCamera: {viewport: wcViewport}} = this,
                 windowVector = vector || Vector.setUp();
 
-            windowVector.x = worldVector.x * this.windowPerWorldUnitWidth;
-            windowVector.y = worldVector.y * this.windowPerWorldUnitHeight;
+            windowVector.x = worldVector.x * windowPerWorldUnitWidth;
+            windowVector.y = worldVector.y * windowPerWorldUnitHeight;
             
             if (withOffset !== false) {
-                windowVector.x -= this.worldCamera.viewport.left * this.windowPerWorldUnitWidth - this.viewport.left;
-                windowVector.y -= this.worldCamera.viewport.top * this.windowPerWorldUnitHeight - this.viewport.top;
+                windowVector.x -= wcViewport.left * windowPerWorldUnitWidth - viewport.left;
+                windowVector.y -= wcViewport.top * windowPerWorldUnitHeight - viewport.top;
             }
 
             return windowVector;
