@@ -813,7 +813,8 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
                 };
             let index = 0,
                 lastSet = null,
-                renderTiles = false;
+                renderTiles = false,
+                collisionTiles = false;
             
             entityLinker.linkObject(layerDefinitionProperties.tiledId = layer.id);
 
@@ -887,6 +888,9 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
                 if (components[x].type === 'RenderTiles') {
                     renderTiles = components[x];
                 }
+                if (components[x].type === 'CollisionTiles') {
+                    collisionTiles = components[x];
+                }
                 if (components[x].spriteSheet === 'import') {
                     components[x].spriteSheet = importSpriteSheet;
                 } else if (components[x].spriteSheet) {
@@ -898,22 +902,24 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
                     }
                 }
                 if (components[x].collisionMap === 'import') {
-                    components[x].collisionMap = importCollision;
+                    components[x].collisionMap = [importCollision];
                 }
                 if (components[x].imageMap === 'import') {
                     components[x].imageMap = importRender;
                 }
             }
 
-            if ((entityKind === 'render-layer') && (!this.separateTiles) && (combineRenderLayer?.tileHeight === tHeight) && (combineRenderLayer?.tileWidth === tWidth) && (combineRenderLayer?.columns === width) && (combineRenderLayer?.rows === height)) {
+            if ((!this.separateTiles) && (combineRenderLayer?.tileHeight === tHeight) && (combineRenderLayer?.tileWidth === tWidth) && (combineRenderLayer?.columns === width) && (combineRenderLayer?.rows === height)) {
                 combineRenderLayer.triggerEvent('add-tiles', renderTiles);
+                combineRenderLayer.triggerEvent('add-collision-tiles', collisionTiles);
+
                 this.updateLoadingProgress(progress);
                 return combineRenderLayer;
             } else {
                 const
                     properties = {};
 
-                if ((entityKind === 'render-layer') && this.spriteSheet) {
+                if (this.spriteSheet) {
                     if (typeof this.spriteSheet === 'string') {
                         properties.spriteSheet = platypus.game.settings.spriteSheets[this.spriteSheet];
                     } else {
