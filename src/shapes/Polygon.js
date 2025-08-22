@@ -1,6 +1,5 @@
 /* global platypus */
 import Polyline from "./Polyline";
-import Segment from "./Segment";
 
 const
     MIN_VERTICES = 3,
@@ -13,12 +12,19 @@ export default class Polygon extends Polyline {
         this.type = 'polygon';
     }
 
-    initialize (...args) {
-        super.initialize(...args);
-        this.segments.push(new Segment({
-            a: this.points[this.points.length - 1],
-            b: this.points[0]
-        }));
+    get loop () {
+        return true; // Unlike Polyline, this can never not be a loop.
+    }
+
+    set loop (value) {
+        if (!value) {
+            throw new Error('Polygon shapes are comprised of a loop of segments.');
+        }
+    }
+
+    initialize (options) {
+        super.initialize(options);
+        this._loop = true;
     }
 
     isPointInside ({x, y}) {

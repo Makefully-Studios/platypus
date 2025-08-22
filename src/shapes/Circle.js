@@ -9,7 +9,7 @@ export default class Circle extends Point {
 
     initialize (options) {
         super.initialize(options);
-        this.radius = options.radius;
+        this.radius = options.radius ?? 0;
     }
 
     duplicate () {

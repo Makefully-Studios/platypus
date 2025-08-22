@@ -7,24 +7,22 @@ export default class Ellipse extends Segment {
     constructor (...args) {
         super(...args);
         this.type = 'ellipse';
-        Object.defineProperties(this, {
-            halfHeight: {
-                get () {
-                    return this.height / 2;
-                },
-                set (hh) {
-                    this.height = hh * 2;
-                }
-            },
-            halfWidth: {
-                get () {
-                    return this.width / 2;
-                },
-                set (hw) {
-                    this.width = hw * 2;
-                }
-            }
-        });
+    }
+
+    get halfHeight () {
+        return this.height / 2;
+    }
+
+    set halfHeight (hh) {
+        this.height = hh * 2;
+    }
+
+    get halfWidth () {
+        return this.width / 2;
+    }
+    
+    set halfWidth (hw) {
+        this.width = hw * 2;
     }
 
     initialize (options) {

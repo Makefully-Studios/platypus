@@ -1,43 +1,74 @@
 import Point from './Point';
+import Vector from '../Vector';
 
 export default class Segment extends Point {
     constructor (...args) {
         super(...args);
         this.type = 'segment';
+        this._points = null;
+    }
+
+    get a () {
+        return this.points[0];
+    }
+
+    get b () {
+        return this.points[this.points.length - 1];
+    }
+
+    get points () {
+        if (!this._points) {
+            const
+                {revolutions, x: X, y: Y} = this;
+                
+            if (revolutions % 1) {
+                const
+                    {cos, sin} = this.getSinCos();
+
+                this._points = this._vectors.map(({x, y}) => new Point({
+                    x: X + x * cos - y * sin,
+                    y: Y + x * sin + y * cos
+                }));
+            } else {
+                this._points = this._vectors.map(({x, y}) => new Point({
+                    x: X + x,
+                    y: Y + y
+                }));
+            }
+        }
+        return this._points;
+    }
+
+    get vectors () {
+        return this._vectors;
     }
 
     initialize (options) {
         const
-            {a, b, points} = options;
+            {a, b, points, revolutions = 0, x = 0, y = 0} = options;
 
         super.initialize(options);
-        this.points = (points ?? [a, b]).map((point) => {
-            if (Array.isArray(point)) {
-                return new Point({
-                    parent: this,
-                    x: point[0],
-                    y: point[1]
-                });
-            } else {
-                return new Point({
-                    parent: this,
-                    x: point.x,
-                    y: point.y
-                });
-            }
-        });
-        Object.defineProperties(this, {
-            a: {
-                get () {
-                    return this.points[0];
+
+        if (revolutions % 1) {
+            const
+                {cos, sin} = this.getSinCos();
+
+            this._vectors = (points ?? [a, b]).map((point) => {
+                if (Array.isArray(point)) {
+                    return new Vector(point[0] * cos + point[1] * sin - x, -point[0] * sin + point[1] * cos - y);
+                } else {
+                    return new Vector(point.x * cos + point.y * sin - x, -point.x * sin + point.y * cos - y);
                 }
-            },
-            b: {
-                get () {
-                    return this.points[1];
+            });
+        } else {
+            this._vectors = (points ?? [a, b]).map((point) => {
+                if (Array.isArray(point)) {
+                    return new Vector(point[0] - x, point[1] - y);
+                } else {
+                    return new Vector(point.x - x, point.y - y);
                 }
-            }
-        });
+            });
+        }
     }
 
     getLength () {
@@ -47,20 +78,42 @@ export default class Segment extends Point {
         return Math.hypot(b.x - a.x, b.y - a.y);
     }
 
+    intersects ({a: c, b: d}) {
+        const
+            ccw = (a, b, c) => (c.y - a.y) * (b.x - a.x) > (b.y - a.y) * (c.x - a.x),
+            {a, b} = this;
+
+        return ccw(a, c, d) !== ccw(b, c, d) && ccw(a, b, c) !== ccw(a, b, d);
+    }
+
     duplicate () {
         return new Segment(this);
     }
 
-    toArray () { // sets origin to 0, 0 on returned array
-        return this.points.map(({x, y}) => new Point({
-            x,
-            y
-        }));
+    moveX (x) {
+        super.moveX(x);
+        this._points = null;
+    }
+
+    moveY (y) {
+        super.moveY(y);
+        this._points = null;
+    }
+
+    toArray (local = false) {
+        if (local) {
+            return this.vectors.map(({x, y}) => new Vector(x, y));
+        } else {
+            return this.points.map(({x, y}) => new Point({
+                x,
+                y
+            }));
+        }
     }
 
     toArray1D (local = false) {
         if (local) {
-            return this.points.reduce((arr, {registration: {x, y}}) => {
+            return this.vectors.reduce((arr, {x, y}) => {
                 arr.push(x, y);
                 return arr
             }, []);
@@ -73,7 +126,11 @@ export default class Segment extends Point {
     }
 
     toArray2D (local = false) {
-        return this.points.map((point) => point.toArray(local));
+        if (local) {
+            return this.vectors.map(({x, y}) => ([x, y]));
+        } else {
+            return this.points.map(({x, y}) => ([x, y]));
+        }
     }
 
     toObject (options) {

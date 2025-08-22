@@ -10,7 +10,7 @@ const
         'segment' // <-- unsure how to convert chain shape segment into its owning chain shape as a `polyline`, so it'll be converted to a segment. */
     ],
     castTo = {
-        circle: (shapeId, {scale = 1}) => {
+        circle: (shapeId, {scale = 1} = {}) => {
             const
                 {radius, center: {x, y}} = platypus.game.box2d.b2Shape_GetCircle(shapeId);
 
@@ -21,7 +21,7 @@ const
                 y: y * scale
             };
         },
-        capsule: (shapeId, {scale = 1}) => {
+        capsule: (shapeId, {scale = 1} = {}) => {
             const
                 {radius, center1: {x: ax, y: ay}, center2: {x: bx, y: by}} = platypus.game.box2d.b2Shape_GetCapsule(shapeId);
 
@@ -38,7 +38,7 @@ const
                 type: 'capsule'
             };
         },
-        segment: (shapeId, {scale = 1}) => {
+        segment: (shapeId, {scale = 1} = {}) => {
             const
                 {point1: {x: ax, y: ay}, point2: {x: bx, y: by}} = platypus.game.box2d.b2Shape_GetSegment(shapeId);
 
@@ -54,15 +54,24 @@ const
                 type: 'segment'
             };
         },
-        polygon: (shapeId, {scale = 1}) => {
+        polygon: (shapeId, {scale = 1} = {}) => {
             const
-                {radius, vertices} = platypus.game.box2d.b2Shape_GetPolygon(shapeId);
+                poly = platypus.game.box2d.b2Shape_GetPolygon(shapeId),
+                {count, radius} = poly,
+                points = [];
 
-            return {
-                points: vertices.map(({x, y}) => ({
+            for (let i = 0; i < count; i++) {
+                const
+                    {x, y} = poly.GetVertex(i);
+
+                points.push({
                     x: x * scale,
                     y: y * scale
-                })),
+                });
+            }
+
+            return {
+                points,
                 radius: radius * scale,
                 type: 'polygon'
             };

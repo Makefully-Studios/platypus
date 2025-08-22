@@ -47,7 +47,7 @@ export default class Capsule extends Segment {
             this.radius = radius;
         } else {
             super.initialize(options);
-            this.radius = options.radius;
+            this.radius = options.radius ?? 0;
         }
     }
 

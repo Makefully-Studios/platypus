@@ -7,57 +7,42 @@ import castToPixiGraphics from './castToPixiGraphics';
 import castToBox2D from './castToBox2D';
 
 const
-    ORIGIN = {x: 0, y: 0},
     PI2 = Math.PI * 2;
 
 export default class Point {
     constructor (options) {
         this.type = 'point';
         this.registration = new Vector();
-        Object.defineProperties(this, {
-            rotation: {
-                get () {
-                    return (this.revolutions * PI2) % PI2;
-                }
-            },
-            x: {
-                get () {
-                    const
-                        {parent, registration: {x, y}, revolutions = 0} = this;
-
-                    if (revolutions) {
-                        const
-                            {cos, sin} = this.getSinCos();
-
-                        return parent.x + x * cos - y * sin;
-                    } else {
-                        return parent.x + x;
-                    }
-                }
-            },
-            y: {
-                get () {
-                    const
-                        {parent, registration: {x, y}, revolutions = 0} = this;
-
-                    if (revolutions) {
-                        const
-                            {cos, sin} = this.getSinCos();
-
-                        return parent.y + x * sin + y * cos;
-                    } else {
-                        return parent.y + y;
-                    }
-                }
-            }
-        });
         this.initialize(options);
     }
 
-    initialize ({parent, revolutions, rotation, x = 0, y = 0}) {
-        this.parent = parent ?? ORIGIN;
-        this.registration.x = x;
-        this.registration.y = y;
+    get rotation () {
+        return (this.revolutions * PI2) % PI2;
+    }
+
+    set rotation (rotation) {
+        this.revolutions = rotation / PI2;
+    }
+
+    get x () {
+        return this.registration.x;
+    }
+
+    set x (x) {
+        this.moveX(x);
+    }
+
+    get y () {
+        return this.registration.y;
+    }
+
+    set y (y) {
+        this.moveY(y);
+    }
+
+    initialize ({revolutions, rotation = 0, x = 0, y = 0}) {
+        this.moveX(x);
+        this.moveY(y);
         this.revolutions = revolutions ?? (rotation / PI2);
     }
 
@@ -90,8 +75,56 @@ export default class Point {
     }
 
     move ({x, y}) {
+        this.moveX(x);
+        this.moveY(y);
+    }
+
+    moveX (x) {
         this.registration.x = x;
+    }
+
+    moveY (y) {
         this.registration.y = y;
+    }
+
+    shift ({x, y}) {
+        this.shiftX(x);
+        this.shiftY(y);
+    }
+
+    shiftX (x) {
+        this.moveX(this.x + x);
+    }
+
+    shiftY (y) {
+        this.moveY(this.y + y);
+    }
+
+    checkVisibility (shapes) {
+        const
+            segments = shapes.reduce((list, shape) => {
+                const
+                    {segments} = shape;
+
+                if (segments) {
+                    list.push(...segments);
+                } else {
+                    list.push(shape)
+                }
+
+                return list;
+            }, []);
+
+        return segments.filter((seg) => {
+            // Midpoint of segment
+            const
+                mid = seg.a && seg.b ? {
+                    x: (seg.a.x + seg.b.x) / 2,
+                    y: (seg.a.y + seg.b.y) / 2
+                } : seg;
+
+            return !segments.some((blocker) => (seg !== blocker) && blocker.intersects?.({a: this, b: mid}));
+        });
     }
 
     getClosestPoints (shape, offset) {
@@ -102,7 +135,7 @@ export default class Point {
             const
                 offsetShape = shape.duplicate();
 
-            offsetShape.move(offset);
+            offsetShape.shift(offset);
             closestPoints = checkPointsMap[offsetShape.type]?.[this.type]?.(offsetShape, this) ?? null;
             //TODO: discard/recycle shape
         } else {
