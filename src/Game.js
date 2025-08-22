@@ -200,10 +200,14 @@ class Game extends Messenger {
             loadSpringroll = ({
                 disablePause = false,
                 features = {
-                    sfx: true,
+                    sound: true,
                     vo: true,
                     music: true,
-                    sound: true,
+                    sfx: true,
+                    soundVolume: true,
+                    voVolume: true, 
+                    musicVolume: true,
+                    sfxVolume: true,
                     captions: true
                 },
                 name,
