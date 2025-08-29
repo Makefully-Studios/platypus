@@ -12,10 +12,11 @@ const
         }
         return gfx;
     },
+    getGraphics = ({graphics}) => graphics ?? new Graphics(),
     castFrom = {
         circle: (shape, options) => {
             const
-                gfx = new Graphics(),
+                gfx = getGraphics(options),
                 {radius} = shape,
                 {scale = 1} = options,
                 {x, y} = adjustedXY(shape, options);
@@ -26,7 +27,7 @@ const
         },
         ellipse: (shape, options) => {
             const
-                gfx = new Graphics(),
+                gfx = getGraphics(options),
                 {halfHeight, halfWidth} = shape,
                 {scale = 1} = options,
                 {x, y} = adjustedXY(shape, options);
@@ -37,7 +38,7 @@ const
         },
         point: (shape, options) => {
             const
-                gfx = new Graphics(),
+                gfx = getGraphics(options),
                 {scale = 1} = options,
                 {x, y} = adjustedXY(shape, options);
 
@@ -47,7 +48,7 @@ const
         },
         polygon: (shape, options) => {
             const
-                gfx = new Graphics();
+                gfx = getGraphics(options);
 
             gfx.poly(shape.points.map((point) => adjustedXY(point, options)), true);
 
@@ -55,7 +56,7 @@ const
         },
         polyline: (shape, options) => {
             const
-                gfx = new Graphics();
+                gfx = getGraphics(options);
 
             gfx.poly(shape.points.map((point) => adjustedXY(point, options)), false);
 
@@ -63,7 +64,7 @@ const
         },
         rectangle: (shape, options) => {
             const
-                gfx = new Graphics(),
+                gfx = getGraphics(options),
                 {height, width} = shape,
                 {scale = 1} = options,
                 {x, y} = adjustedXY(shape, options);
@@ -74,7 +75,7 @@ const
         },
         roundedRectangle: (shape, options) => {
             const
-                gfx = new Graphics(),
+                gfx = getGraphics(options),
                 {height, radius, width} = shape,
                 {scale = 1} = options,
                 {x, y} = adjustedXY(shape, options);
