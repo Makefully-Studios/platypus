@@ -6,6 +6,7 @@ export default class Segment extends Point {
         super(...args);
         this.type = 'segment';
         this._points = null;
+        this._revolutions = 0;
     }
 
     get a () {
@@ -37,6 +38,17 @@ export default class Segment extends Point {
             }
         }
         return this._points;
+    }
+
+    get revolutions () {
+        return this._revolutions;
+    }
+
+    set revolutions (revolutions) {
+        if (this._revolutions !== revolutions) {
+            this._points = null; // need to recalculate if they exist.
+            this._revolutions = revolutions;
+        }
     }
 
     get vectors () {
