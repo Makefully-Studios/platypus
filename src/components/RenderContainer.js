@@ -10,15 +10,6 @@ import {greenSplit} from '../utils/string.js';
 
 const
     pixiMatrix = new Matrix(),
-    castValue = function (color) {
-        if (color === null) {
-            return color;
-        }
-        if ((typeof color === 'string') && (color[0] === '#')) {
-            color = '0x' + color.substring(1);
-        }
-        return +color;
-    },
     magSqr = function (x, y) {
         return x * x + y * y;
     },
@@ -389,7 +380,7 @@ export default createComponentClass(/** @lends platypus.components.RenderContain
                 return container.tint;
             }.bind(this),
             set: function (value) {
-                container.tint = castValue(value);
+                container.tint = value;
             }.bind(this)
         });
     

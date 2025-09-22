@@ -308,7 +308,8 @@ const
     formatPropertyObject = function ({name, value, type}, entityLinker) {
         switch (type) {
         case 'color':
-            break;
+            // Convert ARGB to RGBA
+            return `#${value.substring(3)}${value.substring(1, 3)}`;
         case 'object':
             if (entityLinker && value !== 0) {
                 return entityLinker.getEntity(value, name); // if unfound, entityLinker saves this request and will try to fulfill it once the entity is added.
