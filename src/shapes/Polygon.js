@@ -67,7 +67,7 @@ export default class Polygon extends Polyline {
             breakAtMaxSize = min + max - SHARED_VERTICES,
             arr = [],
             convexPolygons = this.decompose() ?? [this]; // break into convex polygons if not already, since splitting a concave polygon could create polygon comprised of non-matching shapes.
-        let altSide = -1;
+        let altSide = 0;
 
         convexPolygons.forEach((polygon) => {
             const
@@ -77,7 +77,8 @@ export default class Polygon extends Polyline {
             while (length > max) {
                 const
                     count = (length >= breakAtMaxSize) ? max : Math.ceil(length / 2),
-                    breakOff = points.splice(altSide * (count - SHARED_VERTICES));
+                    deleteCount = count - SHARED_VERTICES,
+                    breakOff = points.splice((altSide - 1) * deleteCount, altSide ? deleteCount : Infinity);
 
                 breakOff.push(points[points.length - 1], points[0]);
                 
@@ -85,7 +86,7 @@ export default class Polygon extends Polyline {
                     points: breakOff
                 }));
 
-                altSide = -altSide;
+                altSide = 1 - altSide;
                 length = points.length;
             }
 
