@@ -1,6 +1,9 @@
 import Point from './Point';
 import Vector from '../Vector';
 
+const
+    EPSILON = 1e-10;
+
 export default class Segment extends Point {
     constructor (...args) {
         super(...args);
@@ -98,6 +101,69 @@ export default class Segment extends Point {
         return ccw(a, c, d) !== ccw(b, c, d) && ccw(a, b, c) !== ccw(a, b, d);
     }
 
+    getIntersection (segment, {intersectsLine = false, segmentIsLine = false}) {
+        // Solve line intersection using determinants
+        const
+            {a, b} = this,
+            {a: c, b: d} = segment,
+            dabx = a.x - b.x,
+            daby = a.y - b.y,
+            dcdx = c.x - d.x,
+            dcdy = c.y - d.y,
+            det = dabx * dcdy - daby * dcdx;
+
+        if (Math.abs(det) < EPSILON) {
+            return null; // parallel or coincident
+        } else {
+            const
+                projection = (a, b, v) => (a.x - b.x) * v.x + (a.y - b.y) * v.y,
+                daxbyaybx = a.x * b.y - a.y * b.x,
+                dcxdycydx = c.x * d.y - c.y * d.x,
+                xy = new Point({
+                    x: (daxbyaybx * dcdx - dabx * dcxdycydx) / det,
+                    y: (daxbyaybx * dcdy - daby * dcxdycydx) / det
+                });
+
+            if (!intersectsLine) {
+                const
+                    v = this.getVector(),
+                    proj = projection(xy, a, v),
+                    min = Math.min(0, projection(b, a, v)),
+                    max = Math.max(0, projection(b, a, v));
+
+                v.recycle();
+
+                if (proj < min - EPSILON || proj > max + EPSILON) {
+                    return null;
+                }
+            }
+
+            // Clamp against "segment" unless infinite
+            if (!segmentIsLine) {
+                const
+                    v = segment.getVector(),
+                    proj = projection(xy, c, v),
+                    min = Math.min(0, projection(d, c, v)),
+                    max = Math.max(0, projection(d, c, v));
+
+                v.recycle();
+
+                if (proj < min - EPSILON || proj > max + EPSILON) {
+                    return null;
+                }
+            }
+
+            return xy;
+        }
+    }
+
+    getVector () {
+        const
+            {a, b} = this;
+
+        return Vector.setUp(b.x - a.x, b.y - a.y);
+    }
+
     duplicate () {
         return new Segment(this);
     }
@@ -110,6 +176,113 @@ export default class Segment extends Point {
     moveY (y) {
         super.moveY(y);
         this._points = null;
+    }
+
+    reflect (point) {
+        const
+            {a, b} = this,
+            segment = Vector.setUp(b.x - a.x, b.y - a.y),
+            aToPoint = Vector.setUp(point.x - a.x, point.y - a.y),
+            dot = segment.x * aToPoint.x + segment.y * aToPoint.y,
+            segmentSqr = segment.x * segment.x + segment.y * segment.y,
+            projectionFactor = dot / segmentSqr,
+            projectionOfPoint = Vector.setUp(a.x + projectionFactor * segment.x, a.y + projectionFactor * segment.y),
+            reflection = new Point({
+                x: 2 * projectionOfPoint.x - point.x,
+                y: 2 * projectionOfPoint.y - point.y
+            });
+
+        segment.recycle();
+        aToPoint.recycle();
+        projectionOfPoint.recycle();
+
+        return reflection;
+    }
+
+    isCollinear (segment, {epsilon = EPSILON} = {}) {
+        const
+            {a, b} = this,
+            {a: c, b: d} = segment,
+            orient = (p, q, r) => (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y),
+            aOrient = orient(c, d, a),
+            bOrient = orient(c, d, b);
+
+        return Math.abs(aOrient) < epsilon && Math.abs(bOrient) < epsilon;
+    }
+
+    bisect (segment, options) {
+        const
+            {a, b} = this,
+            {a: c, b: d} = segment,
+            v = segment.getVector(),
+            orient = (p, q, r) => (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y),
+            aOrient = orient(c, d, a),
+            bOrient = orient(c, d, b);
+
+        if (Math.abs(aOrient) < EPSILON && Math.abs(bOrient) < EPSILON) {
+            // collinear bisect
+            const
+                projection = (a) => (a.x - c.x) * v.x + (a.y - c.y) * v.y,
+                magA = projection(a),
+                magB = projection(b),
+                magC = projection(c),
+                magD = projection(d),
+                segmentMin = Math.min(magC, magD),
+                segmentMax = Math.max(magC, magD),
+                myMin = Math.min(magA, magB),
+                myMax = Math.max(magA, magB);
+
+            if (myMax < segmentMin) {
+                return [this, null];
+            } else if (myMin > segmentMax) {
+                return [null, this];
+            } else if (myMin >= segmentMin && myMax <= segmentMax) {
+                return [null, null]
+            } else {
+                // using unnormalized projection, so divide by |v|²
+                const
+                    len2 = v.x * v.x + v.y * v.y;
+
+                return [
+                    magA < segmentMin ? new Segment({
+                        a,
+                        b: {
+                            x: c.x + (segmentMin / len2) * v.x,
+                            y: c.y + (segmentMin / len2) * v.y
+                        }
+                    }) : null,
+                    magB > segmentMax ? new Segment({
+                        a: {
+                            x: c.x + (segmentMax / len2) * v.x,
+                            y: c.y + (segmentMax / len2) * v.y
+                        },
+                        b
+                    }) : null
+                ]
+            }
+        } else if (aOrient > -EPSILON && bOrient > -EPSILON) {
+            return [this, null];
+        } else if (aOrient < EPSILON && bOrient < EPSILON) {
+            return [null, this];
+        } else {
+            const
+                intersection = this.getIntersection(segment, options);
+
+            if (!intersection) {
+                 // no split, return identity
+                if (aOrient > 0) {
+                    return [this, null];
+                } else {
+                    return [null, this];
+                }
+            } else {
+                const
+                    left = new Segment({a, b: intersection}),
+                    right = new Segment({a: intersection, b});
+
+                return aOrient > 0 ? [left, right] : [right, left];
+            }
+        }
     }
 
     toArray (local = false) {
