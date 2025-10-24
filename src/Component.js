@@ -133,6 +133,35 @@ export default class Component {
     }
 
     /**
+     * This method adds one or more event listeners to the entity and returns a teardown function.
+     *
+     * @method platypus.Component#addEventListener
+     * @param eventsObject {Object} Key/value pairs with event names for keys and handlers as values.
+     * @return {Function} Handler teardown function.
+     * @private
+     */
+    addEventListeners (eventsObject) {
+        const
+            {owner} = this,
+            {parent} = owner,
+            tds = Object.keys(eventsObject).map((key) => {
+                const
+                    handler = this.addEventListener(key, eventsObject[key]);
+
+                return () => this.removeEventListener(key, handler);
+            });
+
+        if (owner.state.get('loaded')) {
+            parent.triggerEvent?.('child-entity-updated', owner);
+        }
+
+        return () => {
+            tds.forEach((td) => td());
+            parent.triggerEvent?.('child-entity-updated', owner);
+        };
+    }
+
+    /**
      * This method adds a method to the entity.
      *
      * @method platypus.Component#addMethod
