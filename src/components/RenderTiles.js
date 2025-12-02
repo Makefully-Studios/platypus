@@ -177,6 +177,15 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
         maximumBuffer: 2048,
 
         /**
+         * The acceptable buffer between camera viewport and cached tiles. This is needed when the camera contents are skewed or rotated to prevent cropping before refresh need is detected.
+         *
+         * @property refreshBuffer
+         * @type number
+         * @default 0
+         */
+        refreshBuffer: 0,
+
+        /**
          * The x-scale the tilemap is being displayed at.
          *
          * @property scaleX
@@ -474,7 +483,7 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
             return createTeardown(this, {
                 'camera-update': function (camera) {
                     const
-                        {cacheClipHeight, cacheClipWidth, cacheGrid, cachePixels, laxCam, left, top} = this,
+                        {cacheClipHeight, cacheClipWidth, cacheGrid, cachePixels, laxCam, left, refreshBuffer, top} = this,
                         {viewport: vp} = camera;
                         
                     this.convertCamera(vp);
@@ -493,8 +502,8 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
                             }
                             
                             if (sprite.visible && inFrame) {
-                                sprite.x = vp.left - laxCam.left + x * cacheClipWidth + left;
-                                sprite.y = vp.top  - laxCam.top  + y * cacheClipHeight + top;
+                                sprite.x = vp.left - laxCam.left - refreshBuffer + x * cacheClipWidth + left;
+                                sprite.y = vp.top  - laxCam.top  - refreshBuffer + y * cacheClipHeight + top;
                             }
                         });
                     });
@@ -556,9 +565,9 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
             return createTeardown(this, {
                 'camera-update': function (camera) {
                     const
-                        {buffer, cache, cachePixels, laxCam} = this,
+                        {buffer, cache, cachePixels, laxCam, refreshBuffer} = this,
                         {viewport: vp} = camera,
-                        resized = (buffer && ((vp.width !== laxCam.width) || (vp.height !== laxCam.height))),
+                        resized = (buffer && ((vp.width + refreshBuffer !== laxCam.width) || (vp.height + refreshBuffer !== laxCam.height))),
                         tempC   = tempCache;
 
                     this.convertCamera(vp);
@@ -606,8 +615,8 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
                         cachePixels.setAll((cache.x + 0.5) * this.tileWidth + this.left, (cache.y + 0.5) * this.tileHeight + this.top, (cache.width + 1) * this.tileWidth, (cache.height + 1) * this.tileHeight);
                     }
 
-                    this.tilesSprite.x = vp.left - laxCam.left + cache.left * this.tileWidth + this.left;
-                    this.tilesSprite.y = vp.top  - laxCam.top  + cache.top  * this.tileHeight + this.top;
+                    this.tilesSprite.x = vp.left - laxCam.left - refreshBuffer + cache.left * this.tileWidth + this.left;
+                    this.tilesSprite.y = vp.top  - laxCam.top  - refreshBuffer + cache.top  * this.tileHeight + this.top;
                 },
                 'handle-render': function () {
                     if (this.updateCache) {
@@ -639,9 +648,9 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
             return createTeardown(this, {
                 'camera-update': function (camera) {
                     const
-                        {buffer, cache, cachePixels, laxCam} = this,
+                        {buffer, cache, cachePixels, laxCam, refreshBuffer} = this,
                         {viewport: vp} = camera,
-                        resized = (buffer && ((vp.width !== laxCam.width) || (vp.height !== laxCam.height))),
+                        resized = (buffer && ((vp.width + refreshBuffer !== laxCam.width) || (vp.height + refreshBuffer !== laxCam.height))),
                         tempC   = tempCache;
 
                     this.convertCamera(vp);
@@ -768,11 +777,13 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
 
         convertCamera: function (camera) {
             const
-                {layerHeight, layerWidth, laxCam, left, scaleX, scaleY, top, worldHeight, worldWidth} = this,
+                {layerHeight, layerWidth, laxCam, left, refreshBuffer, scaleX, scaleY, top, worldHeight, worldWidth} = this,
                 scaledWorldWidth = worldWidth / scaleX,
                 worldPosX = scaledWorldWidth - camera.width,
                 scaledWorldHeight = worldHeight / scaleY,
-                worldPosY = scaledWorldHeight - camera.height;
+                worldPosY = scaledWorldHeight - camera.height,
+                buffedWidth = camera.width + refreshBuffer * 2,
+                buffedHeight = camera.height + refreshBuffer * 2;
 
             if ((scaledWorldWidth === layerWidth) || !worldPosX) {
                 laxCam.moveX(camera.x);
@@ -786,8 +797,8 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
                 laxCam.moveY((camera.top - top) * (layerHeight - camera.height) / worldPosY + camera.halfHeight + top);
             }
 
-            if (camera.width !== laxCam.width || camera.height !== laxCam.height) {
-                laxCam.resize(camera.width, camera.height);
+            if (buffedWidth !== laxCam.width || buffedHeight !== laxCam.height) {
+                laxCam.resize(buffedWidth, buffedHeight);
             }
         },
 
