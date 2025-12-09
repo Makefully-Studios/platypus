@@ -1,7 +1,7 @@
-import {Circle, Polygon, Rectangle} from 'pixi.js';
 import Data from '../Data.js';
 import createComponentClass from '../factory.js';
 import {arrayCache} from '../utils/array.js';
+import {shapeFromObject, shapeToPixiShape} from '../shapes/index.js';
 
 const
     savedHitAreas = {}; //So generated hitAreas are reused across identical entities.
@@ -429,20 +429,26 @@ export default createComponentClass(/** @lends platypus.components.Interactive.p
 
         setHitArea (shape) {
             if (shape) {
-                const
+                let sav = '',
+                    ha = null;
+
+                try {
                     sav = JSON.stringify(shape);
-                let ha = savedHitAreas[sav];
+                    ha = savedHitAreas[sav];
+                } catch (e) {}
 
                 if (!ha) {
-                    if (Array.isArray(shape)) {
-                        ha = new Polygon(shape);
-                    } else if (shape.radius) {
-                        ha = new Circle(shape.x ?? 0, shape.y ?? 0, shape.radius);
-                    } else {
-                        ha = new Rectangle(shape.x ?? 0, shape.y ?? 0, shape.width ?? this.owner.width ?? 0, shape.height ?? this.owner.height ?? 0);
-                    }
+                    const
+                        definition = Array.isArray(shape) ? {
+                            type: 'polygon',
+                            points: shape
+                        } : shape;
+
+                    ha = shapeToPixiShape(shapeFromObject(definition));
                     
-                    savedHitAreas[sav] = ha;
+                    if (sav) { // can't save if we don't have a valid id
+                        savedHitAreas[sav] = ha;
+                    }
                 }
                 
                 return ha;
