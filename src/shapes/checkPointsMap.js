@@ -17,6 +17,44 @@ const
             }
         }
     },
+    subtractRadiusA = ({a, b, distance, list, intersects = false}) => {
+        const
+            {radius} = a;
+
+        if (radius >= distance) {
+            return {a: b, b, distance: 0, intersects: true};
+        } else {
+            const
+                outerDistance = distance - radius,
+                r = outerDistance / distance;
+
+            if (list) {
+                const
+                    offsetList = list.map(({a, b}) => ({a: {
+                        x: b.x + (a.x - b.x) * r,
+                        y: b.y + (a.y - b.y) * r
+                    }, b}));
+
+                return {
+                    a: offsetList[0],
+                    b,
+                    distance: outerDistance,
+                    list: offsetList,
+                    intersects
+                };
+            } else {
+                return {
+                    a: {
+                        x: b.x + (a.x - b.x) * r,
+                        y: b.y + (a.y - b.y) * r,
+                    },
+                    b,
+                    distance: outerDistance,
+                    intersects
+                };
+            }
+        }
+    },
     subtractRadiusB = ({a, b, distance, list, intersects = false}) => {
         const
             {radius} = b;
@@ -55,7 +93,6 @@ const
             }
         }
     },
-    subtractRadiusA = (resp) => swap(subtractRadiusB(swap(resp))),
     subtractRadii = (resp) => subtractRadiusA(subtractRadiusB(resp)),
     polySegmentLoop = (shape, poly, test) => {
         const closest = [];
