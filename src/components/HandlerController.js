@@ -43,6 +43,10 @@ const
         this.triggerControlAction(event.code, 'down', event);
 
         updatePrecedence(type);
+
+        if (this.upOnBlur) {
+            this.upsToBlur.push(event.code);
+        }
     },
     onUp = function (type, event) {
         /**
@@ -54,6 +58,15 @@ const
         this.triggerControlAction(event.code, 'up', event);
 
         updatePrecedence(type);
+
+        if (this.upOnBlur) {
+            const
+                i = this.upsToBlur.indexOf(event.code);
+            
+            if (i >= 0) {
+                this.upsToBlur.splice(i, 1);
+            }
+        }
     },
     onChange = function (type, event) {
         /**
@@ -118,6 +131,15 @@ export default createComponentClass(/** @lends platypus.components.HandlerContro
         useHandleLogic: false,
 
         /**
+         * Whether blur events should cause key release.
+         * 
+         * @property upOnBlur
+         * @type Boolean
+         * @default true
+         */
+        upOnBlur: true,
+
+        /**
          * Which default key events should be allowed. Defaults to 'none'. May be 'none', 'all', or an array of allowed keys.
          * 
          * @property enableDefaultEvents
@@ -150,6 +172,8 @@ export default createComponentClass(/** @lends platypus.components.HandlerContro
         const
             {enableDefaultEvents} = this;
 
+        this.upsToBlur = [];
+
         if (platypus.game.settings.debug || enableDefaultEvents === 'all') { // If this is a test build, leave in the browser key combinations so debug tools can be opened as expected.
             this.callbackKeyDown = onDown.bind(this, 'keyboard');
             this.callbackKeyUp = onUp.bind(this, 'keyboard');
@@ -166,7 +190,7 @@ export default createComponentClass(/** @lends platypus.components.HandlerContro
                 preventDefault(event);
             };
         }
-        
+
         window.addEventListener('keydown', this.callbackKeyDown, true);
         window.addEventListener('keyup',   this.callbackKeyUp,   true);
 
@@ -211,9 +235,18 @@ export default createComponentClass(/** @lends platypus.components.HandlerContro
                     delete detectInvalids[key];
                 }
             }.bind(platypus.game));
+            window.addEventListener('blur', () => {
+                platypus.game.triggerOnChildren('blur-control');
+            });
         }
     },
     events: {
+        'blur-control': function (event) {
+            if (this.upOnBlur) {
+                this.upsToBlur.forEach((upToBlur) => this.triggerControlAction(upToBlur, 'up', event));
+                this.upsToBlur.length = 0;
+            }
+        },
         'invalid-input': function (input) {
             this.owner.triggerEventOnChildren('invalid-input', input);
         },
