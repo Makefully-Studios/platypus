@@ -245,7 +245,7 @@ export default createComponentClass(/** @lends platypus.components.LogicDragDrop
                 if (this.stayInViewport) {
                     this.checkCamera();
                 }
-                if (sticking && (Math.pow(this.nextX - sticking.x, 2) + Math.pow(this.nextY - sticking.y, 2) > Math.pow(stickiness, 2))) {
+                if (sticking && (((this.nextX - sticking.x) ** 2) + ((this.nextY - sticking.y) ** 2) > stickiness ** 2)) {
                     this.sticking = null;
                 }
                 

@@ -9,7 +9,6 @@ const
             hh = rectAabb.halfHeight,
             hw = rectAabb.halfWidth,
             abs = Math.abs,
-            pow = Math.pow,
             shapeDistanceX = abs(circle.x - rect.x),
             shapeDistanceY = abs(circle.y - rect.y),
             radius = circle.radius;
@@ -19,15 +18,12 @@ const
             - Is the x or y distance between the shapes greater than the half width/height plus the radius of the circle? Then we know they're not colliding.
             - Otherwise, we check the distance between a corner of the rectangle and the center of the circle. If that distance is less than the radius of the circle, we know that there is a collision; otherwise there is not.
         */
-        return (shapeDistanceX < hw) || (shapeDistanceY < hh) || ((shapeDistanceX < (hw + radius)) && (shapeDistanceY < (hh + radius)) && ((pow((shapeDistanceX - hw), 2) + pow((shapeDistanceY - hh), 2)) < pow(radius, 2)));
+        return (shapeDistanceX < hw) || (shapeDistanceY < hh) || ((shapeDistanceX < (hw + radius)) && (shapeDistanceY < (hh + radius)) && ((((shapeDistanceX - hw) ** 2) + ((shapeDistanceY - hh) ** 2)) < radius ** 2));
     },
     collidesCircle = function (shape) {
-        const
-            pow = Math.pow;
-        
         return this.aABB.collides(shape.aABB) && (
             ((shape.type === 'rectangle') && circleRectCollision(this, shape)) ||
-            ((shape.type === 'circle')    && ((pow((this.x - shape.x), 2) + pow((this.y - shape.y), 2)) <= pow((this.radius + shape.radius), 2)))
+            ((shape.type === 'circle')    && ((((this.x - shape.x) ** 2) + ((this.y - shape.y) ** 2)) <= ((this.radius + shape.radius) ** 2)))
         );
     },
     collidesDefault = function () {
@@ -249,12 +245,9 @@ proto.multiply = function (m) {
  * @return {boolean} Returns `true` if this shape contains the point.
  */
 proto.containsPoint = function (x, y) {
-    const
-        pow = Math.pow;
-
     return this.aABB.containsPoint(x, y) && (
         (this.type === 'rectangle') ||
-        ((this.type === 'circle') && ((pow((this.x - x), 2) + pow((this.y - y), 2)) <= pow(this.radius, 2)))
+        ((this.type === 'circle') && ((((this.x - x) ** 2) + ((this.y - y) ** 2)) <= this.radius ** 2))
     );
 };
 

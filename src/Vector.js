@@ -220,7 +220,7 @@ export default (function () {
         dimensions = dimensions || this.matrix.length;
 
         for (x = 0; x < dimensions; x++) {
-            squares += Math.pow(this.matrix[x], 2);
+            squares += this.matrix[x] ** 2;
         }
 
         return squares;

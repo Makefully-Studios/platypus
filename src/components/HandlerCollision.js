@@ -740,12 +740,7 @@ export default createComponentClass(/** @lends platypus.components.HandlerCollis
                     position: 0,
                     contactVector: Vector.setUp()
                 },
-                getMovementDistance = function (currentDistance, minimumDistance) {
-                    const
-                        pow = Math.pow;
-                    
-                    return Math.sqrt(pow(minimumDistance, 2) - pow(currentDistance, 2));
-                },
+                getMovementDistance = (currentDistance, minimumDistance) => Math.sqrt((minimumDistance ** 2) - (currentDistance ** 2)),
                 getCorner = function (circlePos, rectanglePos, half) {
                     const
                         diff = circlePos - rectanglePos;
