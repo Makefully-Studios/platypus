@@ -16,6 +16,15 @@ export default class Circle extends Point {
         return new Circle(this);
     }
 
+    isPointInside ({x, y}, epsilon = 1e-6) {
+        const
+            {registration} = this,
+            dx = x - registration.x,
+            dy = y - registration.y;
+
+        return (dx * dx + dy * dy) <= (this.radius + epsilon) ** 2;
+    }
+
     toObject (options) {
         const
             {radius, type} = this,
