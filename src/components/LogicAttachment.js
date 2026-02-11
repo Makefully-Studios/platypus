@@ -149,51 +149,53 @@ export default  createComponentClass(/** @lends platypus.components.LogicAttachm
             const
                 {attachmentPosition, owner, state, updateProperties} = this;
 
-            if (this.isAttached) {
-                if (!this.attachment) {
-                    updateProperties.forEach((property) => attachmentPosition[property] = owner[property]);
-                    this.attachment = this.owner.parent.addEntity(this.attachmentProperties);
+            if (!owner.destroyed) {
+                if (this.isAttached) {
+                    if (!this.attachment) {
+                        updateProperties.forEach((property) => attachmentPosition[property] = owner[property]);
+                        this.attachment = this.owner.parent.addEntity(this.attachmentProperties);
+                    }
+                    
+                    if (this.attachment.destroyed) {
+                        owner.parent.removeEntity(this.attachment);
+                        this.attachment = null;
+                        this.isAttached = false;
+                    } else {
+                        // New way (gets overridden by old way atm):
+                        updateProperties.forEach((property) => this.attachment[property] = owner[property]);
+
+                        // Old way:
+                        let
+                            {offsetX, offsetY} = this;
+
+                        this.attachment.x = owner.x;
+                        if (state.get('left')) { //TODO: Base this on object orientation. - DDD 3/2/2016
+                            offsetX *= -1;
+                            this.attachment.rotation = 180;
+                        } else if (state.get('right')) {
+                            this.attachment.rotation = 0;
+                        }
+                        this.attachment.x += offsetX;
+
+                        this.attachment.y = owner.y;
+                        if (state.get('top')) {
+                            offsetY *= -1;
+                            this.attachment.rotation = 90;
+                        } else if (state.get('bottom')) {
+                            this.attachment.rotation = -90;
+                        }
+                        this.attachment.y += offsetY;
+
+                        this.attachment.z = owner.z;
+                        this.attachment.z += this.offsetZ;
+                    }
+                } else if (this.attachment) {
+                    this.owner.parent.removeEntity(this.attachment);
+                    this.attachment = null;
                 }
                 
-                if (this.attachment.destroyed) {
-                    owner.parent.removeEntity(this.attachment);
-                    this.attachment = null;
-                    this.isAttached = false;
-                } else {
-                    // New way (gets overridden by old way atm):
-                    updateProperties.forEach((property) => this.attachment[property] = owner[property]);
-
-                    // Old way:
-                    let
-                        {offsetX, offsetY} = this;
-
-                    this.attachment.x = owner.x;
-                    if (state.get('left')) { //TODO: Base this on object orientation. - DDD 3/2/2016
-                        offsetX *= -1;
-                        this.attachment.rotation = 180;
-                    } else if (state.get('right')) {
-                        this.attachment.rotation = 0;
-                    }
-                    this.attachment.x += offsetX;
-
-                    this.attachment.y = owner.y;
-                    if (state.get('top')) {
-                        offsetY *= -1;
-                        this.attachment.rotation = 90;
-                    } else if (state.get('bottom')) {
-                        this.attachment.rotation = -90;
-                    }
-                    this.attachment.y += offsetY;
-
-                    this.attachment.z = owner.z;
-                    this.attachment.z += this.offsetZ;
-                }
-            } else if (this.attachment) {
-                this.owner.parent.removeEntity(this.attachment);
-                this.attachment = null;
+                state.set(this.attachState, this.isAttached);
             }
-            
-            state.set(this.attachState, this.isAttached);
         },
 
         /**
