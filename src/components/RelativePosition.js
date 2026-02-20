@@ -121,10 +121,8 @@ export default (function () {
 
         events: {
             "handle-logic": function () {
-                var bottom = this.bottom,
-                    left = this.left,
-                    right = this.right,
-                    top = this.top;
+                const
+                    {bottom, left, right, top} = this;
 
                 if ((this.lastBottom !== bottom) || (this.lastLeft !== left) || (this.lastRight !== right) || (this.lastTop !== top)) {
                     this.updatePosition(this.aabb);
@@ -146,11 +144,11 @@ export default (function () {
         
         methods: {// These are internal methods that are invoked by this component.
             checkCamera: function (aabb) {
-                var arr = this.cameraSizes,
-                    i = 0,
+                const
+                    arr = this.cameraSizes,
                     ratio = aabb.width / aabb.height;
 
-                for (i = 0; i < arr.length; i++) {
+                for (let i = 0; i < arr.length; i++) {
                     if (ratio > arr[i].minRatio) {
                         if (i !== this.cameraSizesIndex) {
                             this.updateProperties(arr[i]);
@@ -181,11 +179,8 @@ export default (function () {
             },
 
             updatePosition: function (vp) {
-                var bottom = this.bottom,
-                    left = this.left,
-                    owner = this.owner,
-                    right = this.right,
-                    top = this.top;
+                const
+                    {bottom, left, owner, right, top} = this;
 
                 if (typeof left === 'number') {
                     owner.x = vp.left + left;

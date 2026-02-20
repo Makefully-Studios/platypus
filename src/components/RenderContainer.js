@@ -13,46 +13,45 @@ const
     magSqr = function (x, y) {
         return x * x + y * y;
     },
-    processGraphics = (function () {
-        var process = function (gfx, value) {
-            var i = 0,
-                paren  = value.indexOf('('),
-                func   = value.substring(0, paren),
-                values = value.substring(paren + 1, value.indexOf(')')),
+    process = function (gfx, value) {
+        const
+            paren  = value.indexOf('('),
+            func   = value.substring(0, paren),
+            values = value.substring(paren + 1, value.indexOf(')'));
+
+        if (values.length) {
+            let i = 0,
                 polyRay = false;
 
-            if (values.length) {
-                if (values[0] === '[') {
-                    values = values.substring(1, values.length - 1);
-                    polyRay = true;
-                }
-                values = greenSplit(values, ',');
-                i = values.length;
-                while (i--) {
-                    values[i] = +values[i];
-                }
-                if (polyRay) {
-                    gfx[func](values);
-                } else {
-                    gfx[func].apply(gfx, values);
-                    arrayCache.recycle(values); // cannot recycle polygon above since it's used by the polygon shape.
-                }
+            if (values[0] === '[') {
+                values = values.substring(1, values.length - 1);
+                polyRay = true;
+            }
+            values = greenSplit(values, ',');
+            i = values.length;
+            while (i--) {
+                values[i] = +values[i];
+            }
+            if (polyRay) {
+                gfx[func](values);
             } else {
-                gfx[func]();
+                gfx[func].apply(gfx, values);
+                arrayCache.recycle(values); // cannot recycle polygon above since it's used by the polygon shape.
             }
-        };
+        } else {
+            gfx[func]();
+        }
+    },
+    processGraphics = function (gfx, value) {
+        const
+            arr = greenSplit(value, '.');
 
-        return function (gfx, value) {
-            var i = 0,
-                arr = greenSplit(value, '.');
-
-            for (i = 0; i < arr.length; i++) {
-                process(gfx, arr[i]);
-            }
-            
-            arrayCache.recycle(arr);
-        };
-    }());
+        for (let i = 0; i < arr.length; i++) {
+            process(gfx, arr[i]);
+        }
+        
+        arrayCache.recycle(arr);
+    };
 
 export default createComponentClass(/** @lends platypus.components.RenderContainer.prototype */{
     
@@ -531,7 +530,7 @@ export default createComponentClass(/** @lends platypus.components.RenderContain
         },
         
         setMask: function (shape) {
-            var gfx = null;
+            let gfx = null;
             
             if (this.mask) {
                 if (this.localMask) {

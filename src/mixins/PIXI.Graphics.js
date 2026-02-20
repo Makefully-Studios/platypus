@@ -4,7 +4,7 @@
 import {Graphics} from 'pixi.js';
 
 export default (function () {
-    var gfx = Graphics.prototype;
+    const gfx = Graphics.prototype;
     
     gfx.a  = gfx.a  || gfx.arc;
     gfx.at = gfx.at || gfx.arcTo;

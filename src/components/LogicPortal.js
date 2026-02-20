@@ -27,7 +27,7 @@ export default (function () {
          * @listens platypus.Entity#handle-logic
          */
         initialize: function (definition) {
-            var i = 0,
+            const
                 entrants = definition.entrants || definition.entrant || 'no one',
                 state = this.owner.state;
              
@@ -38,7 +38,7 @@ export default (function () {
 
             this.entrants = DataMap.setUp();
             if (Array.isArray(entrants)) {
-                for (i = 0; i < entrants.length; i++) {
+                for (let i = 0; i < entrants.length; i++) {
                     this.entrants.set(entrants[i], false);
                 }
             } else {
@@ -52,12 +52,12 @@ export default (function () {
         },
         events: {
             "handle-logic": function () {
-                var entrants = this.entrants,
-                    keys = entrants.keys,
-                    i = keys.length,
+                const
+                    {entrants, state} = this,
+                    keys = entrants.keys;
+                let i = keys.length,
                     occupied = false,
-                    ready = true,
-                    state = this.state;
+                    ready = true;
                 
                 if (!this.used && this.activated) {
                     this.owner.triggerEvent("port-" + this.destination);
@@ -85,9 +85,10 @@ export default (function () {
                 this.ready = false;
             },
             "occupied-portal": function (collision) {
-                var entrants = this.entrants,
-                    keys = entrants.keys,
-                    i = keys.length;
+                const
+                    entrants = this.entrants,
+                    keys = entrants.keys;
+                let i = keys.length;
                 
                 entrants.set(collision.entity.type, true);
                 

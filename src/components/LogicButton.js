@@ -170,7 +170,8 @@ export default (function () {
          * @fires platypus.Entity#released
          */
         initialize: function () {
-            var state = this.owner.state;
+            const
+                {state} = this.owner;
             
             this.aabb = AABB.setUp();
             this.lastBottom = null;
@@ -197,10 +198,8 @@ export default (function () {
 
         events: {
             "handle-logic": function () {
-                var bottom = this.bottom,
-                    left = this.left,
-                    right = this.right,
-                    top = this.top;
+                const
+                    {bottom, left, right, top} = this;
 
                 if ((this.lastBottom !== bottom) || (this.lastLeft !== left) || (this.lastRight !== right) || (this.lastTop !== top)) {
                     this.updatePosition(this.aabb);
@@ -357,7 +356,8 @@ export default (function () {
              * @event platypus.Entity#toggle-disabled
              */
             "toggle-disabled": function () {
-                var value = this.state.get('disabled');
+                const
+                    value = this.state.get('disabled');
                 
                 this.owner.container.cursor = value ? 'pointer': null;
                 this.state.set('disabled', !value);
@@ -387,7 +387,8 @@ export default (function () {
              * @event platypus.Entity#toggle-highlight
              */
             "toggle-highlight": function () {
-                var state = this.state;
+                const
+                    {state} = this;
 
                 state.set('highlighted', !state.get('highlighted'));
             }
@@ -402,11 +403,8 @@ export default (function () {
             },
 
             updatePosition (vp) {
-                var bottom = this.bottom,
-                    left = this.left,
-                    owner = this.owner,
-                    right = this.right,
-                    top = this.top;
+                const
+                    {bottom, left, owner, right, top} = this;
 
                 if (typeof left === 'number') {
                     owner.x = vp.left + left;
@@ -422,12 +420,11 @@ export default (function () {
             },
 
             updateStateAndTrigger (event) {
-                var message = null,
-                    owner = this.owner,
-                    state = this.state,
+                const
+                    {owner, state} = this,
                     pressed = state.get('pressed'),
-                    released = state.get('released'),
-                    toggled = false;
+                    released = state.get('released');
+                let toggled = false;
                 
                 if (released && (event === 'pressed')) {
                     state.set('pressed', true);
@@ -440,12 +437,14 @@ export default (function () {
                 }
 
                 if (toggled) {
-                    message = Data.setUp(
-                        'released', pressed,
-                        'pressed', released,
-                        'triggered', released,
-                        'entity', owner
-                    );
+                    const
+                        message = Data.setUp(
+                            'released', pressed,
+                            'pressed', released,
+                            'triggered', released,
+                            'entity', owner
+                        );
+
                     owner.triggerEvent(event, message);
                     message.recycle();
                 }

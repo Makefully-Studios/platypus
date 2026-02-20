@@ -38,9 +38,8 @@ export default (function () {
          * @listens platypus.Entity#handle-logic
          */
         initialize: function (definition) {
-            var className = this.owner.spawneeClass || definition.spawneeClass,
-                prop = '',
-                x = 0;
+            const
+                className = this.owner.spawneeClass || definition.spawneeClass;
 
             this.state = this.owner.state;
             this.stateName = definition.state || 'spawning';
@@ -59,14 +58,15 @@ export default (function () {
             };
             
             if (definition.passOnProperties) {
-                for (x = 0; x < definition.passOnProperties.length; x++) {
-                    prop = definition.passOnProperties[x];
+                for (let x = 0; x < definition.passOnProperties.length; x++) {
+                    const
+                        prop = definition.passOnProperties[x];
+
                     if (this.owner[prop]) {
                         this.spawneeProperties[prop] = this.owner[prop];
                     }
                 }
             }
-            
             
             this.propertiesContainer = {
                 type: className,
@@ -81,10 +81,12 @@ export default (function () {
 
         events: {// These are messages that this component listens for
             "handle-logic": function () {
-                var offset = 0,
-                    state  = this.state;
+                const
+                    state = this.state;
                 
                 if (this.firing) {
+                    let offset = 0;
+
                     this.spawneeProperties.x = this.owner.x;
                     this.spawneeProperties.y = this.owner.y;
                     this.spawneeProperties.z = this.owner.z + this.originalZ;
@@ -142,7 +144,8 @@ export default (function () {
         },
         
         getAssetList: function (def, props, defaultProps) {
-            var spawn = def.spawneeClass || props.spawneeClass || defaultProps.spawneeClass;
+            const
+                spawn = def?.spawneeClass ?? props?.spawneeClass ?? defaultProps?.spawneeClass;
             
             if (spawn) {
                 return Entity.getAssetList({

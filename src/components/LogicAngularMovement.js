@@ -69,16 +69,13 @@ export default (function () {
         },
 
         events: {
-            "handle-logic": function (tick) {
-                var PI  = Math.PI,
-                    sin = Math.sin,
-                    cos = Math.cos,
-                    min = Math.min,
-                    max = Math.max,
-                    delta        = tick.delta,
-                    currentAngle = 0;
+            "handle-logic": function ({delta}) {
+                const
+                    {PI, sin, cos, min, max} = Math;
                 
                 if (this.moving) {
+                    let currentAngle = 0;
+
                     this.v[0] += this.acceleration * cos(this.angle) * delta;
                     this.v[1] += this.acceleration * sin(this.angle) * delta;
                     if (this.v[0] === 0) {

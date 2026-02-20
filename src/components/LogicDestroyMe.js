@@ -36,11 +36,9 @@ export default (function () {
         initialize: function () {},
         
         events: {
-            "prepare-logic": function (tick) {
-                var dT = tick.delta;
-                
+            "prepare-logic": function ({delta}) {
                 if (this.destroyed && !this.owner.state.get('paused')) {
-                    this.delay -= dT;
+                    this.delay -= delta;
                     if (this.delay <= 0) {
                         this.owner.parent.removeEntity(this.owner);
                     }

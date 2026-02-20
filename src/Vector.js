@@ -15,7 +15,8 @@ export default (function () {
      * @property {number} [y] The y coordinate.
      * @property {number} [z] The z coordinate.
      */
-    var Vector = function (x, y, z) {
+    const
+        Vector = function (x, y, z) {
             if (this.matrix) { // Recycled vectors will already have a matrix array. Resetting x, y, z to 0's to properly handle a set-up array of less than 3 dimensions.
                 this.matrix[0] = 0;
                 this.matrix[1] = 0;
@@ -25,7 +26,10 @@ export default (function () {
             }
             this.set(x, y, z);
         },
-        proto = Vector.prototype;
+        proto = Vector.prototype,
+        UNIT_X_AXIS = new Vector(1, 0, 0),
+        UNIT_Y_AXIS = new Vector(0, 1, 0),
+        UNIT_Z_AXIS = new Vector(0, 0, 1);
     
     /**
      * The x component of the vector.
@@ -119,7 +123,8 @@ export default (function () {
      * @chainable
      */
     proto.setXYZ = function (x, y, z) {
-        var matrix = this.matrix;
+        const
+            {matrix} = this;
         
         matrix[0] = x || 0;
         matrix[1] = y || 0;
@@ -149,8 +154,9 @@ export default (function () {
      * @chainable
      */
     proto.setArray = function (arr, dimensions) {
-        var q = dimensions || arr.length,
-            matrix = this.matrix;
+        const
+            {matrix} = this;
+        let q = dimensions || arr.length;
         
         while (q--) {
             matrix[q] = arr[q];
@@ -169,12 +175,12 @@ export default (function () {
      * @return {Boolean} Whether the vectors are equal.
      */
     proto.equals = function (x, y, z) {
-        var m = null,
-            q = 0,
-            matrix = this.matrix;
+        const
+            {matrix} = this;
         
         if (x && Array.isArray(x)) {   // Passing in an array.
-            q = y || x.length;
+            let q = y || x.length;
+
             while (q--) {
                 if (matrix[q] !== x[q]) {
                     return false;
@@ -182,8 +188,10 @@ export default (function () {
             }
             return true;
         } else if (x && x.matrix) {   // Passing in a vector.
-            m = x.matrix;
-            q = y || m.length;
+            const
+                m = x.matrix;
+            let q = y || m.length;
+
             while (q--) {
                 if (matrix[q] !== m[q]) {
                     return false;
@@ -214,13 +222,14 @@ export default (function () {
      * @return {number} The magnitude squared of the vector.
      */
     proto.magnitudeSquared = function (dimensions) {
-        var squares = 0,
-            x = 0;
+        const
+            {matrix} = this;
+        let squares = 0;
 
-        dimensions = dimensions || this.matrix.length;
+        dimensions = dimensions || matrix.length;
 
-        for (x = 0; x < dimensions; x++) {
-            squares += this.matrix[x] ** 2;
+        for (let x = 0; x < dimensions; x++) {
+            squares += matrix[x] ** 2;
         }
 
         return squares;
@@ -233,8 +242,9 @@ export default (function () {
      * @return {number} The direction of the vector in radians.
      */
     proto.getAngle = function () {
-        var mag   = this.magnitude(2),
-            angle = 0;
+        const
+            mag = this.magnitude(2);
+        let angle = 0;
 
         if (mag !== 0) {
             angle = Math.acos(this.x / mag);
@@ -272,7 +282,8 @@ export default (function () {
      * @chainable
      */
     proto.normalize = function () {
-        var mag = this.magnitude();
+        const
+            mag = this.magnitude();
         
         if (mag === 0) {
             // Ignores attempt to normalize a vector of zero magnitude.
@@ -290,18 +301,18 @@ export default (function () {
      * @chainable
      */
     proto.cross = (function () {
-        var det = function (a, b, c, d) {
-            return a * d - b * c;
-        };
+        const
+            det = function (a, b, c, d) {
+                return a * d - b * c;
+            };
         
-        return function (v) {
-            var tempX = det(this.y, this.z, v.y, v.z),
-                tempY = -det(this.x, this.z, v.x, v.z),
-                tempZ = det(this.x, this.y, v.x, v.y);
-            
-            this.x = tempX;
-            this.y = tempY;
-            this.z = tempZ;
+        return function ({x: vx, y: vy, z: vz}) {
+            const
+                {x, y, z} = this;
+
+            this.x = det(y, z, vy, vz),
+            this.y = -det(x, z, vx, vz),
+            this.z = det(x, y, vx, vy);
             
             return this;
         };
@@ -326,42 +337,19 @@ export default (function () {
      * @param [axis="z"] {String|Vector} A vector describing the axis around which the rotation should occur or 'x', 'y', or 'z'.
      * @chainable
      */
-    proto.rotate = function (angle, axis) {
-        var a    = axis,
-            arr  = null,
+    proto.rotate = function (angle, axis = UNIT_Z_AXIS) {
+        const
+            {x, y, z} = axis === 'x' ? UNIT_X_AXIS : axis === 'y' ? UNIT_Y_AXIS : axis,
             cos  = Math.cos(angle),
             sin  = Math.sin(angle),
             icos = 1 - cos,
-            x    = 0,
-            y    = 0,
-            z    = 0,
-            temp = Vector.setUp();
-        
-        if (a) {
-            if (a === 'x') {
-                a = temp.setXYZ(1, 0, 0);
-            } else if (a === 'y') {
-                a = temp.setXYZ(0, 1, 0);
-            } else if (a === 'z') {
-                a = temp.setXYZ(0, 0, 1);
-            }
-        } else {
-            a = temp.setXYZ(0, 0, 1);
-        }
-        
-        x     = a.x;
-        y     = a.y;
-        z     = a.z;
-        
-        arr = arrayCache.setUp(
-            arrayCache.setUp(    cos + x * x * icos, x * y * icos - z * sin, x * z * icos + y * sin),
-            arrayCache.setUp(y * x * icos + z * sin,     cos + y * y * icos, y * z * icos - x * sin),
-            arrayCache.setUp(z * x * icos - y * sin, z * y * icos + x * sin,     cos + z * z * icos)
-        );
+            arr = arrayCache.setUp(
+                arrayCache.setUp(    cos + x * x * icos, x * y * icos - z * sin, x * z * icos + y * sin),
+                arrayCache.setUp(y * x * icos + z * sin,     cos + y * y * icos, y * z * icos - x * sin),
+                arrayCache.setUp(z * x * icos - y * sin, z * y * icos + x * sin,     cos + z * z * icos)
+            );
         
         this.multiply(arr);
-
-        temp.recycle();
         arrayCache.recycle(arr, 2);
         
         return this;
@@ -435,9 +423,8 @@ export default (function () {
      * @chainable
      */
     proto.add = function (x, y, z) {
-        var addMatrix = x,
-            limit = 0,
-            q = 0;
+        let addMatrix = x,
+            limit = 0;
 
         if (!Array.isArray(addMatrix)) {
             if (addMatrix instanceof Vector) {
@@ -451,7 +438,7 @@ export default (function () {
             limit = y || this.matrix.length;
         }
         
-        for (q = 0; q < limit; q++) {
+        for (let q = 0; q < limit; q++) {
             this.matrix[q] += addMatrix[q];
         }
         
@@ -477,7 +464,8 @@ export default (function () {
      * @chainable
      */
     proto.subtractVector = function (otherVector, dimensions) {
-        var inv = otherVector.getInverse();
+        const
+            inv = otherVector.getInverse();
 
         this.add(inv, dimensions);
         inv.recycle();
@@ -528,13 +516,11 @@ export default (function () {
      * @param limit {number} The number of vector indexes to include in the dot product.
      * @return {number} The dot product.
      */
-    proto.dot = function (otherVector, limit) {
-        var sum = 0,
-            q = 0,
-            m = this.matrix,
-            oM = otherVector.matrix;
-            
-        q = limit || m.length;
+    proto.dot = function ({matrix: oM}, limit) {
+        const
+            {matrix: m} = this;
+        let sum = 0,
+            q = limit || m.length;
         
         while (q--) {
             sum += m[q] * (oM[q] || 0);
@@ -551,9 +537,10 @@ export default (function () {
      * @return {number} The angle between this vector and the received vector.
      */
     proto.angleTo = function (otherVector) {
-        var v1 = this.getUnit(),
-            v2 = otherVector.getUnit(),
-            ang = 0;
+        const
+            v1 = this.getUnit(),
+            v2 = otherVector.getUnit();
+        let ang = 0;
             
         if (v1.magnitude() && v2.magnitude()) { // Probably want a less expensive check here for zero-length vectors.
             ang = Math.acos(v1.dot(v2));
@@ -577,10 +564,11 @@ export default (function () {
      * @return {number} The angle between this vector and the received vector.
      */
     proto.signedAngleTo = function (otherVector, normal) {
-        var v1 = this.getUnit(),
+        const
+            v1 = this.getUnit(),
             v2 = otherVector.getUnit(),
-            v3 = v1.getCrossProduct(v2),
-            ang = 0;
+            v3 = v1.getCrossProduct(v2);
+        let ang = 0;
         
         if (v3.magnitude() === 0) {
             if (v1.x === v2.x && v1.y === v2.y && v1.z === v2.z) {
@@ -610,14 +598,13 @@ export default (function () {
      * @return {number} The magnitude of the projection.
      */
     proto.scalarProjection = function (vectorOrAngle) {
-        var v = null,
-            d = 0;
-        
         if (typeof vectorOrAngle === "number") {
             return this.magnitude(2) * Math.cos(vectorOrAngle);
         } else {
-            v = Vector.setUp(vectorOrAngle).normalize();
-            d = this.dot(v);
+            const
+                v = Vector.setUp(vectorOrAngle).normalize(),
+                d = this.dot(v);
+
             v.recycle();
             return d;
         }
@@ -642,41 +629,40 @@ export default (function () {
      * @param [coordinateName*] {String} One or more parameters describing coordinate values on the object.
      */
     Vector.assign = (function () {
-        var createProperty = function (property, obj, vector, index) {
-            var temp = null,
-                propertyInUse = false;
-            
-            if (typeof property === 'string') {
-                if (typeof obj[property] !== 'undefined') {
-                    temp = obj[property];
-                    delete obj[property];
-                    propertyInUse = true;
+        const
+            createProperty = function (property, obj, vector, index) {
+                let temp = null,
+                    propertyInUse = false;
+                
+                if (typeof property === 'string') {
+                    if (typeof obj[property] !== 'undefined') {
+                        temp = obj[property];
+                        delete obj[property];
+                        propertyInUse = true;
+                    }
                 }
-            }
-            
-            Object.defineProperty(obj, property, {
-                get: function () {
-                    return vector.matrix[index];
-                },
-                set: function (value) {
-                    vector.matrix[index] = value;
-                },
-                enumerable: true
-            });
-            
-            if (propertyInUse) {
-                obj[property] = temp;
-            }
-        };
+                
+                Object.defineProperty(obj, property, {
+                    get: function () {
+                        return vector.matrix[index];
+                    },
+                    set: function (value) {
+                        vector.matrix[index] = value;
+                    },
+                    enumerable: true
+                });
+                
+                if (propertyInUse) {
+                    obj[property] = temp;
+                }
+            };
         
         return function (obj, prop) {
-            var i = 0;
-
             if (obj && prop) {
                 if (!obj[prop]) {
                     obj[prop] = Vector.setUp();
                     
-                    for (i = 2; i < arguments.length; i++) {
+                    for (let i = 2; i < arguments.length; i++) {
                         if (arguments[i] !== prop) {
                             createProperty(arguments[i], obj, obj[prop], i - 2);
                         }

@@ -9,14 +9,14 @@ import {arrayCache} from './array.js';
  * @return Array
  */
 export function greenSplit (str, splitter) {
-    var str = str.toString(),
-        d = 0,
-        i = 0,
+    const
         arr = arrayCache.setUp();
+    let str = str.toString();
     
     if (splitter) {
-        i = str.indexOf(splitter);
-        d = splitter.length;
+        const
+            d = splitter.length;
+        let i = str.indexOf(splitter);
 
         while (i >= 0) {
             arr.push(str.substr(0, i));
@@ -26,8 +26,9 @@ export function greenSplit (str, splitter) {
         
         arr.push(str);
     } else {
-        i = str.length;
-        d = i - 1;
+        let i = str.length;
+        const
+            d = i - 1;
 
         while (i--) {
             arr.push(str[d - i]);

@@ -79,8 +79,9 @@ export default (function () {
 
         events: {
             "handle-logic": function () {
-                var update  = false,
+                const
                     msg = this.message;
+                let update = false;
                 
                 if (this.total !== this.lastTotal) {
                     this.lastTotal = this.total;

@@ -5,7 +5,8 @@ import {arrayCache} from '../utils/array.js';
 import createComponentClass from '../factory.js';
 
 export default (function () {
-    var maskJumpThrough = 0x10000000,
+    const
+        maskJumpThrough = 0x10000000,
         maskRotation = 0x20000000,
         maskXFlip = 0x80000000,
         maskYFlip = 0x40000000,
@@ -70,26 +71,24 @@ export default (function () {
             }
         },
         copySection = function (array, originX, originY, width, height) {
-            var x   = 0,
-                y   = 0,
+            const
                 arr = arrayCache.setUp();
 
-            for (y = 0; y < height; y++) {
+            for (let y = 0; y < height; y++) {
                 arr[y] = arrayCache.setUp();
-                for (x = 0; x < width; x++) {
+                for (let x = 0; x < width; x++) {
                     arr[y][x] = array[originX + x][originY + y];
                 }
             }
             return arr;
         },
         cutSection = function (array, originX, originY, width, height) {
-            var x   = 0,
-                y   = 0,
+            const
                 arr = arrayCache.setUp();
 
-            for (y = 0; y < height; y++) {
+            for (let y = 0; y < height; y++) {
                 arr[y] = arrayCache.setUp();
-                for (x = 0; x < width; x++) {
+                for (let x = 0; x < width; x++) {
                     arr[y][x] = array[originX + x][originY + y];
                     array[originX + x][originY + y] = -1;
                 }
@@ -97,11 +96,8 @@ export default (function () {
             return arr;
         },
         pasteSection = function (destinationArray, sourceArray, originX, originY, width, height) {
-            var x = 0,
-                y = 0;
-
-            for (y = 0; y < height; y++) {
-                for (x = 0; x < width; x++) {
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
                     destinationArray[originX + x][originY + y] = sourceArray[y][x];
                 }
             }
@@ -109,13 +105,12 @@ export default (function () {
         },
         transforms = {
             "diagonal": function (array, originX, originY, width, height) {
-                var arr   = copySection(array, originX, originY, width, height),
-                    fD    = flipDiagonal,
-                    x     = 0,
-                    y     = 0;
+                const
+                    arr = copySection(array, originX, originY, width, height),
+                    fD = flipDiagonal;
 
-                for (x = 0; x < width; x++) {
-                    for (y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    for (let y = 0; y < height; y++) {
                         array[originX + x][originY + y] = fD(arr[x][y]);
                     }
                 }
@@ -123,13 +118,12 @@ export default (function () {
                 return array;
             },
             "diagonal-inverse": function (array, originX, originY, width, height) {
-                var arr   = copySection(array, originX, originY, width, height),
-                    fDI   = flipDiagonalInverse,
-                    x     = 0,
-                    y     = 0;
+                const
+                    arr = copySection(array, originX, originY, width, height),
+                    fDI = flipDiagonalInverse;
 
-                for (x = 0; x < width; x++) {
-                    for (y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    for (let y = 0; y < height; y++) {
                         array[originX + width - x - 1][originY + height - y - 1] = fDI(arr[x][y]);
                     }
                 }
@@ -137,13 +131,12 @@ export default (function () {
                 return array;
             },
             "horizontal": function (array, originX, originY, width, height) {
-                var arr   = copySection(array, originX, originY, width, height),
-                    fX    = flipX,
-                    x     = 0,
-                    y     = 0;
+                const
+                    arr = copySection(array, originX, originY, width, height),
+                    fX = flipX;
 
-                for (y = 0; y < height; y++) {
-                    for (x = 0; x < width; x++) {
+                for (let y = 0; y < height; y++) {
+                    for (let x = 0; x < width; x++) {
                         array[originX + width - x - 1][originY + y] = fX(arr[y][x]);
                     }
                 }
@@ -151,13 +144,12 @@ export default (function () {
                 return array;
             },
             "vertical": function (array, originX, originY, width, height) {
-                var arr   = copySection(array, originX, originY, width, height),
-                    fY    = flipY,
-                    x     = 0,
-                    y     = 0;
+                const
+                    arr = copySection(array, originX, originY, width, height),
+                    fY = flipY;
 
-                for (y = 0; y < height; y++) {
-                    for (x = 0; x < width; x++) {
+                for (let y = 0; y < height; y++) {
+                    for (let x = 0; x < width; x++) {
                         array[originX + x][originY + height - y - 1] = fY(arr[y][x]);
                     }
                 }
@@ -165,13 +157,12 @@ export default (function () {
                 return array;
             },
             "rotate-90": function (array, originX, originY, width, height) {
-                var arr   = copySection(array, originX, originY, width, height),
-                    r90   = rotate90,
-                    x     = 0,
-                    y     = 0;
+                const
+                    arr = copySection(array, originX, originY, width, height),
+                    r90 = rotate90;
 
-                for (y = 0; y < height; y++) {
-                    for (x = 0; x < width; x++) {
+                for (let y = 0; y < height; y++) {
+                    for (let x = 0; x < width; x++) {
                         array[originX + height - y - 1][originY + x] = r90(arr[y][x]);
                     }
                 }
@@ -179,13 +170,12 @@ export default (function () {
                 return array;
             },
             "rotate-180": function (array, originX, originY, width, height) {
-                var arr   = copySection(array, originX, originY, width, height),
-                    r180  = rotate180,
-                    x     = 0,
-                    y     = 0;
+                const
+                    arr = copySection(array, originX, originY, width, height),
+                    r180 = rotate180;
 
-                for (y = 0; y < height; y++) {
-                    for (x = 0; x < width; x++) {
+                for (let y = 0; y < height; y++) {
+                    for (let x = 0; x < width; x++) {
                         array[originX + width - x - 1][originY + height - y - 1] = r180(arr[y][x]);
                     }
                 }
@@ -193,13 +183,12 @@ export default (function () {
                 return array;
             },
             "rotate-270": function (array, originX, originY, width, height) {
-                var arr   = copySection(array, originX, originY, width, height),
-                    r270  = rotate270,
-                    x     = 0,
-                    y     = 0;
+                const
+                    arr = copySection(array, originX, originY, width, height),
+                    r270 = rotate270;
 
-                for (y = 0; y < height; y++) {
-                    for (x = 0; x < width; x++) {
+                for (let y = 0; y < height; y++) {
+                    for (let x = 0; x < width; x++) {
                         array[originX + y][originY + width - x - 1] = r270(arr[y][x]);
                     }
                 }
@@ -207,12 +196,11 @@ export default (function () {
                 return array;
             },
             "translate": function (array, originX, originY, width, height, dx, dy) {
-                var arr = cutSection(array, originX, originY, width, height),
-                    x   = 0,
-                    y   = 0;
+                const
+                    arr = cutSection(array, originX, originY, width, height);
 
-                for (y = 0; y < height; y++) {
-                    for (x = 0; x < width; x++) {
+                for (let y = 0; y < height; y++) {
+                    for (let x = 0; x < width; x++) {
                         array[originX + x + dx][originY + y + dy] = arr[y][x];
                     }
                 }
@@ -365,9 +353,9 @@ export default (function () {
         
         methods: {
             getShape: function (x, y, type) {
-                var i = this.storedTileIndex,
-                    shape = null,
-                    storedTiles = this.storedTiles;
+                const
+                    {storedTileIndex: i, storedTiles} = this;
+                let shape = null;
                 
                 if (i === storedTiles.length) {
                     shape = CollisionShape.setUp(null, this.shapeDefinition, type);
@@ -385,19 +373,20 @@ export default (function () {
             },
             
             addShape: function (shapes, prevAABB, layer, x, y, collisionType) {
-                var xy = this.collisionMap[layer][x][y],
-                    index = xy & maskIndex,
-                    jumpThrough = maskJumpThrough,
-                    rotation = maskRotation,
-                    xFlip = maskXFlip,
-                    yFlip = maskYFlip;
+                const
+                    xy = this.collisionMap[layer][x][y],
+                    index = xy & maskIndex;
                 
                 if (xy && (this.getType(index) === collisionType)) {
-                    jumpThrough &= xy;
+                    const
+                        jumpThrough = maskJumpThrough & xy;
+
                     if (jumpThrough) {
-                        rotation &= xy;
-                        xFlip &= xy;
-                        yFlip &= xy;
+                        const
+                            rotation = maskRotation & xy,
+                            xFlip = maskXFlip & xy,
+                            yFlip = maskYFlip & xy;
+
                         if (rotation && xFlip) { // Right
                             if (prevAABB.left >= (x + 1) * this.tileWidth + this.left) {
                                 shapes.push(this.getShape(x, y, collisionType));
@@ -422,8 +411,9 @@ export default (function () {
             },
             
             destroy: function () {
-                var store = this.storedTiles,
-                    i = store.length;
+                const
+                    store = this.storedTiles;
+                let i = store.length;
                 
                 this.shapeDefinition.recycle();
                 this.shapeDefinition = null;
@@ -487,7 +477,8 @@ export default (function () {
              * @return {Array} Each returned object provides the [CollisionShape](CollisionShape.html) of a tile.
              */
             getTileShapes: function (aabb, prevAABB, collisionType) {
-                var colType = collisionType || 'tiles',
+                const
+                    colType = collisionType || 'tiles',
                     l = this.left,
                     t = this.top,
                     th = this.tileHeight,
@@ -496,16 +487,13 @@ export default (function () {
                     top    = Math.max(Math.floor((aabb.top - t) / th), 0),
                     right  = Math.min(Math.ceil((aabb.right - l) / tw),  this.columns),
                     bottom = Math.min(Math.ceil((aabb.bottom - t) / th), this.rows),
-                    x      = 0,
-                    y      = 0,
-                    z      = 0,
                     shapes = this.serveTiles;
                 
                 shapes.length = 0;
                 this.storedTileIndex = 0;
-                for (z = 0; z < this.collisionMap.length; z++) {
-                    for (x = left; x < right; x++) {
-                        for (y = top; y < bottom; y++) {
+                for (let z = 0; z < this.collisionMap.length; z++) {
+                    for (let x = left; x < right; x++) {
+                        for (let y = top; y < bottom; y++) {
                             this.addShape(shapes, prevAABB, z, x, y, colType);
                         }
                     }

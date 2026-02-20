@@ -7,49 +7,49 @@
  */
 import createComponentClass from '../factory.js';
 
-export default (function () {
-    var trigger = function () {
-        var owner = this.owner;
+const
+    trigger = function () {
+        const
+            {owner} = this;
         
         owner.trigger.apply(owner, arguments);
     };
 
-    return createComponentClass(/** @lends platypus.components.RelaySelf.prototype */{
-        id: 'RelaySelf',
-        
-        properties: {
-            /**
-             * This is an object of key/value pairs. The keys are events this component is listening for locally, the value is the new event to be broadcast on this entity. The value can also be an array of events to be fired.
-             *
-             *      "events": {
-             *          "sleeping": "good-night",
-             *          "awake": ["alarm", "get-up"]
-             *      }
-             *
-             * @property events
-             * @type Object
-             * @default null
-             */
-            events: null
-        },
+export default createComponentClass(/** @lends platypus.components.RelaySelf.prototype */{
+    id: 'RelaySelf',
+    
+    properties: {
+        /**
+         * This is an object of key/value pairs. The keys are events this component is listening for locally, the value is the new event to be broadcast on this entity. The value can also be an array of events to be fired.
+         *
+         *      "events": {
+         *          "sleeping": "good-night",
+         *          "awake": ["alarm", "get-up"]
+         *      }
+         *
+         * @property events
+         * @type Object
+         * @default null
+         */
+        events: null
+    },
 
-        initialize: function () {
-            const
-                events = this.events;
-            
-            // Messages that this component listens for and then triggers on itself as a renamed message - useful as a logic place-holder for simple entities.
-            if (events) {
-                const
-                    keys = Object.keys(events),
-                    {length} = keys;
+    initialize: function () {
+        const
+            events = this.events;
         
-                for (let i = 0; i < length; i++) {
-                    const
-                        key = keys[i];
-                        
-                    this.addEventListener(key, trigger.bind(this, events[key]));
-                }
+        // Messages that this component listens for and then triggers on itself as a renamed message - useful as a logic place-holder for simple entities.
+        if (events) {
+            const
+                keys = Object.keys(events),
+                {length} = keys;
+    
+            for (let i = 0; i < length; i++) {
+                const
+                    key = keys[i];
+                    
+                this.addEventListener(key, trigger.bind(this, events[key]));
             }
         }
-    });
-}());
+    }
+});

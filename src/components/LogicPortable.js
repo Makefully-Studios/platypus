@@ -37,7 +37,8 @@ export default (function () {
 
         events: {
             "handle-logic": function () {
-                var msg = this.message;
+                const
+                    {message: msg} = this;
                 
                 if (this.carrierConnected) {
                     if (this.carrier !== this.lastCarrier) {

@@ -144,7 +144,7 @@ export default (function () {
              * @param {number} [options.time] How many milliseconds to follow the entity.
              */
             "follow-me": function (options) {
-                var msg = null;
+                let msg = null;
                 
                 if (options) {
                     msg = Data.setUp(

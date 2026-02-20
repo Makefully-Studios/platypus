@@ -61,7 +61,8 @@ export default (function () {
          * @fires platypus.Entity#orientation-updated
          */
         initialize: function () {
-            var state = this.owner.state;
+            const
+                state = this.owner.state;
             
             this.magnitude = 0;
             
@@ -79,7 +80,8 @@ export default (function () {
 
         events: {
             "handle-logic": function (tick) {
-                var state = this.state;
+                const
+                    state = this.state;
                 
                 if (this.turningRight) {
                     this.angle += this.degree * tick.delta / 15;

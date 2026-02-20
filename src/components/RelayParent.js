@@ -7,53 +7,51 @@
  */
 import createComponentClass from '../factory.js';
 
-export default (function () {
-    
-
-    var broadcast = function () {
-        var parent = this.owner.parent;
+const
+    broadcast = function () {
+        const
+            {parent} = this.owner;
         
         if (parent) {
             parent.trigger.apply(parent, arguments);
         }
     };
+
+export default createComponentClass(/** @lends platypus.components.RelayParent.prototype */{
+    id: 'RelayParent',
     
-    return createComponentClass(/** @lends platypus.components.RelayParent.prototype */{
-        id: 'RelayParent',
-        
-        properties: {
-            /**
-             * This is an object of key/value pairs. The keys are events this component is listening for locally, and the value is the event to be broadcast on the parent. The value can also be an array of events to be triggered on the parent.
-             *
-             *      "events": {
-             *          "sleeping": "good-night",
-             *          "awake": ["alarm", "get-up"]
-             *      }
-             *
-             * @property events
-             * @type Object
-             * @default null
-             */
-            events: null
-        },
+    properties: {
+        /**
+         * This is an object of key/value pairs. The keys are events this component is listening for locally, and the value is the event to be broadcast on the parent. The value can also be an array of events to be triggered on the parent.
+         *
+         *      "events": {
+         *          "sleeping": "good-night",
+         *          "awake": ["alarm", "get-up"]
+         *      }
+         *
+         * @property events
+         * @type Object
+         * @default null
+         */
+        events: null
+    },
 
-        initialize: function () {
+    initialize: function () {
+        const
+            events = this.events;
+        
+        // Messages that this component listens for and then broadcasts to parent.
+        if (events) {
             const
-                events = this.events;
-            
-            // Messages that this component listens for and then broadcasts to parent.
-            if (events) {
+                keys = Object.keys(events),
+                {length} = keys;
+    
+            for (let i = 0; i < length; i++) {
                 const
-                    keys = Object.keys(events),
-                    {length} = keys;
-        
-                for (let i = 0; i < length; i++) {
-                    const
-                        key = keys[i];
+                    key = keys[i];
 
-                    this.addEventListener(key, broadcast.bind(this, events[key]));
-                }
+                this.addEventListener(key, broadcast.bind(this, events[key]));
             }
         }
-    });
-}());
+    }
+});

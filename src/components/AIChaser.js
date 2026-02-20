@@ -74,13 +74,12 @@ export default (function () {
             },
         
             "handle-ai": function () {
-                var v = null,
-                    m = 0,
-                    c = false;
+                let c = false;
 
                 if (this.target && this.chasing) {
-                    v = Vector.setUp(this.offset).add(this.target.position).subtractVector(this.owner.position);
-                    m = v.magnitude(2);
+                    const
+                        v = Vector.setUp(this.offset).add(this.target.position).subtractVector(this.owner.position),
+                        m = v.magnitude(2);
 
                     if (m) {
                         c = true;

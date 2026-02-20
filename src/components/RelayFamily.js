@@ -54,11 +54,11 @@ export default (function () {
         
         events: {
             "link-family": function (links) {
-                var i = 0,
+                const
                     oldList = this.owner.familyLinks,
                     newList = union(union(arrayCache.setUp(), links), oldList);
 
-                for (i = 0; i < newList.length; i++) {
+                for (let i = 0; i < newList.length; i++) {
                     newList[i].familyLinks = newList;
                 }
                 this.broadcast(links,   'family-members-added', oldList);

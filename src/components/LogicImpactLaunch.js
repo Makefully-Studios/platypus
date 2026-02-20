@@ -104,26 +104,23 @@ export default (function () {
                 }
             },
             
-            "impact-launch": function (collisionInfo) {
-                var dx = collisionInfo.x,
-                    dy = collisionInfo.y;
-                
-                if (collisionInfo.entity) {
-                    dx = collisionInfo.entity.x - this.owner.x;
-                    dy = collisionInfo.entity.y - this.owner.y;
-                }
-
+            "impact-launch": function ({entity, x, y}) {
                 if (!this.stunned) {
+                    const
+                        {owner, vector} = this,
+                        dx = entity ? entity.x - owner.x : x,
+                        dy = entity ? entity.y - owner.y : y;
+
                     this.justJumped = true;
                     if (dx >= 0) {
-                        this.vector.x = this.accelerationX;
+                        vector.x = this.accelerationX;
                     } else if (dx < 0) {
-                        this.vector.x = this.accelerationX * this.flipX;
+                        vector.x = this.accelerationX * this.flipX;
                     }
                     if (dy >= 0) {
-                        this.vector.y = this.accelerationY;
+                        vector.y = this.accelerationY;
                     } else if (dy < 0) {
-                        this.vector.y = this.accelerationY * this.flipY;
+                        vector.y = this.accelerationY * this.flipY;
                     }
                 }
             },

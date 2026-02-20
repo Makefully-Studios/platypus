@@ -8,47 +8,46 @@
 /* global platypus */
 import createComponentClass from '../factory.js';
 
-export default (function () {
-    var broadcast = function () {
+const
+    broadcast = function () {
         platypus.game.triggerOnChildren.apply(platypus.game, arguments);
     };
 
-    return createComponentClass(/** @lends platypus.components.RelayGame.prototype */{
-        id: 'RelayGame',
+export default createComponentClass(/** @lends platypus.components.RelayGame.prototype */{
+    id: 'RelayGame',
+    
+    properties: {
+        /**
+         * This is an object of key/value pairs. The keys are events this component is listening for locally, and the value is the event to be broadcast to the scene. The value can also be an array of events to be fired on the scene.
+         *
+         *      "events": {
+         *          "sleeping": "good-night",
+         *          "awake": ["alarm", "get-up"]
+         *      }
+         *
+         * @property events
+         * @type Object
+         * @default null
+         */
+        events: null
+    },
+
+    initialize: function () {
+        const
+            events = this.events;
         
-        properties: {
-            /**
-             * This is an object of key/value pairs. The keys are events this component is listening for locally, and the value is the event to be broadcast to the scene. The value can also be an array of events to be fired on the scene.
-             *
-             *      "events": {
-             *          "sleeping": "good-night",
-             *          "awake": ["alarm", "get-up"]
-             *      }
-             *
-             * @property events
-             * @type Object
-             * @default null
-             */
-            events: null
-        },
-
-        initialize: function () {
+        // Messages that this component listens for and then broadcasts to all layers.
+        if (events) {
             const
-                events = this.events;
-            
-            // Messages that this component listens for and then broadcasts to all layers.
-            if (events) {
+                keys = Object.keys(events),
+                {length} = keys;
+
+            for (let i = 0; i < length; i++) {
                 const
-                    keys = Object.keys(events),
-                    {length} = keys;
+                    key = keys[i];
 
-                for (let i = 0; i < length; i++) {
-                    const
-                        key = keys[i];
-
-                    this.addEventListener(key, broadcast.bind(this, events[key]));
-                }
+                this.addEventListener(key, broadcast.bind(this, events[key]));
             }
         }
-    });
-}());
+    }
+});

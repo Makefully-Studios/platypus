@@ -49,20 +49,16 @@ export default createComponentClass(/** @lends platypus.components.LogicRebounde
 
     events: {// These are messages that this component listens for
         "handle-logic": function () {
-            var i = 0;
-            
             this.hitThisTick.length = 0;
-            for (i = 0; i < this.otherVelocityData.length; i++) {
+            for (let i = 0; i < this.otherVelocityData.length; i++) {
                 this.otherVelocityData[i].velocity.recycle();
             }
             this.otherVelocityData.length = 0;
         },
-        "hit-static": function (collData) {
-            var magnitude = 0,
-                other = collData.entity,
-                x = 0;
+        "hit-static": function ({direction, entity: other}) {
+            let magnitude = 0;
 
-            for (x = 0; x < this.hitThisTick.length; x++) {
+            for (let x = 0; x < this.hitThisTick.length; x++) {
                 if (other === this.hitThisTick[x]) {
                     return;
                 }
@@ -70,7 +66,7 @@ export default createComponentClass(/** @lends platypus.components.LogicRebounde
             this.hitThisTick.push(other);
             
             this.v.setVector(this.owner.velocity);
-            this.incidentVector.setVector(collData.direction);
+            this.incidentVector.setVector(direction);
             
             magnitude = this.v.scalarProjection(this.incidentVector);
             if (!isNaN(magnitude)) {
@@ -80,21 +76,18 @@ export default createComponentClass(/** @lends platypus.components.LogicRebounde
             
             this.owner.velocity.setVector(this.v);
         },
-        "hit-non-static": function (collData) {
-            var x = 0,
-                other          = collData.entity,
-                otherVSet      = false,
+        "hit-non-static": function ({direction, entity: other}) {
+            let otherVSet      = false,
                 relevantV      = 0,
                 otherRelevantV = 0,
                 reboundV       = 0;
-            
-            x = this.hitThisTick.indexOf(other);
-            if (x >= 0) {
+
+            if (this.hitThisTick.indexOf(other) >= 0) {
                 return;
             }
             this.hitThisTick.push(other);
             
-            for (x = 0; x < this.otherVelocityData.length; x++) {
+            for (let x = 0; x < this.otherVelocityData.length; x++) {
                 if (other === this.otherVelocityData[x].entity) {
                     this.otherV.setVector(this.otherVelocityData[x].velocity);
                     otherVSet = true;
@@ -108,7 +101,7 @@ export default createComponentClass(/** @lends platypus.components.LogicRebounde
             }
             
             this.v.setVector(this.owner.velocity);
-            this.incidentVector.setVector(collData.direction);
+            this.incidentVector.setVector(direction);
             
             
             relevantV = this.v.scalarProjection(this.incidentVector);

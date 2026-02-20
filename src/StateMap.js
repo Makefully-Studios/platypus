@@ -83,15 +83,16 @@ Object.defineProperty(proto, 'updateFromString', {
  */
 Object.defineProperty(proto, 'update', {
     value: function (newState) {
-        var keys = newState.keys,
-            i = keys.length,
-            state   = '',
-            changed = false,
-            value = false;
+        const
+            {keys} = newState;
+        let i = keys.length,
+            changed = false;
         
         while (i--) {
-            state = keys[i];
-            value = newState.get(state);
+            const
+                state = keys[i],
+                value = newState.get(state);
+
             if (this.get(state) !== value) {
                 this.set(state, value);
                 changed = true;
@@ -111,12 +112,14 @@ Object.defineProperty(proto, 'update', {
  */
 Object.defineProperty(proto, 'includes', {
     value: function (otherState) {
-        var keys = otherState.keys,
-            i = keys.length,
-            state = '';
+        const
+            {keys} = otherState;
+        let i = keys.length;
         
         while (i--) {
-            state = keys[i];
+            const
+                state = keys[i];
+
             if (this.get(state) !== otherState.get(state)) {
                 return false;
             }
@@ -135,12 +138,14 @@ Object.defineProperty(proto, 'includes', {
  */
 Object.defineProperty(proto, 'intersects', {
     value: function (otherState) {
-        var keys = otherState.keys,
-            i = keys.length,
-            state = '';
+        const
+            {keys} = otherState;
+        let i = keys.length;
         
         while (i--) {
-            state = keys[i];
+            const
+                state = keys[i];
+
             if (this.get(state) === otherState.get(state)) {
                 return true;
             }

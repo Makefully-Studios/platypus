@@ -51,7 +51,8 @@ export default (function () {
          * @fires platypus.Entity#blocked
          */
         initialize: function () {
-            var thisState = this.owner.state;
+            const
+                {state} = this.owner;
             
             this.windProgress = 0;
             
@@ -61,15 +62,16 @@ export default (function () {
             this.right = false;
             this.left = false;
             
-            this.state = thisState;
-            thisState.set('windingUp', false);
-            thisState.set('racing', false);
-            thisState.set('blocked', false);
+            this.state = state;
+            state.set('windingUp', false);
+            state.set('racing', false);
+            state.set('blocked', false);
         },
 
         events: {
             "handle-logic": function (resp) {
-                var thisState = this.state;
+                const
+                    {state} = this;
                 
                 if (this.racing) {
 
@@ -78,10 +80,10 @@ export default (function () {
                      *
                      * @event platypus.Entity#racing
                      */
-                    if (!this.blocked && this.right && thisState.get('right')) {
+                    if (!this.blocked && this.right && state.get('right')) {
                         this.owner.x += this.speed * resp.delta;
                         this.owner.triggerEvent('racing');
-                    } else if (!this.blocked && this.left && thisState.get('left')) {
+                    } else if (!this.blocked && this.left && state.get('left')) {
                         this.owner.x -= this.speed * resp.delta;
                         this.owner.triggerEvent('racing');
                     } else {
@@ -95,7 +97,7 @@ export default (function () {
                         this.owner.triggerEvent('stopped-racing');
                     }
                 } else if (this.winding) {
-                    if ((this.right && thisState.get('right')) || (this.left && thisState.get('left'))) {
+                    if ((this.right && state.get('right')) || (this.left && state.get('left'))) {
                         this.windProgress += resp.delta;
                     }
 
@@ -120,9 +122,9 @@ export default (function () {
                     this.owner.triggerEvent('stopped-winding');
                 }
                 
-                thisState.set('windingUp', this.winding);
-                thisState.set('racing', this.racing);
-                thisState.set('blocked', this.blocked);
+                state.set('windingUp', this.winding);
+                state.set('racing', this.racing);
+                state.set('blocked', this.blocked);
                 this.blocked = false;
             },
             

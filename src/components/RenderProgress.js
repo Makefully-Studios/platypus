@@ -43,8 +43,9 @@ export default createComponentClass(/** @lends platypus.components.RenderProgres
      * @listens platypus.Entity#handle-render-load
      */
     initialize: function () {
-        var b   = new Graphics(),
-            f   = new Graphics(),
+        const
+            b = new Graphics(),
+            f = new Graphics(),
             con = new Container();
         
         this.parentContainer = null;

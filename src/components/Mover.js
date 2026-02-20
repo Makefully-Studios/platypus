@@ -3,7 +3,8 @@ import {arrayCache, greenSplice} from '../utils/array.js';
 import Vector from '../Vector.js';
 import createComponentClass from '../factory.js';
 
-var tempVector = Vector.setUp(),
+const
+    tempVector = Vector.setUp(),
     updateMax   = function (delta, interim, goal, time) {
         if (delta && (interim !== goal)) {
             if (interim < goal) {
@@ -16,14 +17,16 @@ var tempVector = Vector.setUp(),
         return interim;
     },
     clampNumber = function (v, d) {
-        var mIn = this.maxMagnitudeInterim = updateMax(this.maxMagnitudeDelta, this.maxMagnitudeInterim, this.maxMagnitude, d);
+        const
+            mIn = this.maxMagnitudeInterim = updateMax(this.maxMagnitudeDelta, this.maxMagnitudeInterim, this.maxMagnitude, d);
         
         if (v.magnitude() > mIn) {
             v.normalize().multiply(mIn);
         }
     },
     clampObject = function (v, d) {
-        var max = this.maxMagnitude,
+        const
+            max = this.maxMagnitude,
             mD  = this.maxMagnitudeDelta,
             mIn = this.maxMagnitudeInterim;
 
@@ -175,9 +178,10 @@ export default createComponentClass(/** @lends platypus.components.Mover.prototy
      * @listens platypus.Entity#unpause-movment
      */
     initialize: function () {
-        var maxMagnitude = Infinity,
+        const
             max = this.maxMagnitude,
-            thisState = this.owner.state;
+            {state} = this;
+        let maxMagnitude = Infinity;            
         
         Vector.assign(this.owner, 'position',  'x',  'y',  'z');
         Vector.assign(this.owner, 'velocity', 'dx', 'dy', 'dz');
@@ -198,8 +202,8 @@ export default createComponentClass(/** @lends platypus.components.Mover.prototy
 
         this.ground = Vector.setUp(this.ground);
         
-        this.state = thisState;
-        thisState.set('grounded', false);
+        this.state = state;
+        state.set('grounded', false);
         
         Object.defineProperty(this.owner, "maxMagnitude", {
             get: function () {
@@ -272,10 +276,8 @@ export default createComponentClass(/** @lends platypus.components.Mover.prototy
         },
         
         "component-removed": function (component) {
-            var i = 0;
-            
             if (component.type === 'Motion') {
-                i = this.movers.indexOf(component);
+                let i = this.movers.indexOf(component);
                 if (i >= 0) {
                     greenSplice(this.movers, i);
                 }
@@ -283,11 +285,11 @@ export default createComponentClass(/** @lends platypus.components.Mover.prototy
         },
         
         "load": function () {
-            var i = 0,
+            const
                 movs = this.moversCopy;
             
             delete this.moversCopy;
-            for (i = 0; i < movs.length; i++) {
+            for (let i = 0; i < movs.length; i++) {
                 this.addMover(movs[i]);
             }
             
@@ -340,17 +342,13 @@ export default createComponentClass(/** @lends platypus.components.Mover.prototy
             }
         },
         
-        "handle-movement": function (tick) {
-            var delta    = tick.delta,
-                m        = null,
-                thisState = this.state,
-                vect     = null,
-                velocity = this.velocity,
-                position = this.position,
-                movers   = this.movers,
-                i        = movers.length;
+        "handle-movement": function ({delta}) {
+            const
+                {movers, position, state, velocity} = this,
+                vect = Vector.setUp();
+            let i = movers.length;
             
-            if (thisState.get('paused') || this.paused) {
+            if (state.get('paused') || this.paused) {
                 return;
             }
             
@@ -361,7 +359,9 @@ export default createComponentClass(/** @lends platypus.components.Mover.prototy
             velocity.setXYZ(0, 0, 0);
             
             while (i--) {
-                m = movers[i].update(delta);
+                const
+                    m = movers[i].update(delta);
+
                 if (m) {
                     if (this.grounded) { // put this in here to match earlier behavior
                         if (movers[i].friction !== -1) {
@@ -381,11 +381,11 @@ export default createComponentClass(/** @lends platypus.components.Mover.prototy
             this.clamp(velocity, delta);
             this.lastVelocity.setVector(velocity);
             
-            vect = Vector.setUp(velocity).multiply(delta);
+            vect.set(velocity).multiply(delta);
             position.add(vect);
             vect.recycle();
             
-            thisState.set('grounded', this.grounded);
+            state.set('grounded', this.grounded);
             
             this.grounded = false;
         },
@@ -397,15 +397,14 @@ export default createComponentClass(/** @lends platypus.components.Mover.prototy
          * @param collisionInfo {Object}
          * @param collisionInfo.direction {platypus.Vector} The direction of collision from the entity's position.
          */
-        "hit-solid": function (collisionInfo) {
-            var s = 0,
-                e = 0,
-                entityV = collisionInfo.entity && collisionInfo.entity.velocity,
-                direction = collisionInfo.direction,
-                add = true,
+        "hit-solid": function ({direction, entity}) {
+            const
+                entityV = entity?.velocity,
                 vc = this.velocityChanges,
                 vd = this.velocityDirections,
                 i = vc.length;
+            let add = true,
+                s = 0;
             
             if (direction.dot(this.ground) > 0) {
                 this.grounded = true;
@@ -414,7 +413,9 @@ export default createComponentClass(/** @lends platypus.components.Mover.prototy
             s = this.velocity.scalarProjection(direction);
             if (s > 0) {
                 if (entityV) {
-                    e = Math.max(entityV.scalarProjection(direction), 0);
+                    const
+                        e = Math.max(entityV.scalarProjection(direction), 0);
+
                     if (e < s) {
                         s = e;
                     } else {
@@ -441,35 +442,28 @@ export default createComponentClass(/** @lends platypus.components.Mover.prototy
         },
         
         "handle-post-collision-logic": function () {
-            var direction = null,
-                ms = this.movers,
+            const
                 vc = this.velocityChanges,
-                vd = this.velocityDirections,
-                i = vc.length,
-                j = ms.length,
-                m = null,
-                s = 0,
-                sdi = 0,
-                soc = null,
-                v = tempVector;
+                i = vc.length;
             
             if (i) {
-                soc = arrayCache.setUp();
-                
-                while (j--) {
-                    m = ms[j];
-                    if (m.stopOnCollision) {
-                        soc.push(m);
-                    }
-                }
+                const
+                    ms = this.movers,
+                    vd = this.velocityDirections,
+                    v = tempVector,
+                    soc = ms.filter(({stopOnCollision}) => stopOnCollision);
                 
                 while (i--) {
-                    direction = vd[i];
-                    s = vc[i];
-                    j = soc.length;
-                    sdi = s / j;
+                    let j = soc.length;
+                    const
+                        direction = vd[i],
+                        s = vc[i],
+                        sdi = s / j;
+
                     while (j--) {
-                        m = soc[j];
+                        const
+                            m = soc[j];
+
                         v.setVector(direction).normalize().multiply(sdi - m.velocity.scalarProjection(direction));
                         m.velocity.add(v);
                     }
@@ -527,10 +521,10 @@ export default createComponentClass(/** @lends platypus.components.Mover.prototy
     
     methods: {
         destroy: function () {
-            var i = 0,
+            const
                 max = this.maxMagnitude;
             
-            for (i = this.movers.length - 1; i >= 0; i--) {
+            for (let i = this.movers.length - 1; i >= 0; i--) {
                 this.removeMover(this.movers[i]);
             }
             arrayCache.recycle(this.movers);
@@ -556,9 +550,7 @@ export default createComponentClass(/** @lends platypus.components.Mover.prototy
          * @return motion {Motion}
          */
         addMover: function (mover) {
-            var m = this.owner.addComponent(new platypus.components.Motion(this.owner, mover));
-
-            return m;
+            return this.owner.addComponent(new platypus.components.Motion(this.owner, mover));
         },
         
         /**

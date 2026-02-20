@@ -9,7 +9,8 @@ const
         return state.get(stateName);
     },
     instantUpdate = function (getInstantState, getActiveVelocityState, instantSuccess) {
-        var state  = getInstantState(),
+        const
+            state = getInstantState(),
             vState = getActiveVelocityState();
         
         if (this.activeVelocity) {
@@ -46,9 +47,10 @@ const
         }
     },
     createController = function (component, definition) {
-        var state = component.owner.state,
+        const
+            state = component.owner.state,
             getActiveVelocityState = (definition.controlState ? getState.bind(null, state, definition.controlState) : isTrue),
-            getInstantState =        (definition.instantState ? getState.bind(null, state, definition.instantState) : isTrue);
+            getInstantState = (definition.instantState ? getState.bind(null, state, definition.instantState) : isTrue);
 
         if (component.instant || definition.instantState) {
             component.instant = true;
@@ -329,7 +331,8 @@ export default createComponentClass(/** @lends platypus.components.Motion.protot
 
     methods: {
         move: function (delta) {
-            var v = Vector.setUp(this.acceleration).multiply(delta);
+            const
+                v = Vector.setUp(this.acceleration).multiply(delta);
             
             this.velocity.add(v);
             v.recycle();

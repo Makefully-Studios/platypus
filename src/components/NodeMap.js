@@ -35,23 +35,27 @@ const
     proto = Node.prototype;
 
 proto.getNode = function (desc) {
-    var neighbor = null;
-    
-    if (this.neighbors[desc]) {
+    const
         neighbor = this.neighbors[desc];
+    
+    if (neighbor) {
         if (neighbor.isNode) {
             return neighbor;
         } else if (typeof neighbor === 'string') {
-            neighbor = this.map.getNode(neighbor);
-            if (neighbor) {
-                this.neighbors[desc] = neighbor;
-                return neighbor;
+            const
+                node = this.map.getNode(neighbor);
+
+            if (node) {
+                this.neighbors[desc] = node;
+                return node;
             }
         } else if (Array.isArray(neighbor)) {
-            neighbor = this.map.getNode(neighbor.join('|'));
-            if (neighbor) {
-                this.neighbors[desc] = neighbor;
-                return neighbor;
+            const
+                node = this.map.getNode(neighbor.join('|'));
+
+            if (node) {
+                this.neighbors[desc] = node;
+                return node;
             }
         }
         return null;
@@ -61,9 +65,7 @@ proto.getNode = function (desc) {
 };
 
 proto.addToNode = function (entity) {
-    var i = 0;
-    
-    for (i = 0; i < this.contains.length; i++) {
+    for (let i = 0; i < this.contains.length; i++) {
         if (this.contains[i] === entity) {
             return false;
         }
@@ -73,9 +75,7 @@ proto.addToNode = function (entity) {
 };
 
 proto.removeFromNode = function (entity) {
-    var i = 0;
-    
-    for (i = 0; i < this.contains.length; i++) {
+    for (let i = 0; i < this.contains.length; i++) {
         if (this.contains[i] === entity) {
             return greenSplice(this.contains, i);
         }
@@ -130,23 +130,21 @@ export default createComponentClass(/** @lends platypus.components.NodeMap.proto
      * @fires platypus.Entity#add-node
      */
     initialize: function () {
-        var i   = 0,
+        const
             map = this.map;
         
         this.map   = arrayCache.setUp(); // Original map is node definitions, so we replace it with actual nodes.
         this.nodes = {};
         this.residentsAwaitingNode = arrayCache.setUp();
         
-        for (i = 0; i < map.length; i++) {
+        for (let i = 0; i < map.length; i++) {
             this.addNode(Node.setUp(map[i], this));
         }
     },
 
     events: {
         "add-node": function (nodeDefinition) {
-            var i = 0,
-                entity = null,
-                node   = null;
+            let node = null;
             
             if (nodeDefinition.isNode) {// if it's already a node, put it on the map.
                 node = nodeDefinition;
@@ -157,8 +155,10 @@ export default createComponentClass(/** @lends platypus.components.NodeMap.proto
             
             this.addNode(node);
             
-            for (i = this.residentsAwaitingNode.length - 1; i >= 0; i--) {
-                entity = this.residentsAwaitingNode[i];
+            for (let i = this.residentsAwaitingNode.length - 1; i >= 0; i--) {
+                const
+                    entity = this.residentsAwaitingNode[i];
+
                 if (node.id === entity.nodeId) {
                     greenSplice(this.residentsAwaitingNode, i);
                     entity.node = this.getNode(entity.nodeId);
@@ -219,10 +219,8 @@ export default createComponentClass(/** @lends platypus.components.NodeMap.proto
         },
         
         destroy: function () {
-            var i = 0;
-            
             // Destroy simple node objects.
-            for (i = 0; i < this.map.length; i++) {
+            for (let i = 0; i < this.map.length; i++) {
                 if (!(this.map[i] instanceof Entity)) {
                     this.map[i].recycle();
                 }
@@ -267,23 +265,20 @@ export default createComponentClass(/** @lends platypus.components.NodeMap.proto
          * @param [excluding] {Array} A list of nodes to exclude from the search.
          */
         getClosestNode: function (point, including, excluding) {
-            var i = 0,
-                j = 0,
+            const
                 p1 = Vector.setUp(point),
                 p2 = Vector.setUp(),
-                m = 0,
-                list = including || this.map,
-                closest = null,
+                list = including || this.map;
+            let closest = null,
                 d = Infinity;
             
-            for (i = 0; i < list.length; i++) {
-                m = p2.setVector(p1).subtractVector(list[i].position).magnitude();
+            for (let i = 0; i < list.length; i++) {
+                const
+                    m = p2.setVector(p1).subtractVector(list[i].position).magnitude();
+
                 if (m < d) {
-                    if (excluding) {
-                        j = excluding.indexOf(list[i]);
-                        if (j >= 0) {
-                            break;
-                        }
+                    if (excluding?.indexOf(list[i]) >= 0) {
+                        break;
                     }
                     
                     d = m;

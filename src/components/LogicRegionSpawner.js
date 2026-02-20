@@ -38,15 +38,6 @@ export default (function () {
          * @listens platypus.Entity#handle-logic
          */
         initialize: function (definition) {
-            var x       = 0,
-                y       = 0,
-                columns = 1,
-                rows    = 1,
-                width   = 0,
-                height  = 0,
-                rw      = 0,
-                rh      = 0;
-            
             this.spawnPosition = {
                 x: 0,
                 y: 0
@@ -61,16 +52,23 @@ export default (function () {
             this.regionWidth = 0;
             this.regionHeight = 0;
             if (definition.regions) {
+                const
+                    width = definition.regions.width || this.owner.width,
+                    height = definition.regions.height || this.owner.height,
+                    columns = Math.round(this.owner.width / width),
+                    rows = Math.round(this.owner.height / height);
+
                 this.regions = arrayCache.setUp();
                 this.usedRegions = arrayCache.setUp();
-                this.regionWidth  = width  = definition.regions.width  || this.owner.width;
-                this.regionHeight = height = definition.regions.height || this.owner.height;
-                columns = Math.round(this.owner.width  / width);
-                rows    = Math.round(this.owner.height / height);
-                for (x = 0; x < columns; x++) {
-                    for (y = 0; y < rows; y++) {
-                        rw = Math.min(width,  this.owner.width  - x * width);
-                        rh = Math.min(height, this.owner.height - y * height);
+                this.regionWidth = width;
+                this.regionHeight = height;
+
+                for (let x = 0; x < columns; x++) {
+                    for (let y = 0; y < rows; y++) {
+                        const
+                            rw = Math.min(width,  this.owner.width  - x * width),
+                            rh = Math.min(height, this.owner.height - y * height);
+
                         this.regions.push({
                             x: x * width,
                             y: y * height,
@@ -86,13 +84,13 @@ export default (function () {
         },
 
         events: {// These are messages that this component listens for
-            "handle-logic": function (resp) {
-                var regions = this.regions,
-                    region  = null;
-                
-                this.time += resp.delta;
+            "handle-logic": function ({delta}) {
+                this.time += delta;
                 
                 if (this.time > this.interval) {
+                    let regions = this.regions,
+                        region  = null;
+                    
                     this.time -= this.interval;
                     
                     if (regions) {
@@ -126,7 +124,8 @@ export default (function () {
         },
         
         getAssetList: function (def, props, defaultProps) {
-            var spawn = def.spawn || props.spawn || defaultProps.spawn;
+            const
+                spawn = def?.spawn ?? props?.spawn ?? defaultProps?.spawn;
             
             if (spawn) {
                 return Entity.getAssetList({

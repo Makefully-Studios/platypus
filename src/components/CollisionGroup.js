@@ -40,12 +40,12 @@ export default (function () {
             
             this.collisionGroup = this.owner.collisionGroup = {
                 getAllEntities: function () {
-                    var x           = 0,
-                        count       = 0,
-                        childEntity = null;
+                    let count = 0;
                     
-                    for (x = 0; x < this.solidEntities.length; x++) {
-                        childEntity = this.solidEntities[x];
+                    for (let x = 0; x < this.solidEntities.length; x++) {
+                        const
+                            childEntity = this.solidEntities[x];
+
                         if ((childEntity !== this.owner) && childEntity.collisionGroup) {
                             count += childEntity.collisionGroup.getAllEntities();
                         } else {
@@ -117,11 +117,11 @@ export default (function () {
         
         methods: {
             addCollisionEntity: function (entity) {
-                var i     = 0,
-                    types = entity.collisionTypes;
+                const
+                    {collisionTypes: types} = entity;
                 
                 if (types) {
-                    i = types.length;
+                    let i = types.length;
                     while (i--) {
                         if (entity.solidCollisionMap.get(types[i]).length && !entity.immobile) {
                             this.solidEntities[this.solidEntities.length] = entity;
@@ -132,17 +132,18 @@ export default (function () {
             },
             
             removeCollisionEntity: function (entity) {
-                var x     = 0,
-                    i     = 0,
-                    types = entity.collisionTypes;
+                const
+                    {collisionTypes: types} = entity;
 
                 if (types) {
-                    i = types.length;
+                    let i = types.length;
                     while (i--) {
                         if (entity.solidCollisionMap.get(types[i]).length) {
-                            x = this.solidEntities.indexOf(entity);
-                            if (x >= 0) {
-                                greenSplice(this.solidEntities, x);
+                            const
+                                j = this.solidEntities.indexOf(entity);
+
+                            if (j >= 0) {
+                                greenSplice(this.solidEntities, j);
                             }
                         }
                     }
@@ -151,59 +152,53 @@ export default (function () {
             },
             
             getCollisionTypes: function () {
-                var childEntity  = null,
-                    compiledList = this.collisionTypes,
-                    se = this.solidEntities,
-                    i = se.length;
+                const
+                    {collisionTypes, owner, solidEntities} = this;
+                let i = solidEntities.length;
                 
-                compiledList.length = 0;
+                collisionTypes.length = 0;
                 
                 while (i--) {
-                    childEntity = se[i];
-                    if ((childEntity !== this.owner) && childEntity.collisionGroup) {
+                    const
+                        childEntity = solidEntities[i];
+
+                    if ((childEntity !== owner) && childEntity.collisionGroup) {
                         childEntity = childEntity.collisionGroup;
                     }
-                    union(compiledList, childEntity.getCollisionTypes());
+                    union(collisionTypes, childEntity.getCollisionTypes());
                 }
                 
-                return compiledList;
+                return collisionTypes;
             },
 
             getSolidCollisions: function () {
-                var x            = 0,
-                    key          = '',
-                    keys = null,
-                    childEntity  = null,
-                    compiledList = DataMap.setUp(),
-                    entityList   = null,
-                    i = 0,
-                    toList = null,
-                    fromList = null,
-                    recycle = false;
+                const
+                    {owner, solidEntities} = this,
+                    compiledList = DataMap.setUp();
                 
-                for (x = 0; x < this.solidEntities.length; x++) {
-                    recycle = false;
-                    childEntity = this.solidEntities[x];
-                    if ((childEntity !== this.owner) && childEntity.collisionGroup) {
-                        childEntity = childEntity.collisionGroup;
-                        recycle = true;
-                    }
-                    entityList = childEntity.getSolidCollisions();
-                    keys = entityList.keys;
-                    i = keys.length;
+                for (let x = 0; x < solidEntities.length; x++) {
+                    const
+                        solidEntity = solidEntities[x],
+                        {collisionGroup} = solidEntity,
+                        useGC = (solidEntity !== owner) && collisionGroup,
+                        childEntity = useGC ? collisionGroup : solidEntity,
+                        entityList = childEntity.getSolidCollisions(),
+                        keys = entityList.keys;
+                    let i = keys.length;
+
                     while (i--) {
-                        key = keys[i];
-                        toList = compiledList.get(key);
-                        fromList = entityList.get(key);
-                        if (!toList) {
-                            toList = compiledList.set(key, arrayCache.setUp());
-                        }
+                        const
+                            key = keys[i],
+                            toList = compiledList.get(key) || compiledList.set(key, arrayCache.setUp()),
+                            fromList = entityList.get(key);
+                            
                         union(toList, fromList);
-                        if (recycle) {
+
+                        if (useGC) {
                             fromList.recycle();
                         }
                     }
-                    if (recycle) {
+                    if (useGC) {
                         entityList.recycle();
                     }
                 }
@@ -212,86 +207,85 @@ export default (function () {
             },
             
             getAABB: function (collisionType) {
-                var i = 0,
-                    aabb        = this.filteredAABB,
-                    childEntity = null,
-                    incAABB = null,
-                    sE = this.solidEntities;
-                
                 if (!collisionType) {
                     return this.aabb;
                 } else {
-                    aabb.reset();
-                    i = sE.length;
+                    const
+                        {filteredAABB, owner, solidEntities} = this;
+                    let i = solidEntities.length;
+                    
+                    filteredAABB.reset();
+
                     while (i--) {
-                        childEntity = sE[i];
-                        if ((childEntity !== this.owner) && childEntity.collisionGroup) {
-                            childEntity = childEntity.collisionGroup;
-                        }
-                        incAABB = childEntity.getAABB(collisionType);
+                        const
+                            solidEntity = solidEntities[i],
+                            {collisionGroup} = solidEntity,
+                            useGC = (solidEntity !== owner) && collisionGroup,
+                            childEntity = useGC ? collisionGroup : solidEntity,
+                            incAABB = childEntity.getAABB(collisionType);
+
                         if (incAABB) {
-                            aabb.include(incAABB);
+                            filteredAABB.include(incAABB);
                         }
                     }
-                    return aabb;
+                    return filteredAABB;
                 }
             },
 
             getPreviousAABB: function (collisionType) {
-                var i = 0,
-                    aabb        = this.filteredAABB,
-                    childEntity = null,
-                    incAABB = null,
-                    sE = this.solidEntities;
-                
                 if (!collisionType) {
                     return this.prevAABB;
                 } else {
-                    aabb.reset();
-                    i = sE.length;
-                    while (i--) {
-                        childEntity = sE[i];
-                        if ((childEntity !== this.owner) && childEntity.collisionGroup) {
-                            childEntity = childEntity.collisionGroup;
-                        }
+                    const
+                        {filteredAABB, owner, solidEntities} = this;
+                    let i = solidEntities.length;
+                    
+                    filteredAABB.reset();
 
-                        incAABB = childEntity.getPreviousAABB(collisionType);
+                    while (i--) {
+                        const
+                            solidEntity = solidEntities[i],
+                            {collisionGroup} = solidEntity,
+                            useGC = (solidEntity !== owner) && collisionGroup,
+                            childEntity = useGC ? collisionGroup : solidEntity,
+                            incAABB = childEntity.getPreviousAABB(collisionType);
+
                         if (incAABB) {
-                            aabb.include(incAABB);
+                            filteredAABB.include(incAABB);
                         }
                     }
-                    return aabb;
+                    return filteredAABB;
                 }
             },
             
             updateAABB: function () {
-                var aabb = this.aabb,
-                    sE = this.solidEntities,
-                    entity = null,
-                    x = sE.length,
-                    owner = this.owner;
+                const
+                    {aabb, owner, solidEntities} = this;
+                let i = solidEntities.length;
                 
                 aabb.reset();
-                while (x--) {
-                    entity = sE[x];
+                while (i--) {
+                    const
+                        entity = solidEntities[i];
+
                     aabb.include(((entity !== owner) && entity.getCollisionGroupAABB) ? entity.getCollisionGroupAABB() : entity.getAABB());
                 }
             },
             
             getShapes: function (collisionType) {
-                var x           = 0,
-                    childEntity = null,
-                    shapes      = this.shapes,
-                    newShapes   = null;
+                const
+                    {owner, shapes, solidEntities} = this;
                     
                 shapes.length = 0;
                 
-                for (x = 0; x < this.solidEntities.length; x++) {
-                    childEntity = this.solidEntities[x];
-                    if ((childEntity !== this.owner) && childEntity.collisionGroup) {
-                        childEntity = childEntity.collisionGroup;
-                    }
-                    newShapes = childEntity.getShapes(collisionType);
+                for (let i = 0; i < solidEntities.length; i++) {
+                    const
+                        solidEntity = solidEntities[i],
+                        {collisionGroup} = solidEntity,
+                        useGC = (solidEntity !== owner) && collisionGroup,
+                        childEntity = useGC ? collisionGroup : solidEntity,
+                        newShapes = childEntity.getShapes(collisionType);
+
                     if (newShapes) {
                         union(shapes, newShapes);
                     }
@@ -300,19 +294,19 @@ export default (function () {
             },
 
             getPrevShapes: function (collisionType) {
-                var x           = 0,
-                    childEntity = null,
-                    newShapes   = null,
-                    shapes      = this.prevShapes;
+                const
+                    {owner, prevShapes: shapes, solidEntities} = this;
                     
                 shapes.length = 0;
                 
-                for (x = 0; x < this.solidEntities.length; x++) {
-                    childEntity = this.solidEntities[x];
-                    if ((childEntity !== this.owner) && childEntity.collisionGroup) {
-                        childEntity = childEntity.collisionGroup;
-                    }
-                    newShapes = childEntity.getPrevShapes(collisionType);
+                for (let i = 0; i < solidEntities.length; i++) {
+                    const
+                        solidEntity = solidEntities[i],
+                        {collisionGroup} = solidEntity,
+                        useGC = (solidEntity !== owner) && collisionGroup,
+                        childEntity = useGC ? collisionGroup : solidEntity,
+                        newShapes = childEntity.getPrevShapes(collisionType);
+
                     if (newShapes) {
                         union(shapes, newShapes);
                     }
@@ -321,82 +315,84 @@ export default (function () {
             },
             
             prepareCollision: function (x, y) {
-                var i           = 0,
-                    childEntity = null,
-                    oX          = 0,
-                    oY          = 0;
+                const
+                    {owner, solidEntities} = this;
                 
-                for (i = 0; i < this.solidEntities.length; i++) {
-                    childEntity = this.solidEntities[i];
+                for (let i = 0; i < solidEntities.length; i++) {
+                    const
+                        childEntity = solidEntities[i],
+                        oX = owner.previousX - childEntity.previousX,
+                        oY = owner.previousY - childEntity.previousY;
+
                     childEntity.saveDX = childEntity.x - childEntity.previousX;
                     childEntity.saveDY = childEntity.y - childEntity.previousY;
-                    oX = childEntity.saveOX = this.owner.previousX - childEntity.previousX;
-                    oY = childEntity.saveOY = this.owner.previousY - childEntity.previousY;
-                    if ((childEntity !== this.owner) && childEntity.collisionGroup) {
-                        childEntity = childEntity.collisionGroup;
+                    childEntity.saveOX = oX;
+                    childEntity.saveOY = oY;
+
+                    if ((childEntity !== owner) && childEntity.collisionGroup) {
+                        childEntity.collisionGroup.prepareCollision(x - oX, y - oY);
+                    } else {
+                        childEntity.prepareCollision(x - oX, y - oY);
                     }
-                    childEntity.prepareCollision(x - oX, y - oY);
                 }
             },
             
             movePreviousX: function (x) {
-                var childEntity = null,
-                    offset      = 0,
-                    i           = 0;
+                const
+                    {owner, solidEntities} = this;
                 
-                for (i = 0; i < this.solidEntities.length; i++) {
-                    childEntity = this.solidEntities[i];
-                    offset = childEntity.saveOX;
-                    if ((childEntity !== this.owner) && childEntity.collisionGroup) {
-                        childEntity = childEntity.collisionGroup;
+                for (let i = 0; i < solidEntities.length; i++) {
+                    const
+                        childEntity = solidEntities[i],
+                        offset = childEntity.saveOX;
+
+                    if ((childEntity !== owner) && childEntity.collisionGroup) {
+                        childEntity.collisionGroup.movePreviousX(x - offset);
+                    } else {
+                        childEntity.movePreviousX(x - offset);
                     }
-                    childEntity.movePreviousX(x - offset);
                 }
             },
             
             relocateEntity: function (vector, collisionData) {
-                var childEntity = null,
-                    entity      = null,
-                    i           = 0,
-                    list        = null,
-                    owner       = this.owner,
-                    solids      = this.solidEntities,
-                    v           = null;
+                const
+                    {owner, solidEntities} = this,
+                    {xData, yData} = collisionData;
+                let x = xData.length,
+                    y = yData.length;
                 
                 owner.saveDX -= vector.x - owner.previousX;
                 owner.saveDY -= vector.y - owner.previousY;
 
-                list = collisionData.xData;
-                i = list.length;
-                while (i--) {
-                    if (list[i].thisShape.owner === owner) {
+                while (x--) {
+                    if (xData[x].thisShape.owner === owner) {
                         owner.saveDX = 0;
                         break;
                     }
                 }
                 
-                list = collisionData.yData;
-                i = list.length;
-                while (i--) {
-                    if (list[i].thisShape.owner === owner) {
+                while (y--) {
+                    if (yData[y].thisShape.owner === owner) {
                         owner.saveDY = 0;
                         break;
                     }
                 }
                 
-                for (i = 0; i < solids.length; i++) {
-                    childEntity = entity = solids[i];
-                    if ((childEntity !== owner) && childEntity.collisionGroup) {
-                        childEntity = childEntity.collisionGroup;
-                    }
-                    v = Vector.setUp(vector.x - entity.saveOX, vector.y - entity.saveOY, childEntity.z);
+                for (let i = 0; i < solidEntities.length; i++) {
+                    const
+                        solidEntity = solidEntities[i],
+                        {collisionGroup} = solidEntity,
+                        useGC = (solidEntity !== owner) && collisionGroup,
+                        childEntity = useGC ? collisionGroup : solidEntity,
+                        v = Vector.setUp(vector.x - solidEntity.saveOX, vector.y - solidEntity.saveOY, childEntity.z);
+
                     childEntity.relocateEntity(v, collisionData);
                     v.recycle();
-                    entity.x += entity.saveDX;
-                    entity.y += entity.saveDY;
-                    if (entity !== owner) {
-                        entity.x += owner.saveDX;
-                        entity.y += owner.saveDY;
+                    solidEntity.x += solidEntity.saveDX;
+                    solidEntity.y += solidEntity.saveDY;
+                    if (solidEntity !== owner) {
+                        solidEntity.x += owner.saveDX;
+                        solidEntity.y += owner.saveDY;
                     }
                 }
             },

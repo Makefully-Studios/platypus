@@ -228,9 +228,7 @@ export default createComponentClass(/** @lends platypus.components.Node.prototyp
          * @returns {platypus.Entity}
          */
         addToNode: function (entity) {
-            var i = 0;
-            
-            for (i = 0; i < this.contains.length; i++) {
+            for (let i = 0; i < this.contains.length; i++) {
                 if (this.contains[i] === entity) {
                     return false;
                 }
@@ -247,9 +245,7 @@ export default createComponentClass(/** @lends platypus.components.Node.prototyp
          * @returns {platypus.Entity}
          */
         removeFromNode: function (entity) {
-            var i = 0;
-            
-            for (i = 0; i < this.contains.length; i++) {
+            for (let i = 0; i < this.contains.length; i++) {
                 if (this.contains[i] === entity) {
                     return greenSplice(this.contains, i);
                 }
@@ -265,9 +261,7 @@ export default createComponentClass(/** @lends platypus.components.Node.prototyp
          * @returns {platypus.Entity}
          */
         addToEdge: function (entity) {
-            var i = 0;
-            
-            for (i = 0; i < this.edgesContain.length; i++) {
+            for (let i = 0; i < this.edgesContain.length; i++) {
                 if (this.edgesContain[i] === entity) {
                     return false;
                 }
@@ -284,9 +278,7 @@ export default createComponentClass(/** @lends platypus.components.Node.prototyp
          * @returns {platypus.Entity}
          */
         removeFromEdge: function (entity) {
-            var i = 0;
-            
-            for (i = 0; i < this.edgesContain.length; i++) {
+            for (let i = 0; i < this.edgesContain.length; i++) {
                 if (this.edgesContain[i] === entity) {
                     return greenSplice(this.edgesContain, i);
                 }

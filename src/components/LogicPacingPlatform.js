@@ -46,9 +46,9 @@ export default (function () {
         },
 
         events: {
-            "handle-logic": function (update) {
-                var period = this.period,
-                    delta = update.delta;
+            "handle-logic": function ({delta}) {
+                const
+                    {period} = this;
                 
                 this.time += delta;
                 if (this.time > period) {
