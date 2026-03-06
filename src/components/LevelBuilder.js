@@ -482,10 +482,10 @@ export default createComponentClass(/** @lends platypus.components.LevelBuilder.
         }
     },
     
-    getAssetList: function (def, props, defaultProps) {
+    getAssetList: function (def, props, defaultProps, data) {
         const
             assets = arrayCache.setUp(),
-            levels = def?.levelPieces ?? props?.levelPieces ?? defaultProps?.levelPieces;
+            levels = def?.levelPieces ?? props?.levelPieces ?? defaultProps?.levelPieces ?? data?.levelPieces;
         
         if (levels) {
             const
