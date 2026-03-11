@@ -26,10 +26,7 @@ export default (function () {
             }
             this.set(x, y, z);
         },
-        proto = Vector.prototype,
-        UNIT_X_AXIS = new Vector(1, 0, 0),
-        UNIT_Y_AXIS = new Vector(0, 1, 0),
-        UNIT_Z_AXIS = new Vector(0, 0, 1);
+        proto = Vector.prototype;
     
     /**
      * The x component of the vector.
@@ -328,6 +325,11 @@ export default (function () {
     proto.getCrossProduct = function (v) {
         return Vector.setUp(this).cross(v);
     };
+
+    const
+        UNIT_X_AXIS = new Vector(1, 0, 0),
+        UNIT_Y_AXIS = new Vector(0, 1, 0),
+        UNIT_Z_AXIS = new Vector(0, 0, 1);
     
     /**
      * Rotates the vector by the given amount.
