@@ -4,14 +4,14 @@ import {arrayCache} from './array.js';
  * Splits a string, but populates an array from the array cache instead of creating a new one.
  *
  * @method greenSplit
- * @param str {String} String to split.
+ * @param text {String} String to split.
  * @param [splitter] {String} String demarking where to split. If not provided, each character in the split string becomes an array item.
  * @return Array
  */
-export function greenSplit (str, splitter) {
+export function greenSplit (text, splitter) {
     const
         arr = arrayCache.setUp();
-    let str = str.toString();
+    let str = text.toString();
     
     if (splitter) {
         const
