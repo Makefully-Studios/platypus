@@ -181,12 +181,13 @@ const
             },
             
             removeChildEventListeners: function (entity) {
-                if (entity.containerListener) {
+                if (entity.containerListener?.events) {
                     const
-                        {events, messages} = entity.containerListener;
+                        {events, messages} = entity.containerListener,
+                        {length} = events;
 
-                    for (let i = 0; i < events.length; i++) {
-                        this.removeChildEventListener(entity, events[i], messages[i]);
+                    for (let i = 0; i < length; i++) {
+                        this.off(events[i], messages[i]);
                     }
                     arrayCache.recycle(events);
                     arrayCache.recycle(messages);

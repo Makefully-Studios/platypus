@@ -378,7 +378,7 @@ export default class Entity extends Messenger {
      * @param data {Object} Layer data that affects asset list.
      * @return {Array} A list of the necessary assets to load.
      */
-    static getAssetList ({components, preload = [], properties, type} = {}, props, data) {
+    static getAssetList ({components = [], preload = [], properties = {}, type} = {}, props, data) {
         if (type) {
             const
                 definition = platypus.game.settings.entities[type];
