@@ -124,7 +124,12 @@ export default (function () {
                     let i = types.length;
                     while (i--) {
                         if (entity.solidCollisionMap.get(types[i]).length && !entity.immobile) {
-                            this.solidEntities[this.solidEntities.length] = entity;
+                            const
+                                j = this.solidEntities.indexOf(entity);
+
+                            if (j === -1) {
+                                this.solidEntities[this.solidEntities.length] = entity;
+                            }
                         }
                     }
                     this.updateAABB();
