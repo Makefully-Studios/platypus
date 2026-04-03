@@ -207,7 +207,7 @@ const
             width = segment.width * segment.tilewidth;
 
         for (let i = 0; i < segment.layers.length; i++) {
-            decodeLayer(fromLayer);
+            decodeLayer(segment.layers[i]);
 
             const
                 fromLayer = segment.layers[i],
