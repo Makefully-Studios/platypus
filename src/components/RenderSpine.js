@@ -1,5 +1,5 @@
 /* global platypus */
-import {Skin, Spine, AtlasAttachmentLoader, SkeletonJson} from "@pixi/spine-pixi";
+import {Skin, Spine, AtlasAttachmentLoader, SkeletonJson} from "@esotericsoftware/spine-pixi-v8";
 import {arrayCache} from '../utils/array.js';
 import Data from '../Data.js';
 import RenderAnimator from './RenderAnimator.js';

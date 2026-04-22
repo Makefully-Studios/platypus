@@ -1,6 +1,6 @@
 {
     "name": "platypus",
-    "version": "3.18.9",
+    "version": "3.19.0",
     "description": "Platypus",
     "license": "MIT",
     "main": "lib/platypus.js",
@@ -25,7 +25,7 @@
     },
     "peerDependencies": {
         "@pixi/sound": "github:Makefully-Studios/sound#feature/media-file",
-        "@pixi/spine-pixi": "^2.1.1",
+        "@esotericsoftware/spine-pixi-v8": "^4.2.111",
         "@tweenjs/tween.js": "^23.1.1",
         "pako": "^2.1.0",
         "pixi.js": "^8.1.5",
