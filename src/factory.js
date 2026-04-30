@@ -114,7 +114,7 @@ export default function (componentDefinition = {}) {
                         if (aliases) {
                             const
                                 aliasKeys = Object.keys(aliases),
-                                {length} = keys;
+                                {length} = aliasKeys;
         
                             for (let j = 0; j < length; j++) {
                                 const
