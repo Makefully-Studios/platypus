@@ -16,8 +16,8 @@ const
     process = function (gfx, value) {
         const
             paren  = value.indexOf('('),
-            func   = value.substring(0, paren),
-            values = value.substring(paren + 1, value.indexOf(')'));
+            func   = value.substring(0, paren);
+        let values = value.substring(paren + 1, value.indexOf(')'));
 
         if (values.length) {
             let i = 0,
