@@ -4,7 +4,6 @@ const
     errDelta = 0.0001,
     isRectangle = ({x: ax, y: ay}, {x: bx, y: by}, {x: cx, y: cy}, {x: dx, y: dy}) => {
         const
-            {abs} = Math,
             sqr = (a) => a * a,
             x = (ax + bx + cx + dx) / 4,
             y = (ay + by + cy + dy) / 4,
@@ -13,9 +12,9 @@ const
             csqr = sqr(x - cx) + sqr(y - cy),
             dsqr = sqr(x - dx) + sqr(y - dy);
 
-      return abs(asqr - bsqr) < errDelta &&
-            abs(asqr - csqr) < errDelta &&
-            abs(asqr - dsqr) < errDelta;
+      return Math.abs(asqr - bsqr) < errDelta &&
+            Math.abs(asqr - csqr) < errDelta &&
+            Math.abs(asqr - dsqr) < errDelta;
     };
 
 export default class Rectangle extends Polygon {

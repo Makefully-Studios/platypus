@@ -2,15 +2,33 @@ import recycle from 'recycle';
 
 const
     /**
-     * This class defines an axis-aligned bounding box (AABB) which is used during the collision process to determine if two objects are colliding. This is used in a few places including [CollisionBasic](platypus.components.CollisionBasic.html) and [[Collision-Shape]].
+     * Defines an axis-aligned bounding box (AABB) used for collision checks,
+     * containment tests, and spatial calculations.
+     *
+     * The AABB stores both center-based coordinates (`x`, `y`, `width`,
+     * `height`) and edge-based coordinates (`left`, `top`, `right`, `bottom`)
+     * for fast access during collision operations.
+     *
+     * Position values (`x`, `y`) always represent the center of the rectangle.
+     *
+     * Mutation Semantics:
+     * - `move*` methods translate the AABB.
+     * - `setWidth` and `setHeight` resize around the center.
+     * - `setLeft`, `setRight`, `setTop`, and `setBottom` resize while
+     *   preserving the opposite edge.
+     * - `setBounds` reconstructs the rectangle from explicit bounds.
+     *
+     * AABBs are mutable and recyclable. Instances should not be retained after
+     * calling `recycle`.
      *
      * @memberof platypus
      * @class AABB
-     * @param x {number} The x position of the AABB. The x is always located in the center of the object.
-     * @param y {number} The y position of the AABB. The y is always located in the center of the object.
+     * @param x {number|platypus.AABB} The x position of the AABB center, or an
+     * existing AABB to copy.
+     * @param y {number} The y position of the AABB center.
      * @param width {number} The width of the AABB.
      * @param height {number} The height of the AABB.
-     * @return {platypus.AABB} Returns the new aabb object.
+     * @return {platypus.AABB} Returns the instantiated AABB.
      */
     AABB = function (x, y, width, height) {
         if (x instanceof AABB) {
@@ -23,11 +41,88 @@ const
     proto = AABB.prototype;
 
 /**
+ * Whether the AABB encloses a valid area.
+ *
+ * @property empty
+ * @type boolean
+ */
+
+/**
+ * The x position of the AABB center.
+ *
+ * @property x
+ * @type number
+ */
+
+/**
+ * The y position of the AABB center.
+ *
+ * @property y
+ * @type number
+ */
+
+/**
+ * The width of the AABB.
+ *
+ * @property width
+ * @type number
+ */
+
+/**
+ * The height of the AABB.
+ *
+ * @property height
+ * @type number
+ */
+
+/**
+ * Half the width of the AABB.
+ *
+ * @property halfWidth
+ * @type number
+ */
+
+/**
+ * Half the height of the AABB.
+ *
+ * @property halfHeight
+ * @type number
+ */
+
+/**
+ * The left edge of the AABB.
+ *
+ * @property left
+ * @type number
+ */
+
+/**
+ * The right edge of the AABB.
+ *
+ * @property right
+ * @type number
+ */
+
+/**
+ * The top edge of the AABB.
+ *
+ * @property top
+ * @type number
+ */
+
+/**
+ * The bottom edge of the AABB.
+ *
+ * @property bottom
+ * @type number
+ */
+
+/**
  * Sets all of the properties of the AABB.
  *
  * @method platypus.AABB#setAll
- * @param x {number} The x position of the AABB. The x is always located in the center of the object.
- * @param y {number} The y position of the AABB. The y is always located in the center of the object.
+ * @param x {number} The x position of the AABB center.
+ * @param y {number} The y position of the AABB center.
  * @param width {number} The width of the AABB.
  * @param height {number} The height of the AABB.
  * @chainable
@@ -37,184 +132,117 @@ proto.setAll = function (x, y, width, height) {
     this.x = x;
     this.y = y;
     this.resize(width, height);
+
     return this;
 };
 
 /**
- * Sets bounds of the AABB.
+ * Sets all four bounds of the AABB directly.
+ *
+ * Unlike edge mutators such as `setLeft` or `setTop`, this method completely
+ * reconstructs the rectangle from authoritative edge values.
  *
  * @method platypus.AABB#setBounds
- * @param left {number} The left side of the AABB.
- * @param top {number} The top side of the AABB.
- * @param right {number} The right side of the AABB.
- * @param bottom {number} The bottom side of the AABB.
+ * @param left {number} The left edge.
+ * @param top {number} The top edge.
+ * @param right {number} The right edge.
+ * @param bottom {number} The bottom edge.
  * @chainable
  */
 proto.setBounds = function (left, top, right, bottom) {
     this.empty = false;
-    this.x = (right + left) / 2;
-    this.y = (top + bottom) / 2;
-    this.resize(right - left, bottom - top);
+
+    this.left = left;
+    this.top = top;
+    this.right = right;
+    this.bottom = bottom;
+
+    this.width = right - left;
+    this.height = bottom - top;
+
+    this.halfWidth = this.width / 2;
+    this.halfHeight = this.height / 2;
+
+    this.x = left + this.halfWidth;
+    this.y = top + this.halfHeight;
+
     return this;
 };
 
 /**
- * Sets the AABB values to those of the provided AABB.
+ * Copies values from another AABB.
  *
  * @method platypus.AABB#set
- * @param aabb {platypus.AABB} The AABB to copy values.
+ * @param aabb {platypus.AABB} The AABB to copy values from.
  * @chainable
  */
 proto.set = function (aabb) {
-    /**
-     * Whether the AABB encloses a valid space.
-     *
-     * @property empty
-     * @type boolean
-     */
     this.empty = aabb.empty;
-    
-    /**
-     * The x position of the AABB. The x is always located in the center of the object.
-     *
-     * @property x
-     * @type number
-     */
+
     this.x = aabb.x;
-    
-    /**
-     * The y position of the AABB. The y is always located in the center of the object.
-     *
-     * @property y
-     * @type number
-     */
     this.y = aabb.y;
-    
-    /**
-     * The width of the AABB.
-     *
-     * @property width
-     * @type number
-     */
-    this.width  = aabb.width;
-    
-    /**
-     * The height of the AABB.
-     *
-     * @property height
-     * @type number
-     */
+
+    this.width = aabb.width;
     this.height = aabb.height;
-    
-    /**
-     * Half the width of the AABB.
-     *
-     * @property halfWidth
-     * @type number
-     */
+
     this.halfWidth = aabb.halfWidth;
-    
-    /**
-     * Half the height of the AABB.
-     *
-     * @property halfHeight
-     * @type number
-     */
     this.halfHeight = aabb.halfHeight;
-    
-    /**
-     * The x-position of the left edge of the AABB.
-     *
-     * @property left
-     * @type number
-     */
+
     this.left = aabb.left;
-    
-    /**
-     * The x-position of the right edge of the AABB.
-     *
-     * @property right
-     * @type number
-     */
     this.right = aabb.right;
-    
-    /**
-     * The y-position of the top edge of the AABB.
-     *
-     * @property top
-     * @type number
-     */
+
     this.top = aabb.top;
-    
-    /**
-     * The y-position of the bottom edge of the AABB.
-     *
-     * @property bottom
-     * @type number
-     */
     this.bottom = aabb.bottom;
-    
+
     return this;
 };
 
 /**
- * Returns a string listing AABB dimensions.
+ * Returns a string representation of the AABB.
  *
  * @method platypus.AABB#toString
- * @return String
+ * @return {string}
  */
 proto.toString = function () {
     return '[AABB: ' + this.width + 'x' + this.height + ' (' + this.x + ', ' + this.y + ')]';
 };
 
 /**
- * Resets all the values in the AABB so that the AABB can be reused.
+ * Marks the AABB as empty so it may be reused or recycled.
+ *
+ * Existing positional values are retained internally for performance reasons
+ * and should not be considered valid while `empty === true`.
  *
  * @method platypus.AABB#reset
  * @chainable
  */
 proto.reset = function () {
     this.empty = true;
+
     return this;
 };
 
 /**
- * Resizes the AABB.
+ * Resizes the AABB around its center position.
  *
  * @method platypus.AABB#resize
- * @param width {number} The new width of the AABB
- * @param height {number} The new height of the AABB
+ * @param width {number} The new width.
+ * @param height {number} The new height.
  * @chainable
  */
 proto.resize = function (width = 0, height = 0) {
-    const
-        hw = width / 2,
-        hh = height / 2;
-    
-    this.width  = width;
-    this.height = height;
-    this.halfWidth = hw;
-    this.halfHeight = hh;
-    if (typeof this.x === 'number') {
-        this.left = -hw + this.x;
-        this.right = hw + this.x;
-    } else {
-        this.empty = true;
-    }
-    if (typeof this.y === 'number') {
-        this.top = -hh + this.y;
-        this.bottom = hh + this.y;
-    } else {
-        this.empty = true;
-    }
+    this.setWidth(width);
+    this.setHeight(height);
+
     return this;
 };
 
 /**
- * Changes the size and position of the bounding box so that it contains the current area and the area described in the incoming AABB.
+ * Expands this AABB so that it encloses both its current area and the
+ * provided AABB.
  *
  * @method platypus.AABB#include
- * @param aabb {platypus.AABB} The AABB whose area will be included in the area of the current AABB.
+ * @param aabb {platypus.AABB} The AABB to include.
  * @chainable
  */
 proto.include = function (aabb) {
@@ -222,66 +250,60 @@ proto.include = function (aabb) {
         this.set(aabb);
     } else {
         if (this.left > aabb.left) {
-            this.left = aabb.left;
+            this.setLeft(aabb.left);
         }
+
         if (this.right < aabb.right) {
-            this.right = aabb.right;
+            this.setRight(aabb.right);
         }
+
         if (this.top > aabb.top) {
-            this.top = aabb.top;
+            this.setTop(aabb.top);
         }
+
         if (this.bottom < aabb.bottom) {
-            this.bottom = aabb.bottom;
+            this.setBottom(aabb.bottom);
         }
-        
-        this.width      = this.right  - this.left;
-        this.height     = this.bottom - this.top;
-        this.halfWidth  = this.width / 2;
-        this.halfHeight = this.height / 2;
-        this.x          = this.left + this.halfWidth;
-        this.y          = this.top  + this.halfHeight;
     }
-    
+
     return this;
 };
 
 /**
- * Changes the size and position of the bounding box so that it contains the current area and the point described in the incoming Vector.
+ * Expands this AABB so that it encloses the provided point or points.
  *
  * @method platypus.AABB#includeVector
- * @param vector {platypus.Vector} The Vector point that will be included in the area of the current AABB.
+ * @param {...platypus.Vector} vectors The vectors to include.
  * @chainable
  */
 proto.includeVector = function (...args) {
     args.forEach(({x, y}) => {
         if (this.empty) {
             this.empty = false;
+
             this.x = x;
             this.y = y;
+
             this.resize();
         } else {
             if (this.left > x) {
-                this.left = x;
+                this.setLeft(x);
             }
+
             if (this.right < x) {
-                this.right = x;
+                this.setRight(x);
             }
+
             if (this.top > y) {
-                this.top = y;
+                this.setTop(y);
             }
+
             if (this.bottom < y) {
-                this.bottom = y;
+                this.setBottom(y);
             }
-            
-            this.width      = this.right  - this.left;
-            this.height     = this.bottom - this.top;
-            this.halfWidth  = this.width / 2;
-            this.halfHeight = this.height / 2;
-            this.x          = this.left + this.halfWidth;
-            this.y          = this.top  + this.halfHeight;
         }
     });
-    
+
     return this;
 };
 
@@ -289,49 +311,54 @@ proto.includeVector = function (...args) {
  * Moves the AABB to the specified location.
  *
  * @method platypus.AABB#move
- * @param x {number} The new x position of the AABB.
- * @param y {number} The new y position of the AABB.
+ * @param x {number} The new x position.
+ * @param y {number} The new y position.
  * @chainable
  */
 proto.move = function (x, y) {
     this.moveX(x);
     this.moveY(y);
+
     return this;
 };
 
 /**
- * Moves the AABB to the specified location.
+ * Moves the AABB horizontally.
  *
  * @method platypus.AABB#moveX
- * @param x {number} The new x position of the AABB.
+ * @param x {number} The new x position.
  * @chainable
  */
 proto.moveX = function (x) {
     this.x = x;
-    this.left   = -this.halfWidth + x;
-    this.right  = this.halfWidth + x;
+
+    this.left = x - this.halfWidth;
+    this.right = x + this.halfWidth;
+
     return this;
 };
 
 /**
- * Moves the AABB to the specified location.
+ * Moves the AABB vertically.
  *
  * @method platypus.AABB#moveY
- * @param y {number} The new y position of the AABB.
+ * @param y {number} The new y position.
  * @chainable
  */
 proto.moveY = function (y) {
     this.y = y;
-    this.top    = -this.halfHeight + y;
-    this.bottom = this.halfHeight + y;
+
+    this.top = y - this.halfHeight;
+    this.bottom = y + this.halfHeight;
+
     return this;
 };
 
 /**
- * Moves the AABB to the specified location.
+ * Moves the AABB horizontally by a delta value.
  *
  * @method platypus.AABB#moveXBy
- * @param deltaX {number} The change in x position of the AABB.
+ * @param deltaX {number} The change in x position.
  * @chainable
  */
 proto.moveXBy = function (deltaX) {
@@ -339,10 +366,10 @@ proto.moveXBy = function (deltaX) {
 };
 
 /**
- * Moves the AABB to the specified location.
+ * Moves the AABB vertically by a delta value.
  *
  * @method platypus.AABB#moveYBy
- * @param deltaY {number} The change in y position of the AABB.
+ * @param deltaY {number} The change in y position.
  * @chainable
  */
 proto.moveYBy = function (deltaY) {
@@ -350,129 +377,304 @@ proto.moveYBy = function (deltaY) {
 };
 
 /**
- * Expresses whether this AABB matches the provided AABB.
+ * Sets the width of the AABB while preserving its center position.
+ *
+ * @method platypus.AABB#setWidth
+ * @param width {number} The new width.
+ * @chainable
+ */
+proto.setWidth = function (width) {
+    const hw = width / 2;
+
+    this.width = width;
+    this.halfWidth = hw;
+
+    if (typeof this.x === 'number') {
+        this.left = this.x - hw;
+        this.right = this.x + hw;
+    } else {
+        this.empty = true;
+    }
+
+    return this;
+};
+
+/**
+ * Sets the height of the AABB while preserving its center position.
+ *
+ * @method platypus.AABB#setHeight
+ * @param height {number} The new height.
+ * @chainable
+ */
+proto.setHeight = function (height) {
+    const hh = height / 2;
+
+    this.height = height;
+    this.halfHeight = hh;
+
+    if (typeof this.y === 'number') {
+        this.top = this.y - hh;
+        this.bottom = this.y + hh;
+    } else {
+        this.empty = true;
+    }
+
+    return this;
+};
+
+/**
+ * Sets the left edge of the AABB while preserving the right edge.
+ *
+ * This operation resizes the AABB horizontally.
+ *
+ * @method platypus.AABB#setLeft
+ * @param left {number} The new left edge.
+ * @chainable
+ */
+proto.setLeft = function (left) {
+    const
+        width = this.right - left,
+        hw = width / 2;
+
+    this.left = left;
+
+    this.width = width;
+    this.halfWidth = hw;
+
+    this.x = left + hw;
+
+    return this;
+};
+
+/**
+ * Sets the right edge of the AABB while preserving the left edge.
+ *
+ * This operation resizes the AABB horizontally.
+ *
+ * @method platypus.AABB#setRight
+ * @param right {number} The new right edge.
+ * @chainable
+ */
+proto.setRight = function (right) {
+    const
+        width = right - this.left,
+        hw = width / 2;
+
+    this.right = right;
+
+    this.width = width;
+    this.halfWidth = hw;
+
+    this.x = this.left + hw;
+
+    return this;
+};
+
+/**
+ * Sets the top edge of the AABB while preserving the bottom edge.
+ *
+ * This operation resizes the AABB vertically.
+ *
+ * @method platypus.AABB#setTop
+ * @param top {number} The new top edge.
+ * @chainable
+ */
+proto.setTop = function (top) {
+    const
+        height = this.bottom - top,
+        hh = height / 2;
+
+    this.top = top;
+
+    this.height = height;
+    this.halfHeight = hh;
+
+    this.y = top + hh;
+
+    return this;
+};
+
+/**
+ * Sets the bottom edge of the AABB while preserving the top edge.
+ *
+ * This operation resizes the AABB vertically.
+ *
+ * @method platypus.AABB#setBottom
+ * @param bottom {number} The new bottom edge.
+ * @chainable
+ */
+proto.setBottom = function (bottom) {
+    const
+        height = bottom - this.top,
+        hh = height / 2;
+
+    this.bottom = bottom;
+
+    this.height = height;
+    this.halfHeight = hh;
+
+    this.y = this.top + hh;
+
+    return this;
+};
+
+/**
+ * Returns whether this AABB matches another AABB exactly.
  *
  * @method platypus.AABB#equals
- * @param aabb {platypus.AABB} The AABB to check against.
- * @return {Boolean} Returns `true` if the AABB's match.
+ * @param aabb {platypus.AABB} The AABB to compare against.
+ * @return {boolean}
  */
 proto.equals = function (aabb) {
-    return !this.empty && !aabb.empty && (this.left === aabb.left) && (this.top === aabb.top) && (this.right === aabb.right) && (this.bottom === aabb.bottom);
+    return !this.empty &&
+        !aabb.empty &&
+        (this.left === aabb.left) &&
+        (this.top === aabb.top) &&
+        (this.right === aabb.right) &&
+        (this.bottom === aabb.bottom);
 };
 
 /**
- * Expresses whether this AABB contains the given AABB.
+ * Returns whether this AABB completely contains another AABB.
  *
  * @method platypus.AABB#contains
- * @param aabb {platypus.AABB} The AABB to check against
- * @return {boolean} Returns `true` if this AABB contains the other AABB.
+ * @param aabb {platypus.AABB} The AABB to test.
+ * @return {boolean}
  */
 proto.contains = function (aabb) {
-    return (aabb.top >= this.top) && (aabb.bottom <= this.bottom) && (aabb.left >= this.left) && (aabb.right <= this.right);
+    return (aabb.top >= this.top) &&
+        (aabb.bottom <= this.bottom) &&
+        (aabb.left >= this.left) &&
+        (aabb.right <= this.right);
 };
 
 /**
- * Expresses whether this AABB contains the given point.
+ * Returns whether this AABB contains the provided vector.
  *
  * @method platypus.AABB#containsVector
- * @param vector {platypus.Vector} The vector to check.
- * @return {boolean} Returns `true` if this AABB contains the vector.
+ * @param vector {platypus.Vector} The vector to test.
+ * @return {boolean}
  */
 proto.containsVector = function (vector) {
     return this.containsPoint(vector.x, vector.y);
 };
 
 /**
- * Expresses whether this AABB contains the given point.
+ * Returns whether this AABB contains the provided point.
+ *
+ * Edge-touching counts as containment.
  *
  * @method platypus.AABB#containsPoint
- * @param x {number} The x-axis value.
- * @param y {number} The y-axis value.
- * @return {boolean} Returns `true` if this AABB contains the point.
+ * @param x {number} The x coordinate.
+ * @param y {number} The y coordinate.
+ * @return {boolean}
  */
 proto.containsPoint = function (x, y) {
-    return (y >= this.top) && (y <= this.bottom) && (x >= this.left) && (x <= this.right);
+    return (y >= this.top) &&
+        (y <= this.bottom) &&
+        (x >= this.left) &&
+        (x <= this.right);
 };
 
 /**
- * Expresses whether this AABB collides with the given AABB. This is similar to `intersects` but returns true for overlapping only, not touching edges.
+ * Returns whether this AABB overlaps another AABB.
+ *
+ * Edge-touching does not count as a collision.
  *
  * @method platypus.AABB#collides
- * @param aabb {platypus.AABB} The AABB to check against
- * @return {boolean} Returns `true` if this AABB collides with the other AABB.
+ * @param aabb {platypus.AABB} The AABB to test.
+ * @return {boolean}
  */
 proto.collides = function (aabb) {
-    return (aabb.bottom > this.top) && (aabb.top < this.bottom) && (aabb.right > this.left) && (aabb.left < this.right);
+    return (aabb.bottom > this.top) &&
+        (aabb.top < this.bottom) &&
+        (aabb.right > this.left) &&
+        (aabb.left < this.right);
 };
 
 /**
- * Expresses whether this AABB collides with the given point. This is an exclusive version of containsPoint.
+ * Returns whether this AABB overlaps the provided point.
+ *
+ * Edge-touching does not count as collision.
  *
  * @method platypus.AABB#collidesPoint
- * @param x {number} The x-axis value.
- * @param y {number} The y-axis value.
- * @return {boolean} Returns `true` if this AABB collides with the point.
+ * @param x {number} The x coordinate.
+ * @param y {number} The y coordinate.
+ * @return {boolean}
  */
 proto.collidesPoint = function (x, y) {
-    return (y > this.top) && (y < this.bottom) && (x > this.left) && (x < this.right);
+    return (y > this.top) &&
+        (y < this.bottom) &&
+        (x > this.left) &&
+        (x < this.right);
 };
 
 /**
- * Expresses whether this AABB intersects the given AABB. This is similar to `collides` but returns true for overlapping or touching edges.
+ * Returns whether this AABB intersects another AABB.
+ *
+ * Edge-touching counts as an intersection.
  *
  * @method platypus.AABB#intersects
- * @param aabb {platypus.AABB} The AABB to check against
- * @return {boolean} Returns `true` if this AABB intersects the other AABB.
+ * @param aabb {platypus.AABB} The AABB to test.
+ * @return {boolean}
  */
 proto.intersects = function (aabb) {
-    return (aabb.bottom >= this.top) && (aabb.top <= this.bottom) && (aabb.right >= this.left) && (aabb.left <= this.right);
+    return (aabb.bottom >= this.top) &&
+        (aabb.top <= this.bottom) &&
+        (aabb.right >= this.left) &&
+        (aabb.left <= this.right);
 };
 
 /**
- * Returns an AABB of the intersection. If the AABB's do not intersect, an empty AABB is returned.
+ * Returns a new AABB representing the overlapping area between two AABBs.
+ *
+ * If no overlap exists, an empty AABB is returned.
+ *
+ * The returned AABB is pooled and should be recycled when no longer needed.
  *
  * @method platypus.AABB#getIntersection
- * @param aabb {AABB} The AABB this AABB intersects with.
- * @return {Number} Returns the area of the intersected AABB's.
+ * @param aabb {platypus.AABB} The AABB to intersect against.
+ * @return {platypus.AABB}
  */
 proto.getIntersection = function (aabb) {
-    const
-        {max, min} = Math;
-    
     return this.intersects(aabb) ? AABB.setUp().setBounds(
-        max(this.left, aabb.left),
-        max(this.top,  aabb.top),
-        min(this.right,  aabb.right),
-        min(this.bottom, aabb.bottom)
+        Math.max(this.left, aabb.left),
+        Math.max(this.top, aabb.top),
+        Math.min(this.right, aabb.right),
+        Math.min(this.bottom, aabb.bottom)
     ) : AABB.setUp();
 };
 
 /**
- * Returns the area of the intersection. If the AABB's do not intersect, `0` is returned.
+ * Returns the overlapping area between two AABBs.
+ *
+ * Returns `0` if no overlap exists.
  *
  * @method platypus.AABB#getIntersectionArea
- * @param aabb {AABB} The AABB this AABB intersects with.
- * @return {Number} Returns the area of the intersected AABB's.
+ * @param aabb {platypus.AABB} The AABB to intersect against.
+ * @return {number}
  */
 proto.getIntersectionArea = function (aabb) {
-    const
-        {max, min} = Math;
-    
-    return this.intersects(aabb) ? (min(this.bottom, aabb.bottom) - max(this.top,  aabb.top)) * (min(this.right,  aabb.right) - max(this.left, aabb.left)) : 0;
+    return this.intersects(aabb) ? (
+        (Math.min(this.bottom, aabb.bottom) - Math.max(this.top, aabb.top)) *
+        (Math.min(this.right, aabb.right) - Math.max(this.left, aabb.left))
+    ) : 0;
 };
 
 /**
  * Returns an AABB from cache or creates a new one if none are available.
  *
  * @method platypus.AABB.setUp
- * @return {platypus.AABB} The instantiated AABB.
+ * @return {platypus.AABB}
  */
+
 /**
- * Returns a AABB back to the cache.
+ * Returns an AABB to the cache.
  *
  * @method platypus.AABB.recycle
- * @param {platypus.AABB} aabb The AABB to be recycled.
+ * @param {platypus.AABB} aabb The AABB to recycle.
  */
+
 /**
  * Relinquishes properties of the AABB and recycles it.
  *

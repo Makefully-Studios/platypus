@@ -1,6 +1,6 @@
 {
     "name": "platypus",
-    "version": "3.20.1",
+    "version": "3.21.0",
     "description": "Platypus",
     "license": "MIT",
     "main": "lib/platypus.js",
@@ -14,18 +14,22 @@
     "scripts": {
         "start": "webpack-dev-server --env.dev",
         "build:release": "webpack --env.prod",
-        "build:debug": "webpack --env.dev"
+        "build:debug": "webpack --env.dev",
+        "test:watch": "vitest",
+        "test:run": "vitest run",
+        "coverage": "vitest run --coverage"
     },
     "dependencies": {
         "recycle": "https://github.com/gopherwood/recycle.git#master"
     },
     "devDependencies": {
+        "vitest": "^4.1.7",
         "webpack": "^4.35.2",
         "webpack-cli": "^3.3.5"
     },
     "peerDependencies": {
-        "@pixi/sound": "github:Makefully-Studios/sound#feature/media-file",
         "@esotericsoftware/spine-pixi-v8": "^4.2.111",
+        "@pixi/sound": "github:Makefully-Studios/sound#feature/media-file",
         "@tweenjs/tween.js": "^23.1.1",
         "pako": "^2.1.0",
         "pixi.js": "^8.1.5",
