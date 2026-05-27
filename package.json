@@ -20,7 +20,7 @@
         "coverage": "vitest run --coverage"
     },
     "dependencies": {
-        "recycle": "https://github.com/gopherwood/recycle.git#master"
+        "recycle": "github:gopherwood/recycle#master"
     },
     "devDependencies": {
         "vitest": "^4.1.7",
