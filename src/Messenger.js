@@ -1,8 +1,9 @@
 /* global platypus, window */
+import EventHandlerList from './EventHandlerList.js';
 import {arrayCache, greenSlice} from './utils/array.js';
 
 const
-    perfTools = window.performance && window.performance.mark && window.performance.measure && window.performance, // End with this to set perfTools to window.performance
+    perfTools = typeof performance !== 'undefined' && performance.mark && performance.measure ? performance : null, // End with this to set perfTools to window.performance
     runBoth = function (f1, f2) {
         return function () {
             f1.apply(this, arguments);
@@ -11,12 +12,33 @@ const
     };
 
 /**
- * The Messenger object facilitates communication between components and other game objects. Messenger is currently used by [Entity](platypus.Entity.html) and [EntityContainer](platypus.components.EntityContainer).
+ * Messenger provides prioritized event-based communication between
+ * components, entities, and systems.
+ *
+ * Features include:
+ * - prioritized listeners
+ * - one-time listeners
+ * - deterministic execution ordering
+ * - safe listener mutation during dispatch
+ * - pooled listener structures
+ * - array/object event dispatch formats
+ * - optional debug instrumentation
+ *
+ * Messenger is commonly mixed into entities and components to
+ * provide lightweight pub/sub behavior without repeated allocations.
  *
  * @memberof platypus
+ * @class Messenger
  */
 class Messenger {
     /**
+     * Creates a Messenger instance.
+     *
+     * @param {Object} [options]
+     * Configuration options.
+     *
+     * @param {Boolean} [options.debug=false]
+     * Enables nested-event debugging and performance instrumentation.
      */
     constructor ({debug} = {}) {
         this._listeners = {};
@@ -75,47 +97,89 @@ class Messenger {
     }
 
     /**
-     * Add an event listener. The parameters for the listener functions depend on the event.
+     * Registers an event listener.
      *
-     * @param name {String} The type of event.
-     * @param callback {Function} The callback function when event is triggered.
+     * Listeners are executed in ascending priority order.
+     * Lower priority values execute first.
+     *
+     * When priorities match, listeners execute in
+     * registration order.
+     *
+     * If no context is supplied, the Messenger instance
+     * becomes the callback context.
+     *
+     * @method on
+     *
+     * @param {String} name
+     * Event name.
+     *
+     * @param {Function} callback
+     * Function invoked when the event fires.
+     *
+     * @param {Object} [context=this]
+     * Callback execution context.
+     *
+     * @param {Boolean} [once=false]
+     * Whether the listener should automatically remove
+     * itself after its first execution.
+     *
+     * @param {Number} [priority=MAX_SAFE_INTEGER]
+     * Listener execution priority.
+     *
+     * Lower numbers execute first.
      */
-    on (name, callback) {
-        const
-            listener = this._listeners[name] = this._listeners[name] ?? [];
-
+    on (name, callback, context = null, once = false, priority = -1) {
         if (!this._destroyed) {
-            if (listener.indexOf(callback) === -1) {
-                listener.push(callback);
-            }
+            const
+                listenerList = this._listeners[name] = this._listeners[name] ?? EventHandlerList.setUp();
+
+            return listenerList.add(callback, context ?? this, once, priority === -1 ? Number.MAX_SAFE_INTEGER : priority);
         }
+
+        return null;
     }
 
     /**
-     * Remove the event listener
+     * Removes listeners.
      *
-     * @param name {String} The type of event; if no name is specifed remove all listeners.
-     * @param callback {Function} The listener function.
+     * Calling without arguments removes all listeners.
+     *
+     * Calling with only an event name removes all listeners
+     * for that event.
+     *
+     * Calling with both name and callback removes matching
+     * listeners for that callback.
+     *
+     * @method off
+     *
+     * @param {String} [name]
+     * Event name.
+     *
+     * @param {Function} [callback]
+     * Listener callback.
      */
-    off (name, callback) {
-        const
-            listener = this._listeners[name];
-
-        if (!this._destroyed && listener) {
+    off (name, callback, context) {
+        if (!this._destroyed) {
             // remove all
             if (typeof name === 'undefined') {
+                this.getMessageIds().forEach((id) => this._listeners[id].recycle());
                 this._listeners = {};
             } else {
-                // remove all listeners for that event
-                if (typeof callback === 'undefined') {
-                    listener.length = 0;
-                } else {
-                    //remove single listener
-                    const
-                        index = listener.indexOf(callback);
+                const
+                    listenerList = this._listeners[name];
 
-                    if (index !== -1) {
-                        listener.splice(index, 1);
+                if (listenerList) {
+                    // remove all listeners for that event
+                    if (typeof callback === 'undefined') {
+                        listenerList.recycle();
+                        delete this._listeners[name];
+                    } else {
+                        //remove single listener
+                        listenerList.remove(callback, context);
+                        if (!listenerList.handlers.length) {
+                            listenerList.recycle();
+                            delete this._listeners[name];
+                        }
                     }
                 }
             }
@@ -132,34 +196,40 @@ class Messenger {
     }
 
     /**
-     * This method is used by both internal components and external entities to trigger messages. When triggered, Messenger checks through bound handlers to run as appropriate. This handles multiple event structures: "", [], and {}
+     * Dispatches one or more events.
      *
-     * @param event {String|Array|Object} This is the message(s) to process. This can be a string, an object containing an "event" property (and optionally a "message" property, overriding the value below), or an array of the same.
-     * @param value {*} This is a message object or other value to pass along to event handler.
-     * @param debug {boolean} This flags whether to output message contents and subscriber information to the console during game development. A "value" object parameter (above) will also set this flag if value.debug is set to true.
-     * @return {number} The number of handlers for the triggered message.
+     * Supported formats:
+     *
+     * String:
+     * trigger('jump', value)
+     *
+     * Array:
+     * trigger(['jump', 'land'], value)
+     *
+     * Object:
+     * trigger({
+     *     event: 'jump',
+     *     message: value,
+     *     debug: true
+     * })
+     *
+     * @method trigger
+     *
+     * @param {String|Array|Object} events
+     * Event descriptor.
+     *
+     * @param {*} [message]
+     * Event payload.
+     *
+     * @param {Boolean} [debug]
+     * Enables debug logging for this dispatch.
+     *
+     * @return {Number}
+     * Total number of listeners triggered.
      */
     trigger (events, message, debug) {
         if (typeof events === 'string') {
-            const
-                indexOf = events.indexOf(" ");
-
-            if (indexOf === -1) {
-                return this.triggerEvent.apply(this, arguments);
-            } else {
-                const
-                    splitEvents = events.split(" "),
-                    args = greenSlice(arguments);
-                let count = 0;
-
-                for (let i = 0; i < splitEvents.length; i++) {
-                    args[0] = splitEvents[i];
-                    count += this.triggerEvent.apply(this, args);
-                }
-                arrayCache.recycle(args);
-
-                return count;
-            }
+            return this.triggerEvent.apply(this, arguments);
         } else if (Array.isArray(events)) {
             const
                 args = greenSlice(arguments);
@@ -173,7 +243,18 @@ class Messenger {
 
             return count;
         } else if (events.event) {
-            return this.triggerEvent(events.event, events.message ?? message, events.debug ?? debug);
+            if (typeof events.debug !== 'undefined') {
+                return this.triggerEvent(
+                    events.event,
+                    events.message ?? message,
+                    events.debug
+                );
+            }
+
+            return this.triggerEvent(
+                events.event,
+                events.message ?? message
+            );
         } else {
             platypus.debug.warn('Event incorrectly formatted: must be string, array, or object containing an "event" property.', events);
             return 0;
@@ -181,39 +262,31 @@ class Messenger {
     }
     
     /**
-     * This method is used by both internal components and external entities to trigger messages on this entity. When triggered, entity checks through bound handlers to run as appropriate. This method is identical to Spring Roll's [EventDispatcher.trigger](http://springroll.io/SpringRoll/docs/classes/springroll.EventDispatcher.html#method_trigger), but uses alternative Array methods to alleviate excessive GC.
+     * Dispatches a single event directly.
      *
-     * @param event {String} This is the message to process.
-     * @param [value] {*} This is a message object or other value to pass along to event handler.
-     * @param [value.debug] {boolean} This flags whether to output message contents and subscriber information to the console during game development.
-     * @return {number} The number of handlers for the triggered message.
+     * This bypasses trigger-format normalization and is
+     * the fastest dispatch path.
+     *
+     * @method triggerEvent
+     *
+     * @param {String} type
+     * Event name.
+     *
+     * @param {...*} args
+     * Arguments forwarded to listeners.
+     *
+     * @return {Number}
+     * Number of listeners triggered.
      */
     triggerEvent (type, ...args) {
         const
             {_listeners} = this;
-        let count = 0;
-        
+
         if (!this._destroyed && _listeners.hasOwnProperty(type) && (_listeners[type])) {
-            const
-                listeners = greenSlice(_listeners[type]);
-
-            count = listeners.length;
-
-            for (let i = 0; i < listeners.length; i++) {
-                const
-                    listener = listeners[i];
-
-                if (listener._eventDispatcherOnce) {
-                    delete listener._eventDispatcherOnce;
-                    this.off(type, listener);
-                }
-                listener.apply(this, args);
-            }
-            
-            arrayCache.recycle(listeners);
+            return _listeners[type].trigger(args);
         }
         
-        return count;
+        return 0;
     }
     
     /**
@@ -233,6 +306,7 @@ class Messenger {
         arrayCache.recycle(this.loopCheck);
         this.loopCheck = null;
         this._destroyed = true;
+        this.getMessageIds().forEach((id) => this._listeners[id].recycle());
         this._listeners = null;
     }
 

@@ -47,6 +47,7 @@ const
             Messenger.initialize(this);
 
             this.newAdds = arrayCache.setUp();
+            this._childEvents = {};
 
             owner.entities = this.entities = arrayCache.setUp();
             
@@ -137,44 +138,61 @@ const
                 return true;
             },
             
-            addNewPrivateEvent: function (event) {
-                if (this._listeners[event]) {
-                    return false; // event is already added.
+            addNewPrivateEvent (event) {
+                if (this._childEvents[event]) {
+                    return false;
                 }
 
-                this._listeners[event] = arrayCache.setUp(); //to signify it's been added even if not used
-                
-                //Listen for message on children
+                this._childEvents[event] = true;
+
+                // Listen for message on children
                 for (let x = 0; x < this.entities.length; x++) {
-                    if (this.entities[x]._listeners[event]) {
-                        for (let y = 0; y < this.entities[x]._listeners[event].length; y++) {
-                            this.addChildEventListener(this.entities[x], event, this.entities[x]._listeners[event][y]);
+                    const
+                        listenerList = this.entities[x]._listeners[event];
+
+                    if (listenerList) {
+                        const
+                            {handlers} = listenerList;
+
+                        for (let y = 0; y < handlers.length; y++) {
+                            this.addChildEventListener(
+                                this.entities[x],
+                                event,
+                                handlers[y]
+                            );
                         }
                     }
                 }
-                
+
                 return true;
             },
-            
+
             updateChildEventListeners: function (entity) {
                 this.removeChildEventListeners(entity);
                 this.addChildEventListeners(entity);
             },
             
-            addChildEventListeners: function (entity) {
+            addChildEventListeners (entity) {
                 const
                     {_listeners} = entity,
                     keys = Object.keys(_listeners),
                     {length} = keys;
-        
+
                 for (let i = 0; i < length; i++) {
                     const
                         key = keys[i],
-                        listener = _listeners[key];
+                        listenerList = _listeners[key];
 
-                    if (listener) {
-                        for (let i = 0; i < listener.length; i++) {
-                            this.addChildEventListener(entity, key, listener[i]);
+                    if (listenerList) {
+                        const
+                            {handlers} = listenerList;
+
+                        for (let j = 0; j < handlers.length; j++) {
+                            this.addChildEventListener(
+                                entity,
+                                key,
+                                handlers[j]
+                            );
                         }
                     }
                 }
@@ -183,38 +201,68 @@ const
             removeChildEventListeners: function (entity) {
                 if (entity.containerListener?.events) {
                     const
-                        {events, messages} = entity.containerListener,
+                        {events, handlers} = entity.containerListener,
                         {length} = events;
 
                     for (let i = 0; i < length; i++) {
-                        this.off(events[i], messages[i]);
+                        this.off(
+                            events[i],
+                            handlers[i].callback,
+                            handlers[i].context
+                        );
                     }
+
                     arrayCache.recycle(events);
-                    arrayCache.recycle(messages);
+                    arrayCache.recycle(handlers);
+
                     entity.containerListener.recycle();
                     entity.containerListener = null;
                 }
             },
             
-            addChildEventListener: function (entity, event, callback) {
+            addChildEventListener: function (entity, event, handler) {
                 if (!entity.containerListener) {
                     entity.containerListener = Data.setUp(
                         "events", arrayCache.setUp(),
-                        "messages", arrayCache.setUp()
+                        "handlers", arrayCache.setUp()
                     );
                 }
-                entity.containerListener.events.push(event);
-                entity.containerListener.messages.push(callback);
-                this.on(event, callback, callback._priority || 0);
+
+                const
+                    newHandler = this.on(
+                        event,
+                        handler.callback,
+                        handler.context,
+                        handler.once,
+                        handler.priority
+                    );
+
+                if (newHandler) {
+                    entity.containerListener.events.push(event);
+                    entity.containerListener.handlers.push(newHandler);
+                }
             },
             
             removeChildEventListener: function (entity, event, callback) {
                 const
-                    {events, messages} = entity.containerListener;
-                
-                for (let i = 0; i < events.length; i++) {
-                    if ((events[i] === event) && (!callback || (messages[i] === callback))) {
-                        this.off(event, messages[i]);
+                    {events, handlers} = entity.containerListener;
+                let i = events.length;
+
+                while (i--) {
+                    if (
+                        events[i] === event &&
+                        (
+                            !callback ||
+                            handlers[i].callback === callback
+                        )
+                    ) {
+                        this.off(
+                            event,
+                            handlers[i].callback,
+                            handlers[i].context
+                        );
+                        greenSplice(events, i);
+                        greenSplice(handlers, i);
                     }
                 }
             },
@@ -441,7 +489,7 @@ const
                     return 0;
                 }
                 
-                if (!this._listeners[event]) {
+                if (!this._childEvents[event]) {
                     this.addNewPrivateEvent(event);
                 }
                 return this.triggerEvent(event, message, debug);
@@ -460,7 +508,7 @@ const
                     return 0;
                 }
                 
-                if (!this._listeners[event]) {
+                if (!this._childEvents[event]) {
                     this.addNewPrivateEvent(event);
                 }
                 return this.trigger.apply(this, arguments);

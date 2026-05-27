@@ -1,9 +1,8 @@
-/* global window */
+/* global Map */
 import {arrayCache, greenSplice} from './utils/array.js';
 import recycle from 'recycle';
 
 const
-    Map = window.Map,
     mapSet = function (keys, key, value) {
         if (this.get(key) !== value) {
             if (!this.has(key)) {
