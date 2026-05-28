@@ -26,7 +26,8 @@ const
     },
     groupSortBySize = function (a, b) {
         return a.collisionGroup.getAllEntities() - b.collisionGroup.getAllEntities();
-    };
+    },
+    epsilon = 0.000001;
 
 export default createComponentClass(/** @lends platypus.components.HandlerCollision.prototype */{
     id: 'HandlerCollision',
@@ -486,8 +487,6 @@ export default createComponentClass(/** @lends platypus.components.HandlerCollis
             if (dX || dY || collisionDirty) {
                 
                 if (bullet) {
-                    const
-                        min = Math.min;
                     let sW = Infinity,
                         sH = Infinity,
                         i = collisionTypes.length;                        
@@ -496,14 +495,14 @@ export default createComponentClass(/** @lends platypus.components.HandlerCollis
                         const
                             aabb = entityOrGroup.getAABB(collisionTypes[i]);
 
-                        sW = min(sW, aabb.width);
-                        sH = min(sH, aabb.height);
+                        sW = Math.min(sW, aabb.width);
+                        sH = Math.min(sH, aabb.height);
                     }
 
                     {
                         const
                             //Stepping to catch really fast entities - this is not perfect, but should prevent the majority of fallthrough cases.
-                            steps = min(Math.ceil(Math.max(Math.abs(dX) / sW, Math.abs(dY) / sH)), 100), //Prevent memory overflow if things move exponentially far.
+                            steps = Math.min(Math.ceil(Math.max(Math.abs(dX) / sW, Math.abs(dY) / sH)), 100), //Prevent memory overflow if things move exponentially far.
                             stepDX   = dX / steps,
                             stepDY   = dY / steps;
                         let step = steps;
@@ -541,13 +540,82 @@ export default createComponentClass(/** @lends platypus.components.HandlerCollis
         processCollisionStep: (function () {
             const
                 sweeper = AABB.setUp(),
+                getJumpThroughNormal = function (shape) {
+                    const
+                        jt = shape.jumpThrough;
+
+                    if (!jt) {
+                        return null;
+                    } else {
+                        const
+                            owner = shape.owner,
+                            v = Vector.setUp(jt.x * (owner.scaleX || 1), jt.y * (owner.scaleY || 1));
+
+                        if (owner.rotation) {
+                            v.rotate(owner.rotation * Math.PI / 180);
+                        }
+
+                        return v;
+                    }
+                },
+                shouldSkipJumpThroughCollision = function (platformEntity, movingAABB, platformAABB) {
+                    //TODO: currently does not handle individual shape jumpThrough. That will need to happen a layer deeper.
+                    const collisionTypes = platformEntity.collisionTypes;
+
+                    if (!collisionTypes) {
+                        return true;
+                    }
+
+                    let i = collisionTypes.length;
+
+                    while (i--) {
+                        const shapes = platformEntity.getShapes(collisionTypes[i]);
+
+                        if (!shapes) {
+                            continue;
+                        }
+
+                        let j = shapes.length;
+
+                        while (j--) {
+                            const
+                                shape = shapes[j],
+                                normal = getJumpThroughNormal(shape);
+
+                            if (!normal) {
+                                continue;
+                            } else {
+                                const
+                                    absx = Math.abs(normal.x),
+                                    absy = Math.abs(normal.y),
+                                    ignore = absy >= absx
+                                        ? ( // Primarily vertical normal
+                                            (normal.y < -epsilon && movingAABB.bottom > platformAABB.top) ||
+                                            (normal.y >  epsilon && movingAABB.top    < platformAABB.bottom)
+                                        )
+                                        : ( // Primarily horizontal normal
+                                            (normal.x < -epsilon && movingAABB.right  > platformAABB.left) ||
+                                            (normal.x >  epsilon && movingAABB.left   < platformAABB.right)
+                                        )
+
+                                normal.recycle();
+
+                                if (ignore) {
+                                    return ignore;
+                                }
+                            }
+                        }
+                    }
+
+                    return false;
+                },
                 includeEntity = function (thisEntity, aabb, otherEntity, otherAABB, ignoredEntities, sweepAABB) {
                     //Chop out all the special case entities we don't want to check against.
                     if (otherEntity === thisEntity) {
                         return false;
-                    } else if (otherEntity.jumpThrough && (aabb.bottom > otherAABB.top)) {
+                    } else if (shouldSkipJumpThroughCollision(otherEntity, aabb, otherAABB)) {
                         return false;
-                    } else if (thisEntity.jumpThrough  && (otherAABB.bottom > aabb.top)) { // This will allow platforms to hit something solid sideways if it runs into them from the side even though originally they were above the top. - DDD
+                    } else if (shouldSkipJumpThroughCollision(thisEntity, otherAABB, aabb)) { // This will allow platforms to hit something solid sideways if it runs into them from the side even though originally they were above the top. - DDD
                         return false;
                     } else if (ignoredEntities) {
                         let i = ignoredEntities.length;

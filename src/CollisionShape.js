@@ -8,9 +8,8 @@ const
             rectAabb = rect.aABB,
             hh = rectAabb.halfHeight,
             hw = rectAabb.halfWidth,
-            abs = Math.abs,
-            shapeDistanceX = abs(circle.x - rect.x),
-            shapeDistanceY = abs(circle.y - rect.y),
+            shapeDistanceX = Math.abs(circle.x - rect.x),
+            shapeDistanceY = Math.abs(circle.y - rect.y),
             radius = circle.radius;
         
         /* This checks the following in order:
@@ -45,6 +44,7 @@ const
      * @param definition.x {number} The x position of the shape. The x is always located in the center of the object.
      * @param definition.y {number} The y position of the shape. The y is always located in the center of the object.
      * @param [definition.type="rectangle"] {String} The type of shape this is. Currently this can be either "rectangle" or "circle".
+     * @param [definition.jumpThrough] {Object} x/y unit determining jump-through face.
      * @param [definition.width] {number} The width of the shape if it's a rectangle.
      * @param [definition.height] {number} The height of the shape if it's a rectangle.
      * @param [definition.radius] {number} The radius of the shape if it's a circle.
@@ -75,6 +75,7 @@ const
 
         this.owner = owner;
         this.collisionType = collisionType;
+        this.jumpThrough = definition.jumpThrough ? Vector.setUp(definition.jumpThrough.x, definition.jumpThrough.y) : null;
         this.type = type;
         this.subType = '';
         
@@ -304,6 +305,11 @@ proto.toJSON = function () {
  *
  * @method platypus.CollisionShape#recycle
  */
-recycle.add(CollisionShape, 'CollisionShape', CollisionShape, null, true);
+recycle.add(CollisionShape, 'CollisionShape', CollisionShape, function () {
+    if (this.jumpThrough) {
+        this.jumpThrough.recycle();
+    }
+    this.jumpThrough = null;
+}, true);
 
 export default CollisionShape;

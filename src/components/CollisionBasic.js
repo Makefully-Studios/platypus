@@ -279,6 +279,23 @@ const
             shape.update(x, y);
             aabb.include(shape.aABB);
         }
+    },
+    normalizeJumpThrough = function (jt) {
+        if (jt === true) {
+            return {
+                x: 0,
+                y: -1
+            };
+        }
+
+        if (!jt) {
+            return null;
+        }
+
+        return {
+            x: jt.x || 0,
+            y: jt.y || 0
+        };
     };
 
 export default createComponentClass(/** @lends platypus.components.CollisionBasic.prototype */{
@@ -514,8 +531,15 @@ export default createComponentClass(/** @lends platypus.components.CollisionBasi
         this.prevShapes = arrayCache.setUp();
         this.entities = null;
         for (let x = 0; x < shapes.length; x++) {
-            this.shapes.push(CollisionShape.setUp(this.owner, shapes[x], this.collisionType));
-            this.prevShapes.push(CollisionShape.setUp(this.owner, shapes[x], this.collisionType));
+            const
+                shape = shapes[x],
+                shapeDefinition = {
+                    ...shape,
+                    jumpThrough: normalizeJumpThrough(typeof shape.jumpThrough === 'undefined' ? this.jumpThrough : shape.jumpThrough)
+                };
+
+            this.shapes.push(CollisionShape.setUp(this.owner, shapeDefinition, this.collisionType));
+            this.prevShapes.push(CollisionShape.setUp(this.owner, shapeDefinition, this.collisionType));
             this.prevAABB.include(this.prevShapes[x].aABB);
             this.aabb.include(this.shapes[x].aABB);
         }
