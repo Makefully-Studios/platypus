@@ -245,18 +245,6 @@ export default createComponentClass(/** @lends platypus.components.Camera.protot
 
         //Message object defined here so it's reusable
         this.worldDimensions = AABB.setUp();
-        this.message = Data.setUp(
-            "viewport", AABB.setUp(),
-            "scaleX", 0,
-            "scaleY", 0,
-            "orientation", 0,
-            "stationary", false,
-            "world", this.worldDimensions
-        );
-        this.cameraLoadedMessage = Data.setUp(
-            "viewport", this.message.viewport,
-            "world", this.worldDimensions
-        );
 
         this.unbounded = true; // no bounds on camera movement
 
@@ -312,6 +300,12 @@ export default createComponentClass(/** @lends platypus.components.Camera.protot
             this.viewportUpdate = true;
             
             if (this.worldIsLoaded) {
+                const
+                    msg = Data.setUp(
+                        "viewport", AABB.setUp(this.worldCamera.viewport),
+                        "world", this.worldDimensions
+                    );
+
                 /**
                  * On receiving a "world-loaded" message, the camera broadcasts the world size to all children in the world.
                  *
@@ -320,7 +314,10 @@ export default createComponentClass(/** @lends platypus.components.Camera.protot
                  * @param camera.world {platypus.AABB} The dimensions of the world.
                  * @param camera.viewport {platypus.AABB} The AABB describing the camera viewport in world units.
                  **/
-                entity.triggerEvent('camera-loaded', this.cameraLoadedMessage);
+                entity.triggerEvent('camera-loaded', msg);
+
+                msg.viewport.recycle();
+                msg.recycle();
             }
 
             if (typeof entity.cameraFocus === 'number') {
@@ -332,7 +329,21 @@ export default createComponentClass(/** @lends platypus.components.Camera.protot
             this.viewportUpdate = true;
             
             if (this.worldIsLoaded) {
-                entity.triggerEvent('camera-update', this.message);
+                const
+                    {container, owner, stationary, windowPerWorldUnitHeight, windowPerWorldUnitWidth, world, worldCamera} = this,
+                    {viewport} = worldCamera,
+                    msg = Data.setUp(
+                        "viewport", AABB.setUp(viewport),
+                        "scaleX", windowPerWorldUnitWidth,
+                        "scaleY", windowPerWorldUnitHeight,
+                        "orientation", worldCamera.orientation,
+                        "stationary", stationary,
+                        "world", this.worldDimensions
+                    );
+
+                entity.triggerEvent('camera-update', msg);
+                msg.viewport.recycle();
+                msg.recycle();
             }
 
             if (typeof entity.cameraFocus === 'number') {
@@ -350,9 +361,8 @@ export default createComponentClass(/** @lends platypus.components.Camera.protot
 
         "world-loaded": function (values) {
             const
-                {message, owner} = this;
+                {owner} = this;
             
-            message.viewport.set(this.worldCamera.viewport);
             this.worldDimensions.set(values.world);
             this.unbounded = !!values.level.infinite;
             
@@ -361,7 +371,16 @@ export default createComponentClass(/** @lends platypus.components.Camera.protot
                 this.follow(values.camera);
             }
             if (owner.triggerEventOnChildren) {
-                owner.triggerEventOnChildren('camera-loaded', this.cameraLoadedMessage);
+                const
+                    msg = Data.setUp(
+                        "viewport", AABB.setUp(this.worldCamera.viewport),
+                        "world", this.worldDimensions
+                    );
+                    
+                owner.triggerEventOnChildren('camera-loaded', msg);
+
+                msg.viewport.recycle();
+                msg.recycle();
             }
             this.updateMovementMethods();
         },
@@ -891,20 +910,20 @@ export default createComponentClass(/** @lends platypus.components.Camera.protot
 
         updateViewport: function () {
             const
-                {container, message: msg, owner, stationary, viewportUpdate, windowPerWorldUnitHeight, windowPerWorldUnitWidth, world, worldCamera} = this,
-                {viewport} = msg;
+                {container, owner, stationary, viewportUpdate, windowPerWorldUnitHeight, windowPerWorldUnitWidth, world, worldCamera} = this,
+                {viewport} = worldCamera,
+                msg = Data.setUp(
+                    "viewport", AABB.setUp(viewport),
+                    "scaleX", windowPerWorldUnitWidth,
+                    "scaleY", windowPerWorldUnitHeight,
+                    "orientation", worldCamera.orientation,
+                    "stationary", !viewportUpdate && !stationary,
+                    "world", this.worldDimensions
+                );
             
             if (viewportUpdate) {
                 this.viewportUpdate = false;
                 this.stationary = false;
-                msg.stationary = false;
-                
-                viewport.set(worldCamera.viewport);
-
-                // Set up the rest of the camera message:
-                msg.scaleX = windowPerWorldUnitWidth;
-                msg.scaleY = windowPerWorldUnitHeight;
-                msg.orientation = worldCamera.orientation;
                 
                 // Transform the world to appear within camera
                 world.x = -viewport.x;
@@ -934,13 +953,15 @@ export default createComponentClass(/** @lends platypus.components.Camera.protot
                 }
             } else if (!stationary) {
                 this.stationary = true;
-                msg.stationary = true;
 
                 owner.triggerEvent('camera-update', msg);
                 if (owner.triggerEventOnChildren) {
                     owner.triggerEventOnChildren('camera-update', msg);
                 }
             }
+
+            msg.viewport.recycle();
+            msg.recycle();
         },
         
         destroy: function () {
@@ -955,9 +976,6 @@ export default createComponentClass(/** @lends platypus.components.Camera.protot
             this.viewport.recycle();
             this.worldCamera.viewport.recycle();
             this.worldCamera.recycle();
-            this.message.viewport.recycle();
-            this.message.recycle();
-            this.cameraLoadedMessage.recycle();
             this.worldDimensions.recycle();
         }
     },

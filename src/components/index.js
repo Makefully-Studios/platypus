@@ -8,7 +8,7 @@ export {default as AIPacer} from "./AIPacer.js";
 export {default as AudioMusic} from "./AudioMusic.js";
 export {default as AudioSFX} from "./AudioSFX.js";
 export {default as AudioVO} from "./AudioVO.js";
-export {default as Camera} from "./Camera.js";
+export {default as Camera} from "./HandlerCamera.js";
 export {default as HandlerCamera} from "./HandlerCamera.js";
 export {default as EntityCamera} from "./EntityCamera.js";
 export {default as CollisionBasic} from "./CollisionBasic.js";
