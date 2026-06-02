@@ -23,7 +23,7 @@ proto.toJSON = function () {
         event: this.event,
         message: this.message,
         time: this.time,
-        entity: entity.id ?? entity,
+        entity: this.entity?.id ?? this.entity,
         interruptable: this.interruptable
     };
 };
