@@ -17,12 +17,14 @@
         "build:debug": "webpack --env.dev",
         "test:watch": "vitest",
         "test:run": "vitest run",
-        "coverage": "vitest run --coverage"
+        "coverage": "vitest run --coverage",
+        "assess:tiled": "node test/tiled/assess-coverage.mjs"
     },
     "dependencies": {
         "recycle": "github:gopherwood/recycle#master"
     },
     "devDependencies": {
+        "@vitest/coverage-v8": "^4.1.7",
         "vitest": "^4.1.7",
         "webpack": "^4.35.2",
         "webpack-cli": "^3.3.5"
