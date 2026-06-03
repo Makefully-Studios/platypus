@@ -1,4 +1,4 @@
-import {describe, expect, it, vi} from 'vitest';
+import {beforeEach, describe, expect, it, vi} from 'vitest';
 import Messenger from '../../src/Messenger';
 
 describe('Messenger', () => {
@@ -270,6 +270,312 @@ describe('Messenger', () => {
         messenger.trigger('b');
 
         expect(fn).toHaveBeenCalledTimes(1);
+    });
+
+    it('returns a string description', () => {
+        expect(new Messenger().toString()).toBe('[Messenger Object]');
+    });
+
+    it('dispatches via triggerEvent directly', () => {
+        const messenger = new Messenger();
+        const spy = vi.fn();
+
+        messenger.on('direct', spy);
+        expect(messenger.triggerEvent('direct', 9)).toBe(1);
+        expect(spy).toHaveBeenCalledWith(9);
+        expect(messenger.triggerEvent('missing')).toBe(0);
+    });
+
+    it('dispatches object events with explicit debug flag', () => {
+        const messenger = new Messenger({debug: true});
+        const spy = vi.fn();
+
+        messenger.type = 'entity';
+        messenger.on('debug-event', spy);
+
+        messenger.trigger({
+            event: 'debug-event',
+            message: 7,
+            debug: true
+        });
+
+        expect(spy).toHaveBeenCalledWith(7, true);
+    });
+
+    it('dispatches object events without an explicit debug flag', () => {
+        const messenger = new Messenger();
+        const spy = vi.fn();
+
+        messenger.on('plain-object', spy);
+        messenger.trigger({event: 'plain-object', message: 4});
+
+        expect(spy).toHaveBeenCalledWith(4);
+    });
+
+    it('uses the trigger message when the object omits message', () => {
+        const messenger = new Messenger();
+        const spy = vi.fn();
+
+        messenger.on('fallback', spy);
+        messenger.trigger({event: 'fallback'}, 9);
+
+        expect(spy).toHaveBeenCalledWith(9);
+    });
+
+    it('honors an explicit debug false on object events', () => {
+        const messenger = new Messenger();
+        const spy = vi.fn();
+
+        messenger.on('quiet', spy);
+        messenger.trigger({event: 'quiet', message: 2, debug: false});
+
+        expect(spy).toHaveBeenCalledWith(2, false);
+    });
+
+    it('passes object debug with a fallback trigger payload', () => {
+        const messenger = new Messenger({debug: true});
+        const spy = vi.fn();
+
+        messenger.type = 'entity';
+        messenger.on('payload', spy);
+        messenger.trigger({event: 'payload', debug: true}, 11);
+
+        expect(spy).toHaveBeenCalledWith(11, true);
+    });
+
+
+    it('ignores off calls after destruction', () => {
+        const messenger = new Messenger();
+        const spy = vi.fn();
+
+        messenger.on('late', spy);
+        messenger.destroy();
+        messenger.off('late', spy);
+
+        expect(spy).not.toHaveBeenCalled();
+    });
+
+    it('warns on malformed event descriptors', () => {
+        globalThis.platypus = {debug: {warn: vi.fn()}};
+
+        const messenger = new Messenger();
+
+        expect(messenger.trigger({noEvent: true})).toBe(0);
+        expect(globalThis.platypus.debug.warn).toHaveBeenCalled();
+    });
+
+    it('does not register listeners after destruction', () => {
+        const messenger = new Messenger();
+
+        messenger.destroy();
+
+        expect(messenger.on('late', vi.fn())).toBe(null);
+        expect(messenger.trigger('late')).toBe(0);
+    });
+
+    it('removes a single listener with matching context', () => {
+        const messenger = new Messenger();
+        const ctx = {id: 1};
+        const spy = vi.fn();
+
+        messenger.on('ctx', spy, ctx);
+        messenger.off('ctx', spy, ctx);
+        messenger.trigger('ctx');
+
+        expect(spy).not.toHaveBeenCalled();
+    });
+
+    it('recycles empty listener lists when removing the last handler', () => {
+        const messenger = new Messenger();
+        const spy = vi.fn();
+
+        messenger.on('solo', spy);
+        messenger.off('solo', spy);
+
+        expect(messenger.getMessageIds()).toEqual([]);
+    });
+});
+
+describe('Messenger debug mode', () => {
+    beforeEach(() => {
+        globalThis.platypus = {
+            debug: {
+                warn: vi.fn(),
+                log: vi.fn()
+            }
+        };
+    });
+
+    it('warns on nested identical events', () => {
+        const messenger = new Messenger({debug: true});
+        let nested = false;
+
+        messenger.type = 'entity';
+        messenger.on('loop', () => {
+            if (!nested) {
+                nested = true;
+                messenger.triggerEvent('loop', {debug: true});
+            }
+        });
+
+        messenger.triggerEvent('loop', {debug: true});
+
+        expect(globalThis.platypus.debug.warn).toHaveBeenCalled();
+    });
+
+    it('logs when debug mode is enabled on the messenger', () => {
+        const messenger = new Messenger({debug: true});
+
+        messenger.type = 'entity';
+        messenger.debug = true;
+        messenger.triggerEvent('solo', {debug: true});
+
+        expect(globalThis.platypus.debug.warn).toHaveBeenCalledWith(
+            expect.stringContaining('no subscribers'),
+            {debug: true}
+        );
+    });
+
+    it('logs singular subscriber counts for one handler', () => {
+        const messenger = new Messenger({debug: true});
+
+        messenger.type = 'entity';
+        messenger.on('solo', vi.fn());
+        messenger.triggerEvent('solo', {debug: true});
+
+        expect(globalThis.platypus.debug.log).toHaveBeenCalledWith(
+            expect.stringMatching(/1 subscriber\./),
+            {debug: true}
+        );
+    });
+
+    it('logs plural subscriber counts when multiple handlers exist', () => {
+        const messenger = new Messenger({debug: true});
+        const spy = vi.fn();
+
+        messenger.type = 'entity';
+        messenger.on('duo', spy);
+        messenger.on('duo', vi.fn());
+        messenger.triggerEvent('duo', {debug: true});
+
+        expect(globalThis.platypus.debug.log).toHaveBeenCalledWith(
+            expect.stringContaining('subscribers'),
+            {debug: true}
+        );
+        expect(spy).toHaveBeenCalled();
+    });
+
+    it('uses the non-debug trigger path inside a debug messenger', () => {
+        const messenger = new Messenger({debug: true});
+        const spy = vi.fn();
+
+        messenger.on('plain', spy);
+        messenger.triggerEvent('plain', 3);
+
+        expect(spy).toHaveBeenCalledWith(3);
+    });
+
+    it('skips loop warnings when nested events differ', () => {
+        const messenger = new Messenger({debug: true});
+
+        messenger.type = 'entity';
+        messenger.on('outer', () => {
+            messenger.triggerEvent('inner', {debug: true});
+        });
+        messenger.on('inner', vi.fn());
+        messenger.triggerEvent('outer', {debug: true});
+
+        expect(globalThis.platypus.debug.warn).not.toHaveBeenCalledWith(
+            expect.stringContaining('nested inside another'),
+            expect.anything()
+        );
+    });
+
+    it('dispatches debug events when performance APIs are unavailable', () => {
+        const original = globalThis.performance;
+
+        globalThis.performance = {measure: vi.fn()};
+
+        const messenger = new Messenger({debug: true});
+        const spy = vi.fn();
+
+        messenger.type = 'entity';
+        messenger.on('perf', spy);
+        messenger.triggerEvent('perf', {debug: true});
+
+        expect(spy).toHaveBeenCalledWith({debug: true});
+
+        globalThis.performance = original;
+    });
+
+    it('enters debug instrumentation when messenger.debug is set', () => {
+        const messenger = new Messenger({debug: true});
+
+        messenger.type = 'entity';
+        messenger.debug = true;
+        messenger.on('inst', vi.fn());
+        messenger.triggerEvent('inst', {});
+
+        expect(messenger.loopCheck.length).toBe(0);
+    });
+
+    it('throws when the same event nests too many times', () => {
+        const messenger = new Messenger({debug: true});
+
+        messenger.type = 'entity';
+        messenger.on('loop', () => {
+            messenger.triggerEvent('loop', {debug: true});
+        });
+
+        expect(() => messenger.triggerEvent('loop', {debug: true})).toThrow(/Endless loop/);
+    });
+});
+
+describe('Messenger.mixin', () => {
+    it('mixes messenger methods onto another class', () => {
+        const calls = [];
+
+        class Thing {
+            local () {
+                return 'local';
+            }
+
+            toString () {
+                calls.push('thing');
+                return 'Thing';
+            }
+        }
+
+        Messenger.mixin(Thing);
+
+        const thing = new Thing();
+
+        Messenger.initialize(thing);
+
+        expect(typeof thing.on).toBe('function');
+        expect(typeof thing.trigger).toBe('function');
+
+        thing.toString();
+
+        expect(calls).toContain('thing');
+
+        const spy = vi.fn();
+
+        thing.on('mixed', spy);
+        thing.trigger('mixed', 1);
+
+        expect(spy).toHaveBeenCalledWith(1);
+        expect(thing.local()).toBe('local');
+    });
+
+    it('initializes messenger state on plain objects', () => {
+        const obj = {};
+
+        Messenger.initialize(obj);
+
+        expect(obj._listeners).toEqual({});
+        expect(obj._destroyed).toBe(false);
+        expect(obj.loopCheck).toBeDefined();
     });
 });
 

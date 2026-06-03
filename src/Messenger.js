@@ -3,7 +3,7 @@ import EventHandlerList from './EventHandlerList.js';
 import {arrayCache, greenSlice} from './utils/array.js';
 
 const
-    perfTools = typeof performance !== 'undefined' && performance.mark && performance.measure ? performance : null, // End with this to set perfTools to window.performance
+    getPerfTools = () => typeof performance !== 'undefined' && performance.mark && performance.measure ? performance : null,
     runBoth = function (f1, f2) {
         return function () {
             f1.apply(this, arguments);
@@ -57,6 +57,8 @@ class Messenger {
                 
                 // Debug logging.
                 if (debugLogging || this.debug) {
+                    const perfTools = getPerfTools();
+
                     for (let i = 0; i < this.loopCheck.length; i++) {
                         if (this.loopCheck[i] === event) {
                             debugCount += 1;
@@ -69,6 +71,7 @@ class Messenger {
                     }
     
                     this.loopCheck.push(event);
+
                     if (perfTools) {
                         perfTools.mark("a");
                     }

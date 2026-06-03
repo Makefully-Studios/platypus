@@ -636,12 +636,10 @@ export default (function () {
                 let temp = null,
                     propertyInUse = false;
                 
-                if (typeof property === 'string') {
-                    if (typeof obj[property] !== 'undefined') {
-                        temp = obj[property];
-                        delete obj[property];
-                        propertyInUse = true;
-                    }
+                if (typeof obj[property] !== 'undefined') {
+                    temp = obj[property];
+                    delete obj[property];
+                    propertyInUse = true;
                 }
                 
                 Object.defineProperty(obj, property, {

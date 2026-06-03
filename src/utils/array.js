@@ -66,10 +66,8 @@ export function greenSplice (array, index) {
     for (let i = index + 1; i < len; i++) {
         array[i - 1] = array[i];
     }
-    
-    if (len) {
-        array.length -= 1;
-    }
-    
+
+    array.length -= 1;
+
     return item;
 }
