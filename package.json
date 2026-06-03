@@ -42,5 +42,7 @@
         "jsmediatags": "github:probityrules/jsmediatags",
         "poly-decomp": "^0.3.0"
     },
-    "engine": "node >= 0.10.22"
+    "engines": {
+        "node": ">=20"
+    }
 }
