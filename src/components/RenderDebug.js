@@ -30,7 +30,11 @@ const
             newShape = new Graphics();
 
         if (radius) {
-            newShape.circle(left + radius, top + radius, radius);
+            const
+                cx = width ? left + width / 2 : left + radius,
+                cy = height ? top + height / 2 : top + radius;
+
+            newShape.circle(cx, cy, radius);
         } else if (points) {
             newShape.poly(points);
         } else if (width && height) {
@@ -267,18 +271,17 @@ export default createComponentClass(/** @lends platypus.components.RenderDebug.p
                     
                     for (let i = 0; i < shapes.length; i++) {
                         const
-                            w = shapes[i].width - lineWidth,
-                            h = shapes[i].height - lineWidth;
+                            shape = shapes[i],
+                            shapeAabb = shape.aABB;
 
                         this.addShape({
                             color: collisionColor,
-                            left: shapes[i].offsetX - w / 2,
-                            top: shapes[i].offsetY - h / 2,
-                            radius: shapes[i].radius ? shapes[i].radius - lineWidth : 0,
-                            width,
-                            height,
-                            outline: lineWidth,
-                            points: shapes[i].points
+                            left: shapeAabb.left - owner.x,
+                            top: shapeAabb.top - owner.y,
+                            width: shapeAabb.width,
+                            height: shapeAabb.height,
+                            radius: shape.type === 'circle' ? shape.radius : 0,
+                            outline: lineWidth
                         });
                     }
                 }

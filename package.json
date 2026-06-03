@@ -1,6 +1,6 @@
 {
     "name": "platypus",
-    "version": "4.0.4",
+    "version": "4.0.5",
     "description": "Platypus",
     "license": "MIT",
     "main": "lib/platypus.js",
