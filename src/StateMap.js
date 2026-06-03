@@ -12,6 +12,39 @@ import recycle from 'recycle';
  * @return stateMap {platypus.StateMap} Returns the new StateMap object.
  */
 const
+    clean = function (arr) {
+        const
+            cleaned = arrayCache.setUp();
+
+        if (typeof arr[0] === 'string') {
+            for (let i = 0; i < arr.length; i++) {
+                cleaned.push((i % 2) ? !!arr[i] : arr[i]);
+            }
+        } else if (typeof arr[0] === 'object') {
+            const
+                obj = arr[0];
+
+            if (obj.keys && obj.get) {
+                const
+                    {keys} = obj;
+                let i = keys.length;
+
+                while (i--) {
+                    cleaned.push(keys[i], !!obj.get(keys[i]));
+                }
+            } else {
+                const
+                    keys = Object.keys(obj);
+                let i = keys.length;
+
+                while (i--) {
+                    cleaned.push(keys[i], !!obj[keys[i]]);
+                }
+            }
+        }
+
+        return cleaned;
+    },
     StateMap = function (first) {
         const
             l = arguments.length;
@@ -21,7 +54,11 @@ const
                 DataMap.call(this);
                 this.updateFromString(first);
             } else {
-                DataMap.apply(this, arguments);
+                const
+                    cleanedArgs = clean(arguments);
+
+                DataMap.apply(this, cleanedArgs);
+                arrayCache.recycle(cleanedArgs);
             }
         } else {
             DataMap.call(this);
@@ -30,12 +67,48 @@ const
     parent = DataMap.prototype,
     proto = StateMap.prototype = Object.create(parent);
 
-Object.defineProperty(StateMap.prototype, 'constructor', {
+Object.defineProperty(proto, 'constructor', {
     configurable: true,
     writable: true,
     value: StateMap
 });
     
+/**
+ * Returns a JSON object of state keys and boolean values.
+ *
+ * @method platypus.StateMap#toJSON
+ * @return {Object} State keys mapped to `true` or `false`.
+ */
+
+/**
+ * Returns a comma-delimited list of state keys compatible with `updateFromString`. False values are prefixed with `"!"`.
+ *
+ * @method platypus.StateMap#toString
+ * @return {String} The serialized state string.
+ */
+Object.defineProperty(proto, 'toString', {
+    value: function () {
+        const
+            {keys} = this;
+        let i = keys.length,
+            parts = arrayCache.setUp();
+
+        while (i--) {
+            const
+                key = keys[i];
+
+            parts.push(this.get(key) ? key : `!${key}`);
+        }
+
+        const
+            string = parts.join(',');
+
+        arrayCache.recycle(parts);
+
+        return string;
+    }
+});
+
 /**
  * Sets the state using the provided string value which is a comma-delimited list such that `"blue,red,!green"` sets the following state values:
  *

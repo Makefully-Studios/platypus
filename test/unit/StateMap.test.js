@@ -9,6 +9,23 @@ describe('StateMap', () => {
         expect(state.get('jumping')).toBe(false);
     });
 
+    it('creates from another StateMap and copies boolean values', () => {
+        const
+            source = new StateMap('idle,!running,active'),
+            copy = new StateMap(source);
+
+        expect(copy).not.toBe(source);
+        expect(copy.get('idle')).toBe(true);
+        expect(copy.get('running')).toBe(false);
+        expect(copy.get('active')).toBe(true);
+        expect(copy.toJSON()).toEqual(source.toJSON());
+        expect(copy.toString()).toBe(source.toString());
+
+        source.set('idle', false);
+
+        expect(copy.get('idle')).toBe(true);
+    });
+
     it('parses comma-delimited state strings', () => {
         const state = new StateMap('blue,red,!green');
 
@@ -59,6 +76,40 @@ describe('StateMap', () => {
 
         expect(left.intersects(overlap)).toBe(true);
         expect(left.intersects(disjoint)).toBe(false);
+    });
+
+    it('toJSON returns boolean values for each state key', () => {
+        const state = new StateMap({moving: true, jumping: false, idle: 1});
+
+        expect(state.toJSON()).toEqual({
+            moving: true,
+            jumping: false,
+            idle: true
+        });
+    });
+
+    it('toJSON returns an empty object when there are no states', () => {
+        expect(new StateMap().toJSON()).toEqual({});
+    });
+
+    it('toString serializes true keys plainly and false keys with a leading !', () => {
+        const state = new StateMap('blue,red,!green');
+
+        expect(state.toString()).toBe('blue,red,!green');
+    });
+
+    it('toString returns an empty string when there are no states', () => {
+        expect(new StateMap().toString()).toBe('');
+    });
+
+    it('round-trips through updateFromString via toString', () => {
+        const
+            original = new StateMap('idle,!running,active'),
+            restored = new StateMap();
+
+        restored.updateFromString(original.toString());
+
+        expect(restored.toJSON()).toEqual(original.toJSON());
     });
 
     it('recycles cleanly through the pool', () => {
