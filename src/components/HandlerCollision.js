@@ -529,6 +529,16 @@ export default createComponentClass(/** @lends platypus.components.HandlerCollis
 
                 if ((finalMovementInfo.x !== previousX) || (finalMovementInfo.y !== previousY)) {
                     this.updateAgainst(ent);
+
+                    // Update children affected by this movement.
+                    if (ent !== entityOrGroup) {
+                        const
+                            children = entityOrGroup.getSolidEntities();
+
+                        for (let i = 0; i < children.length; i++) {
+                            this.updateAgainst(children[i]);
+                        }
+                    }
                 }
             }
             
