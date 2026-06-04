@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.1] - 2026-06-04
+
+### Added
+
+- GitHub Actions [release workflow](.github/workflows/release.yml): when `package.json` version changes on `main`, builds `lib/*.js` and publishes a GitHub release from [CHANGELOG.md](CHANGELOG.md).
+- `scripts/extract-changelog.mjs` for release note extraction.
+- Vitest tests for `ControllerInput`.
+
+### Changed
+
+- Docs CI ([docs workflow](.github/workflows/docs.yml)) deploys with `GITHUB_TOKEN` instead of an SSH deploy key.
+- `npm run docs` copies `assets/` into `docs/api/` so the README header image works on GitHub Pages.
+- `ControllerInput` JSDoc corrected (was incorrectly documented as `CollectiblesManager`).
+
+### Fixed
+
+- `ControllerInput#unattachControls` now removes the bound pointer listeners registered at setup.
+
 ## [4.1.0] - 2026-06-03
 
 ### Added

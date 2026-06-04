@@ -1,30 +1,38 @@
 /**
- * This component manages collectibles.
+ * Maps pointer presses on this entity to game-wide controller events consumed by {@link platypus.components.HandlerController}.
+ * Add {@link platypus.components.Interactive} (or another source of pointer events) on the same entity so presses hit the control.
  *
- * @class CollectiblesManager
+ * @memberof platypus.components
+ * @class ControllerInput
  * @uses platypus.Component
  */
 /* global platypus */
 import createComponentClass from '../factory.js';
 
-export default createComponentClass({
+export default createComponentClass(/** @lends platypus.components.ControllerInput.prototype */{
     id: 'ControllerInput',
-    
+
     properties: {
         /**
-         * Sets the controller code to use for EntityController.
+         * Control code passed to `HandlerController` (for example `jump` or `menu-select`).
+         * Defaults to the entity's `type` when unset.
+         *
+         * @property code
+         * @type String
+         * @default null
          */
         code: null,
 
         /**
-         * Currently "button" is the only controller type.
+         * Input device style. Only `button` is supported: `pointerdown` / `pointerup` (and cancel/outside) map to controller down/up.
+         *
+         * @property controllerType
+         * @type String
+         * @default button
          */
         controllerType: 'button'
     },
-    
-    publicProperties: {
-    },
-    
+
     initialize () {
         const
             {code, controllerType, owner: entity} = this,
@@ -39,25 +47,19 @@ export default createComponentClass({
 
         switch (controllerType) {
             default: {
-                this.addEventListener('pointerdown', onDown);
-                this.addEventListener('pointerup', onUp);
-                this.addEventListener('pointerupoutside', onUp);
-                this.addEventListener('pointercancel', onUp);
+                const
+                    down = this.addEventListener('pointerdown', onDown),
+                    up = this.addEventListener('pointerup', onUp),
+                    upOutside = this.addEventListener('pointerupoutside', onUp),
+                    cancel = this.addEventListener('pointercancel', onUp);
+
                 this.unattachControls = () => {
-                    this.removeEventListener('pointerdown', onDown);
-                    this.removeEventListener('pointerup', onUp);
-                    this.removeEventListener('pointerupoutside', onUp);
-                    this.removeEventListener('pointercancel', onUp);
+                    this.removeEventListener('pointerdown', down);
+                    this.removeEventListener('pointerup', up);
+                    this.removeEventListener('pointerupoutside', upOutside);
+                    this.removeEventListener('pointercancel', cancel);
                 };
             }
         }
-    },
-
-    events: {
-    },
-    
-    methods: {
-    },
-    
-    publicMethods: {}
+    }
 });
