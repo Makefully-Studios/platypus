@@ -1,4 +1,4 @@
-import {default as platypus} from 'platypus';
+/* global platypus */
 import {Circle, Ellipse, Point, Polygon, Rectangle, RoundedRectangle} from 'pixi.js';
 import adjustedXY from "./adjustedXY";
 

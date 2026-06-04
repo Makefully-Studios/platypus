@@ -1,10 +1,6 @@
-//import RenderContainer from './RenderContainer.js';
-//import createComponentClass from '../factory.js';
 import {LottieSprite} from '@qva/pixi-lottie';
-import {components, createComponentClass} from 'platypus';
-
-const
-    {RenderContainer} = components;
+import createComponentClass from '../factory.js';
+import RenderContainer from './RenderContainer.js';
 
 export default createComponentClass(/** @lends platypus.components.RenderSprite.prototype */{
     

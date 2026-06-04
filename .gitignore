@@ -11,3 +11,5 @@ npm-debug.log
 /build/.grunt
 /build/_SpecRunner.html
 /coverage
+/docs/api
+/lib

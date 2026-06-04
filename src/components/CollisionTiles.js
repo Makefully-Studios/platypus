@@ -508,7 +508,7 @@ export default (function () {
              *
              * @method platypus.components.CollisionTiles#transform
              * @param [transform] {Object} A list of key/value pairs describing the transform.
-             * @param [transform.layers] {integer array} The layer indexes on which to apply the transform, if not provided transforms all layers. Defaults to the 0th index.
+             * @param [transform.layers] {Array.<number>} The layer indexes on which to apply the transform, if not provided transforms all layers. Defaults to the 0th index.
              * @param [transform.type="horizontal"] {String} The type of transform; one of the following: "horizontal", "vertical", "diagonal", "diagonal-inverse", "rotate-90", "rotate-180", "rotate-270". Height and width should match for diagonal flips and 90 degree rotations.
              * @param [transform.left=0] {number} Grid coordinate for the left side of the bounding box.
              * @param [transform.top=0] {number} Grid coordinate for the top of the bounding box.
@@ -544,7 +544,7 @@ export default (function () {
              *
              * @method platypus.components.CollisionTiles#translate
              * @param [translate] {Object} A list of key/value pairs describing the translation.
-             * @param [translate.layers] {integer array} The layer indexes on which to apply the translate, if not provided translates all layers. Defaults to the 0th index.
+             * @param [translate.layers] {Array.<number>} The layer indexes on which to apply the translate, if not provided translates all layers. Defaults to the 0th index.
              * @param [translate.dx=0] {number} Movement in columns.
              * @param [translate.dy=0] {number} Movement in rows.
              * @param [translate.left=0] {number} Grid coordinate for the left side of the bounding box.

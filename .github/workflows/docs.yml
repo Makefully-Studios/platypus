@@ -1,28 +1,36 @@
-name: GitHub pages
+name: Publish documentation
 
 on:
   push:
     branches:
-      - feature/v2
+      - main
+      - pixi8
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
-      - name: Build
-        uses: andstor/jsdoc-action@v1
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          source_dir: ./src
-          output_dir: ./out
-          config_file: jsDoc.json
-          template: minami
-          front_page: README.md
+          node-version: 20
+          cache: npm
 
-      - name: Deploy
-        uses: peaceiris/actions-gh-pages@v3
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build API docs
+        run: npm run docs
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
         with:
           deploy_key: ${{ secrets.DEVONWARD }}
-          publish_dir: ./out
+          external_repository: Makefully-Studios/platypus
+          publish_branch: gh-pages
+          publish_dir: ./docs/api
+          commit_message: Publish API docs

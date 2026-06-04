@@ -1,6 +1,6 @@
 /* global platypus */
 import {Container, Rectangle} from 'pixi.js';
-import {createComponentClass} from 'platypus';
+import createComponentClass from '../factory.js';
 
 const
     claimHitArea = new Rectangle(-2000, -2000, 4000, 4000),

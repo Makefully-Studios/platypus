@@ -1,4 +1,4 @@
-import {default as platypus} from 'platypus';
+/* global platypus */
 import {Graphics} from 'pixi.js';
 import adjustedXY from "./adjustedXY";
 

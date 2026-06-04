@@ -601,7 +601,7 @@ export default createComponentClass(/** @lends platypus.components.RenderSpine.p
          * Change the skin of the character.
          *
          * @event platypus.Entity#switch-skin
-         * @param skin {String or Array} The skin or set of skins you would like to apply.
+         * @param skin {string|Array.<string>} The skin or set of skins you would like to apply.
          */
         "switch-skin": function (skin) {
             this.switchSkin(skin);
@@ -611,7 +611,7 @@ export default createComponentClass(/** @lends platypus.components.RenderSpine.p
          * Tint a slot(s).
          *
          * @event platypus.Entity#tint-slots
-         * @param slots {Array[String]} The slot[s] you would like to tint.
+         * @param slots {Array.<string>} The slot[s] you would like to tint.
          * @param color {String} The string of the hexidecimal color you would like to apply (e.g. "FF0000" for red)
          */
         "tint-slots": function (slots, color) {

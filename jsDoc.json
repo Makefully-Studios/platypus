@@ -2,9 +2,13 @@
     "plugins": ["plugins/markdown"],
     "recurseDepth": 10,
     "opts": {
-        "recurse": true
+        "destination": "docs/api",
+        "readme": "README.md",
+        "recurse": true,
+        "template": "node_modules/minami"
     },
     "source": {
+        "include": ["src"],
         "includePattern": ".+\\.js(doc|x)?$",
         "excludePattern": "(^|\\/|\\\\)_"
     },

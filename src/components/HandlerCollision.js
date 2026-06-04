@@ -1258,7 +1258,7 @@ export default createComponentClass(/** @lends platypus.components.HandlerCollis
          * This method returns an array of entities representing the collision maps of the world.
          *
          * @method platypus.components.HandlerCollision#getWorldTerrain
-         * @return {Array[Entity]} - An array of entities describing the collision maps of the world. This entity typically includes a `CollisionTiles` component.
+         * @return {Array.<platypus.Entity>} An array of entities describing the collision maps of the world. This entity typically includes a `CollisionTiles` component.
          */
         getWorldTerrain: function () {
             return this.terrains;

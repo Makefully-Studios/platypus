@@ -1,33 +1,64 @@
 {
-    "name": "platypus",
+    "name": "@makefully/platypus",
     "version": "4.1.0",
-    "description": "Platypus",
+    "description": "2D tile-based HTML5 game engine with a component-based entity model",
     "license": "MIT",
     "main": "lib/platypus.js",
-    "module": "src/index.js",
-    "url": "https://github.com/pbs/Platypus/",
-    "logo": "assets/platypus-title.png",
+    "exports": {
+        ".": "./lib/platypus.js",
+        "./package.json": "./package.json"
+    },
+    "files": [
+        "lib",
+        "README.md",
+        "licenses.txt",
+        "assets"
+    ],
+    "publishConfig": {
+        "access": "public"
+    },
     "repository": {
         "type": "git",
-        "url": "https://github.com/pbs/Platypus/"
+        "url": "git+https://github.com/Makefully-Studios/platypus.git"
     },
+    "bugs": {
+        "url": "https://github.com/Makefully-Studios/platypus/issues"
+    },
+    "homepage": "https://makefully-studios.github.io/platypus/",
+    "keywords": [
+        "platypus",
+        "game-engine",
+        "html5",
+        "2d",
+        "tiled",
+        "pixi.js",
+        "springroll"
+    ],
     "scripts": {
-        "start": "webpack-dev-server --env.dev",
-        "build:release": "webpack --env.prod",
-        "build:debug": "webpack --env.dev",
+        "start": "webpack serve --mode development",
+        "build:release": "webpack --mode production",
+        "build:debug": "webpack --mode development",
+        "prepack": "npm run build:release",
+        "pack:check": "npm pack --dry-run",
         "test:watch": "vitest",
         "test:run": "vitest run",
         "coverage": "vitest run --coverage",
-        "assess:tiled": "node test/tiled/assess-coverage.mjs"
+        "assess:tiled": "node test/tiled/assess-coverage.mjs",
+        "docs": "node scripts/build-docs.mjs",
+        "docs:publish": "npm run docs && node scripts/publish-docs.mjs"
     },
     "dependencies": {
         "recycle": "github:gopherwood/recycle#master"
     },
     "devDependencies": {
         "@vitest/coverage-v8": "^4.1.7",
+        "gh-pages": "^6.3.0",
+        "jsdoc": "^3.6.11",
+        "minami": "^1.2.3",
         "vitest": "^4.1.7",
-        "webpack": "^4.35.2",
-        "webpack-cli": "^3.3.5"
+        "webpack": "^5.99.9",
+        "webpack-cli": "^6.0.1",
+        "webpack-dev-server": "^5.2.2"
     },
     "peerDependencies": {
         "@esotericsoftware/spine-pixi-v8": "^4.2.111",

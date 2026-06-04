@@ -4,7 +4,8 @@
  * @class CollectiblesManager
  * @uses platypus.Component
  */
-import {createComponentClass, default as platypus} from 'platypus';
+/* global platypus */
+import createComponentClass from '../factory.js';
 
 export default createComponentClass({
     id: 'ControllerInput',
