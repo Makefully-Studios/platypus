@@ -4,12 +4,13 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  version:
+  detect-version:
     runs-on: ubuntu-latest
     outputs:
       changed: ${{ steps.check.outputs.changed }}
@@ -24,6 +25,12 @@ jobs:
         id: check
         run: |
           CURRENT=$(node -p "require('./package.json').version")
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "version=$CURRENT" >> "$GITHUB_OUTPUT"
+            echo "Manual run: releasing $CURRENT"
+            exit 0
+          fi
           if ! git rev-parse HEAD^ >/dev/null 2>&1; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "version=$CURRENT" >> "$GITHUB_OUTPUT"
@@ -39,8 +46,8 @@ jobs:
           echo "package.json version: $PREVIOUS -> $CURRENT"
 
   release:
-    needs: version
-    if: needs.version.changed == 'true'
+    needs: detect-version
+    if: needs.detect-version.outputs.changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -59,14 +66,14 @@ jobs:
         run: npm run build:release
 
       - name: Write release notes
-        run: node scripts/extract-changelog.mjs "${{ needs.version.outputs.version }}" > release-notes.md
+        run: node scripts/extract-changelog.mjs "${{ needs.detect-version.outputs.version }}" > release-notes.md
 
       - name: Skip if release already exists
         id: exists
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="v${{ needs.version.outputs.version }}"
+          TAG="v${{ needs.detect-version.outputs.version }}"
           if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
             echo "Release $TAG already exists; skipping."
@@ -78,8 +85,8 @@ jobs:
         if: steps.exists.outputs.skip != 'true'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ needs.version.outputs.version }}
-          name: ${{ needs.version.outputs.version }}
+          tag_name: v${{ needs.detect-version.outputs.version }}
+          name: ${{ needs.detect-version.outputs.version }}
           body_path: release-notes.md
           files: lib/*.js
           fail_on_unmatched_files: true
