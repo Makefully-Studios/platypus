@@ -35,6 +35,7 @@ PLATYPUS_DOCS_REPO=git@github.com:Makefully-Studios/platypus.git npm run docs:pu
 
 ## When to update docs
 
+- User-facing or release-visible changes → add an entry under `[Unreleased]` in [CHANGELOG.md](../CHANGELOG.md)
 - New or changed component properties, events, or public methods → update JSDoc in `src/`
 - New subsystem with spec/checklists → add a focused README under `test/` or `docs/` (see `test/tiled/README.md`)
 - Behavior that is easy to misread → add or extend a Vitest test and keep JSDoc in sync

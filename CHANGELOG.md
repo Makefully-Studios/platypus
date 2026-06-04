@@ -1,0 +1,68 @@
+# Changelog
+
+All notable changes to this project are documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+## [4.1.0] - 2026-06-03
+
+### Added
+
+- npm package published as [`@makefully/platypus`](https://www.npmjs.com/package/@makefully/platypus) (UMD build in `lib/` only; `prepack` runs the release build).
+- Webpack 5 build pipeline (`webpack serve`, production and development modes).
+- API documentation tooling: `npm run docs`, `npm run docs:publish`, and [docs/README.md](docs/README.md).
+- Vitest unit tests for core types and components (including `RenderDebug`, `StateMap`, `AABB`, and others).
+- TiledLoader compatibility assessment (`npm run assess:tiled`, [test/tiled/README.md](test/tiled/README.md)).
+- `StateMap#toJSON` (boolean key/value object) and `StateMap#toString` (comma/`!` format compatible with `updateFromString`).
+- `StateMap` constructor support for copying from another `StateMap`.
+
+### Changed
+
+- Package name scoped to `@makefully/platypus`; repository and homepage point at [Makefully-Studios/platypus](https://github.com/Makefully-Studios/platypus).
+- `lib/` is a build artifact (gitignored); clone builds via `npm run build:release`.
+- Upgraded from Webpack 4 to Webpack 5; removed Babel, `worker-loader`, and OpenSSL legacy provider workarounds.
+- `TickerClient` uses native `new Worker(new URL(..., import.meta.url))` again.
+- Internal imports no longer use `import 'platypus'` (relative modules / globals instead).
+- `StateMap` coerces stored values to booleans.
+- README and contributor docs updated for install, development, peers, and publishing.
+- Legacy JSDoc type expressions updated for current JSDoc parsing.
+
+### Fixed
+
+- `RenderDebug` draws each `CollisionBasic` shape from its own `aABB` instead of the combined AABB dimensions.
+- `CollisionGroup` collision grid not updated for non-moving entities with a collision group.
+- `package.json` `engines` field corrected to `engines` (Node `>=20`).
+
+## [4.0.3] - 2026-06-03
+
+### Added
+
+- Vitest test suite and coverage reporting.
+- Tiled format spec catalog and coverage assessment scripts.
+
+### Changed
+
+- Removed legacy `Camera` component; use `HandlerCamera` / `EntityCamera` instead.
+
+### Fixed
+
+- `TimeEvent` scheduling edge case.
+- Test and base-class coverage gaps addressed in core utilities.
+
+## [4.0.1] - 2026-05-28
+
+### Added
+
+- Rotated one-way (`jumpThrough`) collision support on `CollisionShape` / `CollisionBasic`.
+
+### Fixed
+
+- Collision handling when entities have multiple `CollisionBasic` components (`CollisionGroup`).
+- `HandlerCollision` grid updates for grouped, non-moving entities.
+
+## Earlier versions
+
+Tags and history for releases prior to 4.0.x (for example `v2.0.2`) are available in [GitHub releases](https://github.com/Makefully-Studios/platypus/releases) and `git tag`.

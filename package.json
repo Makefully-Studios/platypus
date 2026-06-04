@@ -3,6 +3,10 @@
     "version": "4.1.0",
     "description": "2D tile-based HTML5 game engine with a component-based entity model",
     "license": "MIT",
+    "contributors": [
+        "Derek Detweiler <derek.detweiler@gmail.com> (https://github.com/probityrules)",
+        "Todd Lewis <todd.lewis@gopherwoodstudios.com> (https://github.com/GopherwoodTodd)"
+    ],
     "main": "lib/platypus.js",
     "exports": {
         ".": "./lib/platypus.js",
@@ -11,6 +15,8 @@
     "files": [
         "lib",
         "README.md",
+        "CHANGELOG.md",
+        "CONTRIBUTORS.md",
         "licenses.txt",
         "assets"
     ],

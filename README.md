@@ -68,6 +68,8 @@ Contributor workflow, API docs publishing, and `npm publish` are described in [d
 
 ***
 
-[Code](https://github.com/Makefully-Studios/platypus) · [Docs](https://makefully-studios.github.io/platypus/) · [npm](https://www.npmjs.com/package/@makefully/platypus)
+[Code](https://github.com/Makefully-Studios/platypus) · [Docs](https://makefully-studios.github.io/platypus/) · [npm](https://www.npmjs.com/package/@makefully/platypus) · [Changelog](CHANGELOG.md)
 
-Platypus was developed by PBS KIDS and [Gopherwood Studios](http://gopherwoodstudios.com/). It is free to use (see [licenses.txt](licenses.txt)); assets in the example games are © Gopherwood Studios and/or © PBS KIDS.
+Maintained by **Derek Detweiler** and **Todd Lewis** ([CONTRIBUTORS.md](CONTRIBUTORS.md)).
+
+Platypus was originally developed by PBS KIDS and [Gopherwood Studios](https://gopherwoodstudios.com/). It is free to use (see [licenses.txt](licenses.txt)); assets in the example games are © Gopherwood Studios and/or © PBS KIDS.
