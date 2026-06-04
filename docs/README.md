@@ -41,15 +41,12 @@ PLATYPUS_DOCS_REPO=git@github.com:Makefully-Studios/platypus.git npm run docs:pu
 
 ## npm package
 
-The library is published as [`@makefully/platypus`](https://www.npmjs.com/package/@makefully/platypus). The tarball includes `lib/` (built via `npm run build:release`), not `src/`. The `lib/` directory is gitignored in this repo; `prepack` rebuilds it when you publish to npm.
+The library is published as [`@makefully/platypus`](https://www.npmjs.com/package/@makefully/platypus). The tarball includes everything under `lib/` (UMD bundle and any worker chunks from `npm run build:release`), not `src/`. The `lib/` directory is gitignored in this repo; `prepack` rebuilds it when you publish to npm.
 
 ```bash
-npm run build:release   # local bundle → lib/
-```
-
-```bash
-npm run pack:check   # preview tarball contents
-npm publish          # runs prepack (release build) then publishes
+npm run build:release   # Webpack 5 production build → lib/
+npm run pack:check      # preview tarball contents
+npm publish             # runs prepack, then publishes
 ```
 
 Requires npm login with access to the `@makefully` scope (`publishConfig.access` is `public`).
@@ -57,4 +54,5 @@ Requires npm login with access to the `@makefully` scope (`publishConfig.access`
 ## Configuration
 
 - [jsDoc.json](../jsDoc.json) — source paths, Minami template, output directory
-- [package.json](../package.json) — `docs`, `docs:publish`, and `prepack` scripts
+- [package.json](../package.json) — build, test, docs, and `prepack` scripts
+- [webpack.config.js](../webpack.config.js) — Webpack 5 UMD bundle to `lib/`
