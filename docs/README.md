@@ -15,7 +15,7 @@ Output is written to `docs/api/` (gitignored). Open `docs/api/index.html` in a b
 
 ### CI (recommended)
 
-Pushing to `pixi8` or `main` runs [.github/workflows/docs.yml](../.github/workflows/docs.yml), which builds docs and deploys the `gh-pages` branch on [Makefully-Studios/platypus](https://github.com/Makefully-Studios/platypus) using the `DEVONWARD` deploy key secret.
+Pushing to `pixi8` or `main` runs [.github/workflows/docs.yml](../.github/workflows/docs.yml), which builds docs and pushes the `gh-pages` branch on [Makefully-Studios/platypus](https://github.com/Makefully-Studios/platypus) using the workflow `GITHUB_TOKEN` (requires **Settings → Actions → General → Workflow permissions → Read and write**).
 
 You can also trigger a deploy manually from the repository **Actions** tab → **Publish documentation** → **Run workflow**.
 

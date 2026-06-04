@@ -52,6 +52,8 @@ npm run docs            # API reference → docs/api/ (gitignored)
 
 Contributor workflow, API docs publishing, and `npm publish` are described in [docs/README.md](docs/README.md).
 
+When `package.json` **version** changes on `main`, [.github/workflows/release.yml](.github/workflows/release.yml) builds `lib/*.js`, reads the matching [CHANGELOG.md](CHANGELOG.md) section, and publishes a GitHub release (skips if that tag already exists).
+
 ## Key Features
 
 * Deploy on any HTML5 platform supported by SpringRoll v2
