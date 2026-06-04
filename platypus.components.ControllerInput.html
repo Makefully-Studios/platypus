@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>HandlerLogic - Documentation</title>
+    <title>ControllerInput - Documentation</title>
 
     <script src="scripts/prettify/prettify.js"></script>
     <script src="scripts/prettify/lang-css.js"></script>
@@ -29,7 +29,7 @@
 
 <div id="main">
     
-    <h1 class="page-title">HandlerLogic</h1>
+    <h1 class="page-title">ControllerInput</h1>
     
 
     
@@ -44,7 +44,7 @@
         <h2>
             <span class="ancestors"><a href="platypus.html">platypus</a><a href="platypus.components.html">.components</a>.</span>
         
-        HandlerLogic
+        ControllerInput
         </h2>
         
     
@@ -58,14 +58,15 @@
 
     
 
-    <h4 class="name" id="HandlerLogic"><span class="type-signature"></span>new HandlerLogic<span class="signature">(definition)</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="ControllerInput"><span class="type-signature"></span>new ControllerInput<span class="signature">()</span><span class="type-signature"></span></h4>
 
     
 
 
 
 <div class="description">
-    <p>A component that handles updating logic components. Each tick it calls all the entities that accept 'handle-logic' messages. This component is usually used on an &quot;action-layer&quot;.</p>
+    <p>Maps pointer presses on this entity to game-wide controller events consumed by <a href="platypus.components.HandlerController.html">platypus.components.HandlerController</a>.
+Add <a href="platypus.components.Interactive.html">platypus.components.Interactive</a> (or another source of pointer events) on the same entity so presses hit the control.</p>
 </div>
 
 
@@ -101,7 +102,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="components_HandlerLogic.js.html">components/HandlerLogic.js</a>, <a href="components_HandlerLogic.js.html#line109">line 109</a>
+        <a href="components_ControllerInput.js.html">components/ControllerInput.js</a>, <a href="components_ControllerInput.js.html#line1">line 1</a>
     </li></ul></dd>
     
 
@@ -120,101 +121,11 @@
 
 
 
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>definition</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type"><code>*</code></span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last">
-                
-                
-            </td>
-        </tr>
-
-    
-    </tbody>
-</table>
 
 
 
 
 
-
-<h5>Fires:</h5>
-<ul>
-    <li><a href="platypus.Entity.html#event:handle-ai">platypus.Entity#event:handle-ai</a></li>
-
-    <li><a href="platypus.Entity.html#event:handle-logic">platypus.Entity#event:handle-logic</a></li>
-
-    <li><a href="platypus.Entity.html#event:logic-paused">platypus.Entity#event:logic-paused</a></li>
-
-    <li><a href="platypus.Entity.html#event:logic-unpaused">platypus.Entity#event:logic-unpaused</a></li>
-
-    <li><a href="platypus.Entity.html#event:prepare-logic">platypus.Entity#event:prepare-logic</a></li>
-
-    <li><a href="platypus.Entity.html#event:handle-movement">platypus.Entity#event:handle-movement</a></li>
-
-    <li><a href="platypus.Entity.html#event:check-collision-group">platypus.Entity#event:check-collision-group</a></li>
-
-    <li><a href="platypus.Entity.html#event:handle-post-collision-logic">platypus.Entity#event:handle-post-collision-logic</a></li>
-
-    <li><a href="platypus.Entity.html#event:state-changed">platypus.Entity#event:state-changed</a></li>
-</ul>
-
-
-
-<h5>Listens to Events:</h5>
-<ul>
-    <li><a href="platypus.Entity.html#event:camera-update">platypus.Entity#event:camera-update</a></li>
-
-    <li><a href="platypus.Entity.html#event:child-entity-added">platypus.Entity#event:child-entity-added</a></li>
-
-    <li><a href="platypus.Entity.html#event:child-entity-removed">platypus.Entity#event:child-entity-removed</a></li>
-
-    <li><a href="platypus.Entity.html#event:child-entity-updated">platypus.Entity#event:child-entity-updated</a></li>
-
-    <li><a href="platypus.Entity.html#event:pause-logic">platypus.Entity#event:pause-logic</a></li>
-
-    <li><a href="platypus.Entity.html#event:tick">platypus.Entity#event:tick</a></li>
-
-    <li>platypus.Entity#event:unpause-logic</li>
-</ul>
 
 
 
