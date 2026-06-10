@@ -1,7 +1,6 @@
 # Source and development files are excluded from the npm tarball.
 # package.json "files" is the authoritative allow-list for publishing.
 
-src/
 test/
 docs/
 scripts/

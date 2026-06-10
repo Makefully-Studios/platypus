@@ -17,7 +17,7 @@ Platypus uses:
 npm install @makefully/platypus
 ```
 
-The npm package ships **Webpack 5 builds** in `lib/` (not `src/`): `platypus.mjs` for `import` (recommended) and `platypus.js` (UMD) for `require` or script tags. Your game must also install peer dependencies:
+The npm package ships **`src/` for `import`** (your bundler compiles it, same as linking the repo) and a **UMD build** in `lib/platypus.js` for `require` or script tags. Your game must also install peer dependencies:
 
 | Package | Notes |
 |---------|--------|
@@ -30,9 +30,9 @@ The npm package ships **Webpack 5 builds** in `lib/` (not `src/`): `platypus.mjs
 
 Optional: `box2d3-wasm`, `jsmediatags`, `poly-decomp` (see `optionalDependencies` in [package.json](package.json)).
 
-Entry points: `lib/platypus.mjs` (`import`) or `lib/platypus.js` (`require`/script tag), plus worker chunks alongside them in `lib/`.
+Entry points: `src/index.js` via `import platypus from '@makefully/platypus'`, or `lib/platypus.js` for `require`/script tags (plus worker chunks in `lib/` for the UMD build).
 
-If you see a Pixi error like `Cannot read properties of undefined (reading 'push')` in `collectRenderablesMixin` when using the UMD build, switch to the ESM entry (`import platypus from '@makefully/platypus'`). The ESM build keeps Platypus's `pixi.js` imports visible to your bundler so mask and render pipes are initialized. Using `/src` directly worked because your bundler already walked those imports.
+Bundlers should use the `import` entry (source). The prebuilt UMD omits Platypus's `pixi.js` sub-imports from your module graph, which can cause a Pixi `collectRenderablesMixin` crash on masked sprites unless you add `import 'pixi.js'` before Platypus.
 
 Include the engine stylesheet in your game's CSS (canvas layout, captions, debug overlay):
 

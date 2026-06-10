@@ -42,7 +42,7 @@ PLATYPUS_DOCS_REPO=git@github.com:Makefully-Studios/platypus.git npm run docs:pu
 
 ## npm package
 
-The library is published as [`@makefully/platypus`](https://www.npmjs.com/package/@makefully/platypus). The tarball includes everything under `lib/` (ESM and UMD bundles, `platypus.css`, and worker chunks from `npm run build:release`), not `src/`. The `lib/` directory is gitignored in this repo; `prepack` rebuilds it when you publish to npm. Consumers import styles via `@makefully/platypus/platypus.css`.
+The library is published as [`@makefully/platypus`](https://www.npmjs.com/package/@makefully/platypus). The tarball includes `src/` (for `import`) and `lib/` (UMD bundle, `platypus.css`, and worker chunks from `npm run build:release`). The `lib/` directory is gitignored in this repo; `prepack` rebuilds it when you publish to npm. Consumers import styles via `@makefully/platypus/platypus.css`.
 
 ```bash
 npm run build:release   # Webpack 5 production build → lib/
@@ -75,4 +75,4 @@ Manual publish with `npm login` and access to the `@makefully` scope (`publishCo
 
 - [jsDoc.json](../jsDoc.json) — source paths, Minami template, output directory
 - [package.json](../package.json) — build, test, docs, and `prepack` scripts
-- [webpack.config.js](../webpack.config.js) — Webpack 5 ESM + UMD bundles to `lib/`
+- [webpack.config.js](../webpack.config.js) — Webpack 5 UMD bundle to `lib/` (`src/` is the `import` entry)
