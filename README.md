@@ -17,7 +17,7 @@ Platypus uses:
 npm install @makefully/platypus
 ```
 
-The npm package ships a **Webpack 5 UMD build** in `lib/` (not `src/`). Your game must also install peer dependencies and expose them to the bundle (same as a classic script-tag setup):
+The npm package ships **Webpack 5 builds** in `lib/` (not `src/`): `platypus.mjs` for `import` (recommended) and `platypus.js` (UMD) for `require` or script tags. Your game must also install peer dependencies:
 
 | Package | Notes |
 |---------|--------|
@@ -30,7 +30,9 @@ The npm package ships a **Webpack 5 UMD build** in `lib/` (not `src/`). Your gam
 
 Optional: `box2d3-wasm`, `jsmediatags`, `poly-decomp` (see `optionalDependencies` in [package.json](package.json)).
 
-Entry point: `lib/platypus.js` (plus any worker chunks emitted alongside it in `lib/`).
+Entry points: `lib/platypus.mjs` (`import`) or `lib/platypus.js` (`require`/script tag), plus worker chunks alongside them in `lib/`.
+
+If you see a Pixi error like `Cannot read properties of undefined (reading 'push')` in `collectRenderablesMixin` when using the UMD build, switch to the ESM entry (`import platypus from '@makefully/platypus'`). The ESM build keeps Platypus's `pixi.js` imports visible to your bundler so mask and render pipes are initialized. Using `/src` directly worked because your bundler already walked those imports.
 
 Include the engine stylesheet in your game's CSS (canvas layout, captions, debug overlay):
 

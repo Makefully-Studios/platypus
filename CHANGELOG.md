@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.5] - 2026-06-10
+
+### Added
+
+- ESM build (`lib/platypus.mjs`) as the `import` entry in `package.json` exports; UMD (`lib/platypus.js`) remains the `require` entry.
+
+### Fixed
+
+- Pixi `collectRenderablesWithEffects` crash (`Cannot read properties of undefined (reading 'push')`) when consuming the npm package instead of `/src`: the prebuilt UMD hid Platypus's `pixi.js` sub-imports, so bundlers could omit mask/render pipes that masked sprites need. The ESM entry preserves those imports in the consumer's module graph.
+
 ## [4.1.4] - 2026-06-10
 
 ### Changed
