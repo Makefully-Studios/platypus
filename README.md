@@ -32,6 +32,12 @@ Optional: `box2d3-wasm`, `jsmediatags`, `poly-decomp` (see `optionalDependencies
 
 Entry point: `lib/platypus.js` (plus any worker chunks emitted alongside it in `lib/`).
 
+Include the engine stylesheet in your game's CSS (canvas layout, captions, debug overlay):
+
+```css
+@import '@makefully/platypus/platypus.css';
+```
+
 ## Development
 
 Requires **Node.js 20+**.

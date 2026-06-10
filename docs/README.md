@@ -42,7 +42,7 @@ PLATYPUS_DOCS_REPO=git@github.com:Makefully-Studios/platypus.git npm run docs:pu
 
 ## npm package
 
-The library is published as [`@makefully/platypus`](https://www.npmjs.com/package/@makefully/platypus). The tarball includes everything under `lib/` (UMD bundle and any worker chunks from `npm run build:release`), not `src/`. The `lib/` directory is gitignored in this repo; `prepack` rebuilds it when you publish to npm.
+The library is published as [`@makefully/platypus`](https://www.npmjs.com/package/@makefully/platypus). The tarball includes everything under `lib/` (UMD bundle, `platypus.css`, and any worker chunks from `npm run build:release`), not `src/`. The `lib/` directory is gitignored in this repo; `prepack` rebuilds it when you publish to npm. Consumers import styles via `@makefully/platypus/platypus.css`.
 
 ```bash
 npm run build:release   # Webpack 5 production build → lib/

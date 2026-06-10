@@ -1,4 +1,17 @@
+const fs = require('fs');
 const path = require('path');
+
+class CopyPlatypusCssPlugin {
+    apply (compiler) {
+        compiler.hooks.afterEmit.tap('CopyPlatypusCssPlugin', (compilation) => {
+            const
+                from = path.join(__dirname, 'src/platypus.css'),
+                to = path.join(compilation.outputOptions.path, 'platypus.css');
+
+            fs.copyFileSync(from, to);
+        });
+    }
+}
 
 module.exports = (env, argv) => {
     const
@@ -31,6 +44,9 @@ module.exports = (env, argv) => {
             '@pixi/sound': '@pixi/sound',
             'pixi.js': 'pixi.js',
             springroll: 'springroll'
-        }
+        },
+        plugins: [
+            new CopyPlatypusCssPlugin()
+        ]
     };
 };
