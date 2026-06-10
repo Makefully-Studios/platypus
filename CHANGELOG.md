@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.4] - 2026-06-10
+
 ### Changed
 
 - Release workflow publishes to npm via trusted publishing (OIDC) instead of `NPM_TOKEN`, avoiding `EOTP` failures when npm 2FA is enabled.
