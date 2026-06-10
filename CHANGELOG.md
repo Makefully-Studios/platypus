@@ -7,11 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Release workflow publishes to npm via trusted publishing (OIDC) instead of `NPM_TOKEN`, avoiding `EOTP` failures when npm 2FA is enabled.
+
 ## [4.1.3] - 2026-06-10
 
 ### Added
 
-- Release workflow publishes `@makefully/platypus` to npm when `package.json` version changes on `main` (requires `NPM_TOKEN` repository secret).
+- Release workflow publishes `@makefully/platypus` to npm when `package.json` version changes on `main`.
 
 ### Changed
 
