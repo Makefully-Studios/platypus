@@ -54,9 +54,22 @@ npm publish             # runs prepack, then publishes
 
 When `package.json` **version** changes on `main`, [.github/workflows/release.yml](../.github/workflows/release.yml) builds `lib/`, publishes `@makefully/platypus` to npm, and creates a matching GitHub release. Each step is skipped independently if that version is already on npm or GitHub.
 
-One-time setup: add an npm [granular access token](https://docs.npmjs.com/creating-and-viewing-access-tokens) with **Publish** permission for `@makefully/platypus` as the repository secret **`NPM_TOKEN`**.
+#### Trusted publishing (recommended)
 
-Manual publish still works with npm login and access to the `@makefully` scope (`publishConfig.access` is `public`).
+CI uses [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/) (OIDC) — no long-lived publish token in GitHub secrets.
+
+One-time setup on [npmjs.com](https://www.npmjs.com/package/@makefully/platypus) → **Settings** → **Trusted publishing** → **GitHub Actions**:
+
+| Field | Value |
+|-------|--------|
+| Repository | `Makefully-Studios/platypus` |
+| Workflow filename | `release.yml` |
+
+The workflow already sets `id-token: write`. `package.json` `repository.url` must match the GitHub repo. Re-run the release workflow after saving the trusted publisher.
+
+#### Manual Publishing
+
+Manual publish with `npm login` and access to the `@makefully` scope (`publishConfig.access` is `public`).
 
 ## Configuration
 
