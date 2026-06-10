@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.3] - 2026-06-10
+
+### Added
+
+- Release workflow publishes `@makefully/platypus` to npm when `package.json` version changes on `main` (requires `NPM_TOKEN` repository secret).
+
+### Changed
+
+- GitHub Actions workflows use Node.js 24 and action versions with a Node 24 runtime (`actions/checkout@v6`, `actions/setup-node@v6`, `softprops/action-gh-release@v3`, `peaceiris/actions-gh-pages@v4.1.0`).
+
 ## [4.1.2] - 2026-06-10
 
 ### Added

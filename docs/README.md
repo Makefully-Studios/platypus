@@ -50,7 +50,13 @@ npm run pack:check      # preview tarball contents
 npm publish             # runs prepack, then publishes
 ```
 
-Requires npm login with access to the `@makefully` scope (`publishConfig.access` is `public`).
+### Automated publish (CI)
+
+When `package.json` **version** changes on `main`, [.github/workflows/release.yml](../.github/workflows/release.yml) builds `lib/`, publishes `@makefully/platypus` to npm, and creates a matching GitHub release. Each step is skipped independently if that version is already on npm or GitHub.
+
+One-time setup: add an npm [granular access token](https://docs.npmjs.com/creating-and-viewing-access-tokens) with **Publish** permission for `@makefully/platypus` as the repository secret **`NPM_TOKEN`**.
+
+Manual publish still works with npm login and access to the `@makefully` scope (`publishConfig.access` is `public`).
 
 ## Configuration
 

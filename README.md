@@ -58,7 +58,7 @@ npm run docs            # API reference → docs/api/ (gitignored)
 
 Contributor workflow, API docs publishing, and `npm publish` are described in [docs/README.md](docs/README.md).
 
-When `package.json` **version** changes on `main`, [.github/workflows/release.yml](.github/workflows/release.yml) builds `lib/*.js`, reads the matching [CHANGELOG.md](CHANGELOG.md) section, and publishes a GitHub release (skips if that tag already exists).
+When `package.json` **version** changes on `main`, [.github/workflows/release.yml](.github/workflows/release.yml) builds `lib/`, publishes to [npm](https://www.npmjs.com/package/@makefully/platypus), and creates a GitHub release from the matching [CHANGELOG.md](CHANGELOG.md) section (skips each step if that version already exists).
 
 ## Key Features
 
