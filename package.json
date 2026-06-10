@@ -1,6 +1,6 @@
 {
     "name": "@makefully/platypus",
-    "version": "4.1.5",
+    "version": "4.1.6",
     "description": "2D tile-based HTML5 game engine with a component-based entity model",
     "license": "MIT",
     "contributors": [
@@ -8,10 +8,10 @@
         "Todd Lewis <todd.lewis@gopherwoodstudios.com> (https://github.com/GopherwoodTodd)"
     ],
     "main": "lib/platypus.js",
-    "module": "lib/platypus.mjs",
+    "module": "src/index.js",
     "exports": {
         ".": {
-            "import": "./lib/platypus.mjs",
+            "import": "./src/index.js",
             "require": "./lib/platypus.js"
         },
         "./platypus.css": "./lib/platypus.css",
@@ -19,6 +19,7 @@
     },
     "files": [
         "lib",
+        "src",
         "README.md",
         "CHANGELOG.md",
         "CONTRIBUTORS.md",
@@ -47,8 +48,8 @@
     ],
     "scripts": {
         "start": "webpack serve --mode development",
-        "build:release": "node scripts/clean-lib.mjs && webpack --mode production",
-        "build:debug": "node scripts/clean-lib.mjs && webpack --mode development",
+        "build:release": "webpack --mode production",
+        "build:debug": "webpack --mode development",
         "prepack": "npm run build:release",
         "pack:check": "npm pack --dry-run",
         "test:watch": "vitest",

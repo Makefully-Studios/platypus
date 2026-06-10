@@ -13,72 +13,40 @@ class CopyPlatypusCssPlugin {
     }
 }
 
-const
-    externals = {
-        '@esotericsoftware/spine-pixi-v8': '@esotericsoftware/spine-pixi-v8',
-        '@tweenjs/tween.js': '@tweenjs/tween.js',
-        '@pixi/sound': '@pixi/sound',
-        'pixi.js': 'pixi.js',
-        springroll: 'springroll'
-    },
-    shared = {
+module.exports = (env, argv) => {
+    const
+        mode = argv.mode || 'production';
+
+    return {
         entry: './src/index.js',
+        mode,
+        output: {
+            path: path.resolve(__dirname, 'lib'),
+            filename: 'platypus.js',
+            clean: true,
+            library: {
+                name: 'platypus',
+                type: 'umd',
+                umdNamedDefine: true
+            },
+            globalObject: 'typeof self !== \'undefined\' ? self : this'
+        },
+        devtool: mode === 'development' ? 'source-map' : false,
         devServer: {
             static: {
                 directory: path.join(__dirname, '.')
             },
             hot: true
         },
-        externals,
+        externals: {
+            '@esotericsoftware/spine-pixi-v8': '@esotericsoftware/spine-pixi-v8',
+            '@tweenjs/tween.js': '@tweenjs/tween.js',
+            '@pixi/sound': '@pixi/sound',
+            'pixi.js': 'pixi.js',
+            springroll: 'springroll'
+        },
         plugins: [
             new CopyPlatypusCssPlugin()
         ]
     };
-
-module.exports = (env, argv) => {
-    const
-        mode = argv.mode || 'production',
-        devtool = mode === 'development' ? 'source-map' : false;
-
-  return [
-        {
-            ...shared,
-            name: 'umd',
-            mode,
-            devtool,
-            output: {
-                path: path.resolve(__dirname, 'lib'),
-                filename: 'platypus.js',
-                library: {
-                    name: 'platypus',
-                    type: 'umd',
-                    umdNamedDefine: true
-                },
-                globalObject: 'typeof self !== \'undefined\' ? self : this'
-            }
-        },
-        {
-            ...shared,
-            name: 'esm',
-            mode,
-            devtool,
-            experiments: {
-                outputModule: true
-            },
-            output: {
-                path: path.resolve(__dirname, 'lib'),
-                filename: 'platypus.mjs',
-                chunkFilename: '[id].platypus.mjs',
-                library: {
-                    type: 'module'
-                },
-                module: true,
-                chunkFormat: 'module',
-                environment: {
-                    module: true
-                }
-            },
-            externalsType: 'module'
-        }
-    ];
 };

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.6] - 2026-06-10
+
+### Changed
+
+- `import` resolves to `src/index.js` (shipped in the npm tarball) so bundlers compile Platypus directly; `require` still uses `lib/platypus.js` (UMD).
+
+### Fixed
+
+- Webpack error `Can't resolve './'` when re-bundling `lib/platypus.mjs`: the prebuilt ESM artifact embedded webpack chunk-loader runtime that consumer bundlers cannot resolve. Removed the ESM webpack target in favor of publishing `src/`.
+
 ## [4.1.5] - 2026-06-10
 
 ### Added
