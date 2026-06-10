@@ -1,6 +1,6 @@
 {
     "name": "@makefully/platypus",
-    "version": "4.1.1",
+    "version": "4.1.2",
     "description": "2D tile-based HTML5 game engine with a component-based entity model",
     "license": "MIT",
     "contributors": [
@@ -10,6 +10,7 @@
     "main": "lib/platypus.js",
     "exports": {
         ".": "./lib/platypus.js",
+        "./platypus.css": "./lib/platypus.css",
         "./package.json": "./package.json"
     },
     "files": [

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.2] - 2026-06-10
+
+### Added
+
+- `platypus.css` shipped in the npm tarball under `lib/` and exposed as `@makefully/platypus/platypus.css` (release build copies `src/platypus.css`).
+
+### Changed
+
+- README documents the supported CSS import path for npm consumers (replaces v3 `src/platypus.css` imports).
+
 ## [4.1.1] - 2026-06-04
 
 ### Added
