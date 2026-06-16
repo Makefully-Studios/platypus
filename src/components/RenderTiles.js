@@ -257,7 +257,43 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
          * @type Number
          * @default 0
          */
-        left: 0
+        left: 0,
+
+        /**
+         * Tiled parallax factor for horizontal scrolling. 1.0 scrolls with the camera; values less than 1.0 scroll slower (background); 0 is fixed to the screen.
+         *
+         * @property parallaxX
+         * @type number
+         * @default 1
+         */
+        parallaxX: 1,
+
+        /**
+         * Tiled parallax factor for vertical scrolling.
+         *
+         * @property parallaxY
+         * @type number
+         * @default 1
+         */
+        parallaxY: 1,
+
+        /**
+         * Map parallax origin X in world coordinates (Tiled `parallaxoriginx`, plus any map offset).
+         *
+         * @property parallaxOriginX
+         * @type number
+         * @default 0
+         */
+        parallaxOriginX: 0,
+
+        /**
+         * Map parallax origin Y in world coordinates (Tiled `parallaxoriginy`, plus any map offset).
+         *
+         * @property parallaxOriginY
+         * @type number
+         * @default 0
+         */
+        parallaxOriginY: 0
     },
 
     /**
@@ -873,6 +909,10 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
          * its world travel, laxCam is at the start of the layer's travel, and
          * likewise at the end.
          *
+         * Tiled `parallaxx` / `parallaxy` factors are then applied relative to the
+         * map's parallax origin so the layer's effective render position is:
+         * `layerPos - (camera - parallaxOrigin) * (1 - parallaxFactor)`.
+         *
          * IMPORTANT: laxCam is resized to the *actual viewport dimensions* (not
          * viewport + refreshBuffer). Its purpose is solely to compute the parallax
          * offset for sprite positioning (vp.left - laxCam.left). Inflating it with
@@ -885,7 +925,8 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
                 worldPosX   = worldWidth  - camera.width,
                 worldHeight = this.worldHeight / this.scaleY,
                 worldPosY   = worldHeight - camera.height,
-                laxCam      = this.laxCam;
+                laxCam      = this.laxCam,
+                {parallaxOriginX, parallaxOriginY, parallaxX, parallaxY} = this;
 
             if ((worldWidth === this.layerWidth) || !worldPosX) {
                 laxCam.moveX(camera.x);
@@ -897,6 +938,14 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
                 laxCam.moveY(camera.y);
             } else {
                 laxCam.moveY((camera.top - this.top) * (this.layerHeight - camera.height) / worldPosY + camera.halfHeight + this.top);
+            }
+
+            if (parallaxX !== 1) {
+                laxCam.moveX(laxCam.x + (camera.x - parallaxOriginX) * (1 - parallaxX));
+            }
+
+            if (parallaxY !== 1) {
+                laxCam.moveY(laxCam.y + (camera.y - parallaxOriginY) * (1 - parallaxY));
             }
 
             // FIX: resize laxCam to the actual viewport size only — never camera + refreshBuffer.

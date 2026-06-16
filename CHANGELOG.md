@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.7] - 2026-06-16
+
+### Added
+
+- Tiled layer parallax (`parallaxx`, `parallaxy`) and map parallax origin (`parallaxoriginx`, `parallaxoriginy`) support, forwarded from `TiledLoader` to `RenderTiles`.
+
+### Changed
+
+- `RenderTiles` layers with different parallax factors are no longer combined into a single render layer.
+
 ## [4.1.6] - 2026-06-10
 
 ### Changed
