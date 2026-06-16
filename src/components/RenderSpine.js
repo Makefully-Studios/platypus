@@ -376,8 +376,16 @@ export default createComponentClass(/** @lends platypus.components.RenderSpine.p
                     spineAtlas = platypus.assetCache.get(this.atlas),
                     spineJsonParser = new SkeletonJson(new AtlasAttachmentLoader(spineAtlas)),
                     skeletonData = spineJsonParser.readSkeletonData(skeleton),
-                    spine = this.spine = new Spine(skeletonData),
+                    spine = this.spine = new Spine({skeletonData, autoUpdate: false}),
                     map = createAnimationMap(this.animationMap, skeleton.animations);
+
+                // Spine 4.3 inherits Pixi container world-transform deltas into skeleton physics by default.
+                // Platypus pans the camera by moving the world container, which shifts every entity's world
+                // transform even when owner.x/y are unchanged — causing unwanted physics on stationary characters.
+                // Use the `apply-spine-physics` event for intentional movement-driven physics instead.
+                spine.setPhysicsPositionInheritanceFactor(0, 0);
+                spine.physicsRotationInheritanceFactor = 0;
+                spine.resetPhysicsTransform();
 
                 let animation = '';
 
@@ -414,7 +422,6 @@ export default createComponentClass(/** @lends platypus.components.RenderSpine.p
                         this.owner.triggerEvent('animation-ended', animationName);
                     }
                 });
-                spine.autoUpdate = false;
 
                 this.stateBased = map && this.stateBased;
                 this.eventBased = map && this.eventBased;
@@ -621,7 +628,7 @@ export default createComponentClass(/** @lends platypus.components.RenderSpine.p
             for (x = 0; x < slots.length; x++) {
                 slot = this.spine.skeleton.findSlot(slots[x]);
                 if (slot) {
-                    slot.color.setFromString(color);
+                    slot.pose.color.setFromString(color);
                 }
             }
         },
@@ -660,7 +667,7 @@ export default createComponentClass(/** @lends platypus.components.RenderSpine.p
          *      rotate: {x: 0, y: 0, degrees: 0}
          * }
          * 
-         * Has known vibration issues. Until pixi-spine 4.3, recommend 120 FPS on physics constraints on joints.
+         * Has known vibration issues at low frame rates. Spine 4.3 improves physics constraint stability.
          * Potential fixes: https://esotericsoftware.com/forum/d/28093-jittering-when-applying-physicstranslate-pixispine/5
          *
          * @event platypus.Entity#apply-spine-physics
@@ -672,7 +679,7 @@ export default createComponentClass(/** @lends platypus.components.RenderSpine.p
             }
 
             if (changes.rotate) {
-                this.spine.skeleton.physicsTranslate(changes.rotate.x, changes.rotate.y, changes.rotate.degrees);
+                this.spine.skeleton.physicsRotate(changes.rotate.x, changes.rotate.y, changes.rotate.degrees);
             }
         }
     },
@@ -698,7 +705,7 @@ export default createComponentClass(/** @lends platypus.components.RenderSpine.p
             }
 
             this.spine.skeleton.setSkin(skin);
-            this.spine.skeleton.setSlotsToSetupPose();
+            this.spine.skeleton.setupPoseSlots();
         },
         addToContainer: function () {
             this.owner.container.cullable = false;

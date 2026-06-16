@@ -699,7 +699,7 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
     },
 
     methods: {
-        createLayer: function (entityKind, rawLayer, offsetX, offsetY, tileWidth, tileHeight, tilesets, tileSetTileData, images, combineRenderLayer, progress, entityLinker) {
+        createLayer: function (entityKind, rawLayer, offsetX, offsetY, tileWidth, tileHeight, tilesets, tileSetTileData, images, combineRenderLayer, progress, entityLinker, parallaxOriginX, parallaxOriginY) {
             const
                 //This builds in parallaxing support by allowing the addition of width and height properties into Tiled layers so they pan at a separate rate than other layers.
                 checkParallax = ({data, height, properties, width}) => {
@@ -730,6 +730,8 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
                 },
 
                 layer = decodeLayer(rawLayer),
+                parallaxX = layer.parallaxx ?? 1,
+                parallaxY = layer.parallaxy ?? 1,
                 {
                     offsetx: layerOffsetX = 0,
                     offsety: layerOffsetY = 0,
@@ -835,6 +837,10 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
             layerDefinitionProperties.left = layerDefinitionProperties.x || mapOffsetX;
             layerDefinitionProperties.top = layerDefinitionProperties.y || mapOffsetY;
             layerDefinitionProperties.z = layerDefinitionProperties.z || this.layerZ;
+            layerDefinitionProperties.parallaxX = parallaxX;
+            layerDefinitionProperties.parallaxY = parallaxY;
+            layerDefinitionProperties.parallaxOriginX = parallaxOriginX;
+            layerDefinitionProperties.parallaxOriginY = parallaxOriginY;
 
             if (tilesets.length) {
                 let imageIndex = 0;
@@ -910,7 +916,7 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
                 }
             }
 
-            if ((!this.separateTiles) && (combineRenderLayer?.tileHeight === tHeight) && (combineRenderLayer?.tileWidth === tWidth) && (combineRenderLayer?.columns === width) && (combineRenderLayer?.rows === height)) {
+            if ((!this.separateTiles) && (combineRenderLayer?.parallaxX ?? 1) === parallaxX && (combineRenderLayer?.parallaxY ?? 1) === parallaxY && (combineRenderLayer?.tileHeight === tHeight) && (combineRenderLayer?.tileWidth === tWidth) && (combineRenderLayer?.columns === width) && (combineRenderLayer?.rows === height)) {
                 combineRenderLayer.triggerEvent('add-tiles', renderTiles);
                 combineRenderLayer.triggerEvent('add-collision-tiles', collisionTiles);
 
@@ -998,7 +1004,9 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
                 height = level.height * tileHeight,
                 width = level.width * tileWidth,
                 x = offsetMap ? getPowerOfTen(width) : 0,
-                y = offsetMap ? getPowerOfTen(height) : 0;
+                y = offsetMap ? getPowerOfTen(height) : 0,
+                parallaxOriginX = (level.parallaxoriginx ?? 0) + x,
+                parallaxOriginY = (level.parallaxoriginy ?? 0) + y;
             let layer = null;
 
             createTilesetObjectGroupReference(tileSetTileData, tilesets);
@@ -1130,7 +1138,7 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
                 switch (layerDefinition.type) {
                 case 'imagelayer':
                     layer = this.convertImageLayer(layerDefinition);
-                    layer = this.createLayer(getProperty(layer.properties, 'entity') || 'image-layer', layer, x, y, layer.tilewidth, layer.tileheight, [layer.tileset], null, images, layer, progress, entityLinker);
+                    layer = this.createLayer(getProperty(layer.properties, 'entity') || 'image-layer', layer, x, y, layer.tilewidth, layer.tileheight, [layer.tileset], null, images, layer, progress, entityLinker, parallaxOriginX, parallaxOriginY);
                     break;
                 case 'objectgroup':
                     this.setUpEntities(layerDefinition.objects.map((object) => getObjectCentered(object)), layerDefinition, x, y, tilesets, progress, entityLinker);
@@ -1138,7 +1146,7 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
                     this.updateLoadingProgress(progress);
                     break;
                 case 'tilelayer':
-                    layer = this.setupLayer(layerDefinition, layer, x, y, tileWidth, tileHeight, tilesets, tileSetTileData, images, progress, entityLinker);
+                    layer = this.setupLayer(layerDefinition, layer, x, y, tileWidth, tileHeight, tilesets, tileSetTileData, images, progress, entityLinker, parallaxOriginX, parallaxOriginY);
                     break;
                 default:
                     platypus.debug.warn('Component TiledLoader: Platypus does not support Tiled layers of type "' + layerDefinition.type + '". This layer will not be loaded.');
@@ -1374,7 +1382,7 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
             };
         }()),
 
-        setupLayer: function (layer, combineRenderLayer, mapOffsetX, mapOffsetY, tileWidth, tileHeight, tilesets, tileSetTileData, images, progress, entityLinker) {
+        setupLayer: function (layer, combineRenderLayer, mapOffsetX, mapOffsetY, tileWidth, tileHeight, tilesets, tileSetTileData, images, progress, entityLinker, parallaxOriginX, parallaxOriginY) {
             const
                 entity = getProperty(layer.properties, 'entity') ?? 'render-layer', // default
                 entityDefinition = platypus.game.settings.entities[entity] ?? standardEntityLayers[entity];
@@ -1393,9 +1401,9 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
             }
 
             if (canCombine) {
-                return this.createLayer(entity, layer, mapOffsetX, mapOffsetY, tileWidth, tileHeight, tilesets, tileSetTileData, images, combineRenderLayer, progress, entityLinker);
+                return this.createLayer(entity, layer, mapOffsetX, mapOffsetY, tileWidth, tileHeight, tilesets, tileSetTileData, images, combineRenderLayer, progress, entityLinker, parallaxOriginX, parallaxOriginY);
             } else {
-                this.createLayer(entity, layer, mapOffsetX, mapOffsetY, tileWidth, tileHeight, tilesets, tileSetTileData, images, combineRenderLayer, progress, entityLinker);
+                this.createLayer(entity, layer, mapOffsetX, mapOffsetY, tileWidth, tileHeight, tilesets, tileSetTileData, images, combineRenderLayer, progress, entityLinker, parallaxOriginX, parallaxOriginY);
                 return null;
             }
         },
