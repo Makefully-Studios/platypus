@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.8] - 2026-06-16
+
+### Changed
+
+- Peer dependency `@esotericsoftware/spine-pixi-v8` updated to `^4.3.7`.
+
+### Fixed
+
+- `RenderSpine` updated for Spine 4.3 pose APIs (`setupPoseSlots`, `slot.pose.color`, `physicsRotate`).
+- Spine physics no longer reacts to camera panning; automatic container physics inheritance is disabled because Platypus moves the world container, not individual entities.
+
 ## [4.1.7] - 2026-06-16
 
 ### Added
