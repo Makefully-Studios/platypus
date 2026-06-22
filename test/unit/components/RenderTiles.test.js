@@ -1,8 +1,11 @@
-import {describe, expect, it} from 'vitest';
+import {describe, expect, it, vi} from 'vitest';
 import AABB from '../../../src/AABB.js';
 import RenderTiles from '../../../src/components/RenderTiles.js';
 
-const convertCamera = RenderTiles.prototype.convertCamera;
+const
+    convertCamera = RenderTiles.prototype.convertCamera,
+    populateTiles = RenderTiles.prototype.populateTiles,
+    alignCacheToCamera = RenderTiles.prototype.alignCacheToCamera;
 
 function makeComponent (overrides = {}) {
     return {
@@ -71,5 +74,97 @@ describe('RenderTiles convertCamera parallax', () => {
 
         expect(atOrigin.x).toBe(0);
         expect(displaced.x).toBe(-100);
+    });
+});
+
+describe('RenderTiles populateTiles', () => {
+    function makeMap (width, height) {
+        const map = [];
+
+        for (let x = 0; x < width; x++) {
+            map[x] = [];
+            for (let y = 0; y < height; y++) {
+                map[x][y] = {
+                    getNext: () => ({x: 0, y: 0, template: {clear: vi.fn()}})
+                };
+            }
+        }
+
+        return [map];
+    }
+
+    function makeTileComponent () {
+        const tileContainer = {
+            children: [],
+            removeChildren () {
+                this.children = [];
+            },
+            addChild (child) {
+                this.children.push(child);
+            }
+        };
+
+        return {
+            tileWidth: 64,
+            tileHeight: 64,
+            left: 0,
+            top: 0,
+            imageMap: makeMap(32, 32),
+            tileContainer
+        };
+    }
+
+    it('skips every tile when new bounds match old bounds (incremental scroll only)', () => {
+        const
+            component = makeTileComponent(),
+            bounds = AABB.setUp(),
+            oldBounds = AABB.setUp();
+
+        bounds.setBounds(5, 5, 16, 12);
+        oldBounds.setBounds(5, 5, 16, 12);
+
+        populateTiles.call(component, bounds, oldBounds);
+
+        expect(component.tileContainer.children).toHaveLength(0);
+    });
+
+    it('repopulates every tile when old bounds are omitted (in-place refresh)', () => {
+        const
+            component = makeTileComponent(),
+            bounds = AABB.setUp();
+
+        bounds.setBounds(5, 5, 16, 12);
+
+        populateTiles.call(component, bounds, null);
+
+        expect(component.tileContainer.children).toHaveLength(12 * 8);
+    });
+});
+
+describe('RenderTiles alignCacheToCamera', () => {
+    it('centers the cache window on the camera and clamps to the map edges', () => {
+        const
+            component = makeComponent({
+                tilesWidth: 60,
+                tilesHeight: 20,
+                tileWidth: 64,
+                tileHeight: 64,
+                cacheTilesWidth: 12,
+                cacheTilesHeight: 8,
+                laxCam: AABB.setUp(),
+                convertCamera
+            }),
+            viewport = AABB.setUp(1920, 480, 768, 768),
+            bounds = AABB.setUp();
+
+        alignCacheToCamera.call(component, bounds, viewport);
+
+        expect(bounds.empty).toBe(false);
+        expect(bounds.left).toBeGreaterThanOrEqual(0);
+        expect(bounds.right).toBeLessThanOrEqual(59);
+        expect(bounds.top).toBeGreaterThanOrEqual(0);
+        expect(bounds.bottom).toBeLessThanOrEqual(19);
+        expect(bounds.width).toBe(11);
+        expect(bounds.height).toBe(7);
     });
 });

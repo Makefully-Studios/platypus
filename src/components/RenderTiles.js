@@ -437,14 +437,7 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
 
             if (map) {
                 this.updateTile(tile, map[z || 0], x, y);
-                // Only flag a re-render if the changed tile is within the currently
-                // cached region. Changes outside the cache will be drawn correctly
-                // the next time the camera pans to include them.
-                if (!this.cache.empty &&
-                    x >= this.cache.left && x <= this.cache.right &&
-                    y >= this.cache.top  && y <= this.cache.bottom) {
-                    this.updateCache = true;
-                }
+                this.updateCache = true;
             }
         },
 
@@ -458,70 +451,13 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
         },
 
         /**
-         * Forces an immediate full re-render centered on the current camera
-         * position. Call this after bulk tile changes to ensure the display
-         * is up to date without requiring a camera pan.
-         *
-         * For the panning cache, we invalidate cachePixels and re-run the full
-         * camera-update recache logic using the last known camera, which correctly
-         * handles texture swapping, tile population, and sprite positioning.
+         * Forces an immediate full re-render of all cached tile textures.
+         * Call this after bulk tile changes to ensure the display is up to date
+         * without requiring a camera pan.
          */
         "force-render": function () {
-            if (this.cacheAll) {
-                // Single/full cache — re-render entire layer.
-                this.populateTiles(this.cache, null);
-                this.renderCache(this.cache, this.cacheTexture, this.mapContainer, this.mapContainerWrapper);
-            } else if (this.cacheTexture) {
-                // Panning cache — invalidate cachePixels so the recache branch
-                // runs, then execute the full camera-update recache inline.
-                const
-                    {viewport: vp} = this.owner.parent.worldCamera,
-                    {cache, cachePixels} = this,
-                    tempC = tempCache,
-                    ctw   = this.cacheTilesWidth  - 1,
-                    cth   = this.cacheTilesHeight - 1,
-                    ctw2  = ctw / 2,
-                    cth2  = cth / 2;
-
-                this.convertCamera(vp);
-
-                // Force the recache branch to run regardless of camera position.
-                cachePixels.empty = true;
-
-                tempC.setAll(
-                    Math.round((this.laxCam.x - this.left) / this.tileWidth  - ctw2) + ctw2,
-                    Math.round((this.laxCam.y - this.top)  / this.tileHeight - cth2) + cth2,
-                    ctw, cth
-                );
-                if (tempC.left < 0) {
-                    tempC.moveX(tempC.halfWidth);
-                } else if (tempC.right > this.tilesWidth - 1) {
-                    tempC.moveX(this.tilesWidth - 1 - tempC.halfWidth);
-                }
-                if (tempC.top < 0) {
-                    tempC.moveY(tempC.halfHeight);
-                } else if (tempC.bottom > this.tilesHeight - 1) {
-                    tempC.moveY(this.tilesHeight - 1 - tempC.halfHeight);
-                }
-
-                this.tilesSpriteCache.texture = this.cacheTexture;
-                this.cacheTexture = this.cacheTexture.alternate;
-                this.tilesSprite.texture = this.cacheTexture;
-
-                this.populateTiles(tempC, cache);
-                this.renderCache(tempC, this.cacheTexture, this.mapContainer, this.mapContainerWrapper, this.tilesSpriteCache);
-                cache.set(tempC);
-
-                cachePixels.setAll(
-                    (cache.x + 0.5) * this.tileWidth  + this.left,
-                    (cache.y + 0.5) * this.tileHeight + this.top,
-                    (cache.width  + 1) * this.tileWidth,
-                    (cache.height + 1) * this.tileHeight
-                );
-
-                this.tilesSprite.x = vp.left - this.laxCam.left + cache.left * this.tileWidth  + this.left;
-                this.tilesSprite.y = vp.top  - this.laxCam.top  + cache.top  * this.tileHeight + this.top;
-            }
+            this.refreshAllCaches();
+            this.updateCache = false;
         }
     },
 
@@ -571,8 +507,7 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
                 'handle-render': function () {
                     if (this.updateCache) {
                         this.updateCache = false;
-                        this.populateTiles(this.cache, null);
-                        this.renderCache(this.cache, this.cacheTexture, this.mapContainer, this.mapContainerWrapper);
+                        this.refreshAllCaches();
                     }
                 }
             });
@@ -632,21 +567,8 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
                 },
                 'handle-render': function () {
                     if (this.updateCache) {
-                        const
-                            {cache, cacheGrid, cacheTilesHeight, cacheTilesWidth, tilesHeight, tilesWidth} = this,
-                            tsh = tilesHeight - 1,
-                            tsw = tilesWidth - 1;
-
                         this.updateCache = false;
-
-                        for (let x = 0; x < cacheGrid.length; x++) {
-                            for (let y = 0; y < cacheGrid[x].length; y++) {
-                                cache.setBounds(x * cacheTilesWidth, y * cacheTilesHeight, Math.min((x + 1) * cacheTilesWidth, tsw), Math.min((y + 1) * cacheTilesHeight, tsh));
-
-                                this.populateTiles(cache, null);
-                                this.renderCacheWithExtrusion(cache, cacheGrid[x][y].texture, this.mapContainer, this.mapContainerWrapper);
-                            }
-                        }
+                        this.refreshAllCaches();
                     }
                 }
             });
@@ -699,24 +621,7 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
                             this.updateBufferRegion(laxCam);
                         }
 
-                        const
-                            ctw     = this.cacheTilesWidth - 1,
-                            cth     = this.cacheTilesHeight - 1,
-                            ctw2    = ctw / 2,
-                            cth2    = cth / 2;
-
-                        //only attempt to draw children that are relevant
-                        tempC.setAll(Math.round((laxCam.x - this.left) / this.tileWidth - ctw2) + ctw2, Math.round((laxCam.y - this.top) / this.tileHeight - cth2) + cth2, ctw, cth);
-                        if (tempC.left < 0) {
-                            tempC.moveX(tempC.halfWidth);
-                        } else if (tempC.right > this.tilesWidth - 1) {
-                            tempC.moveX(this.tilesWidth - 1 - tempC.halfWidth);
-                        }
-                        if (tempC.top < 0) {
-                            tempC.moveY(tempC.halfHeight);
-                        } else if (tempC.bottom > this.tilesHeight - 1) {
-                            tempC.moveY(this.tilesHeight - 1 - tempC.halfHeight);
-                        }
+                        this.alignCacheToCamera(tempC, vp);
                         
                         this.tilesSpriteCache.texture = this.cacheTexture;
                         this.cacheTexture = this.cacheTexture.alternate;
@@ -734,17 +639,9 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
                     this.tilesSprite.y = vp.top  - laxCam.top  + cache.top  * this.tileHeight + this.top;
                 },
                 'handle-render': function () {
-                    if (this.updateCache && !this.cache.empty) {
+                    if (this.updateCache) {
                         this.updateCache = false;
-                        this.populateTiles(this.cache, null);
-                        this.renderCacheClear(this.cache, this.cacheTexture, this.mapContainer, this.mapContainerWrapper);
-                        this.tilesSpriteCache.texture = this.cacheTexture;
-                        this.cachePixels.setAll(
-                            (this.cache.x + 0.5) * this.tileWidth  + this.left,
-                            (this.cache.y + 0.5) * this.tileHeight + this.top,
-                            (this.cache.width  + 1) * this.tileWidth,
-                            (this.cache.height + 1) * this.tileHeight
-                        );
+                        this.refreshAllCaches();
                     }
                 }
             });
@@ -782,24 +679,7 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
                             this.updateBufferRegion(laxCam);
                         }
 
-                        const
-                            ctw     = this.cacheTilesWidth - 1,
-                            cth     = this.cacheTilesHeight - 1,
-                            ctw2    = ctw / 2,
-                            cth2    = cth / 2;
-
-                        //only attempt to draw children that are relevant
-                        tempC.setAll(Math.round((laxCam.x - this.left) / this.tileWidth - ctw2) + ctw2, Math.round((laxCam.y - this.top) / this.tileHeight - cth2) + cth2, ctw, cth);
-                        if (tempC.left < 0) {
-                            tempC.moveX(tempC.halfWidth);
-                        } else if (tempC.right > this.tilesWidth - 1) {
-                            tempC.moveX(this.tilesWidth - 1 - tempC.halfWidth);
-                        }
-                        if (tempC.top < 0) {
-                            tempC.moveY(tempC.halfHeight);
-                        } else if (tempC.bottom > this.tilesHeight - 1) {
-                            tempC.moveY(this.tilesHeight - 1 - tempC.halfHeight);
-                        }
+                        this.alignCacheToCamera(tempC, vp);
                         
                         this.populateTiles(tempC, null);
                         cache.set(tempC);
@@ -1079,7 +959,151 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
             this.mapContainer.mask = new Graphics().rect(0, 0, this.cacheClipWidth, this.cacheClipHeight).fill(0x000000);
         },
 
+        /**
+         * Computes tile bounds for the panning cache centered on the current camera.
+         *
+         * @param {platypus.AABB} bounds - Receives the computed tile bounds.
+         * @param {platypus.AABB} viewport - The camera viewport.
+         */
+        alignCacheToCamera: function (bounds, viewport) {
+            const
+                ctw  = this.cacheTilesWidth - 1,
+                cth  = this.cacheTilesHeight - 1,
+                ctw2 = ctw / 2,
+                cth2 = cth / 2;
+
+            this.convertCamera(viewport);
+
+            bounds.setAll(
+                Math.round((this.laxCam.x - this.left) / this.tileWidth - ctw2) + ctw2,
+                Math.round((this.laxCam.y - this.top) / this.tileHeight - cth2) + cth2,
+                ctw, cth
+            );
+
+            if (bounds.left < 0) {
+                bounds.moveX(bounds.halfWidth);
+            } else if (bounds.right > this.tilesWidth - 1) {
+                bounds.moveX(this.tilesWidth - 1 - bounds.halfWidth);
+            }
+
+            if (bounds.top < 0) {
+                bounds.moveY(bounds.halfHeight);
+            } else if (bounds.bottom > this.tilesHeight - 1) {
+                bounds.moveY(this.tilesHeight - 1 - bounds.halfHeight);
+            }
+        },
+
+        /**
+         * Re-renders every texture in a multi-texture full-map cache grid.
+         */
+        refreshAllCacheGrid: function () {
+            const
+                {cache, cacheGrid, cacheTilesHeight, cacheTilesWidth, tilesHeight, tilesWidth} = this,
+                tsh = tilesHeight - 1,
+                tsw = tilesWidth - 1;
+
+            for (let x = 0; x < cacheGrid.length; x++) {
+                for (let y = 0; y < cacheGrid[x].length; y++) {
+                    cache.setBounds(
+                        x * cacheTilesWidth,
+                        y * cacheTilesHeight,
+                        Math.min((x + 1) * cacheTilesWidth, tsw),
+                        Math.min((y + 1) * cacheTilesHeight, tsh)
+                    );
+
+                    this.populate(cache, null);
+                    this.renderCacheWithExtrusion(cache, cacheGrid[x][y].texture, this.mapContainer, this.mapContainerWrapper);
+                }
+            }
+        },
+
+        /**
+         * Re-renders the current panning-cache window in place.
+         * Uses the alternate render texture while drawing so we never render
+         * into the texture that is currently displayed on screen.
+         *
+         * @param {platypus.AABB} [viewport] - Optional camera viewport.
+         */
+        refreshPanningCache: function (viewport) {
+            const
+                {cache, cachePixels, laxCam, left, top, tilesSprite} = this,
+                vp = viewport ?? this.owner.parent.worldCamera?.viewport;
+
+            if (!vp) {
+                return;
+            }
+
+            if (cache.empty) {
+                this.alignCacheToCamera(cache, vp);
+            }
+
+            if (cache.empty) {
+                return;
+            }
+
+            this.detachCacheCopy();
+
+            this.tilesSpriteCache.texture = this.cacheTexture;
+            this.cacheTexture = this.cacheTexture.alternate;
+            tilesSprite.texture = this.cacheTexture;
+
+            this.populate(cache, null);
+            this.renderCacheClear(cache, this.cacheTexture, this.mapContainer, this.mapContainerWrapper);
+
+            this.tilesSpriteCache.texture = this.cacheTexture;
+            cachePixels.setAll(
+                (cache.x + 0.5) * this.tileWidth + left,
+                (cache.y + 0.5) * this.tileHeight + top,
+                (cache.width + 1) * this.tileWidth,
+                (cache.height + 1) * this.tileHeight
+            );
+
+            this.convertCamera(vp);
+            tilesSprite.x = vp.left - laxCam.left + cache.left * this.tileWidth + left;
+            tilesSprite.y = vp.top - laxCam.top + cache.top * this.tileHeight + top;
+        },
+
+        detachCacheCopy: function () {
+            const
+                {mapContainer, tilesSpriteCache} = this;
+
+            if (tilesSpriteCache?.parent === mapContainer) {
+                mapContainer.removeChild(tilesSpriteCache);
+            }
+        },
+
+        /**
+         * Re-renders all cached tile textures for the active caching strategy.
+         *
+         * @param {platypus.AABB} [viewport] - Optional camera viewport for panning caches.
+         */
+        refreshAllCaches: function (viewport) {
+            if (!this.tileCache) {
+                this.cachePixels.empty = true;
+                return;
+            }
+
+            if (this.cacheGrid) {
+                this.refreshAllCacheGrid();
+                return;
+            }
+
+            if (this.cacheAll && this.cacheTexture) {
+                this.populate(this.cache, null);
+                this.render(this.cache, this.cacheTexture, this.mapContainer, this.mapContainerWrapper);
+                return;
+            }
+
+            if (this.cacheTexture) {
+                this.refreshPanningCache(viewport);
+            }
+        },
+
         populateTiles: function (bounds, oldBounds) {
+            // When oldBounds is provided, only tiles outside the previous window are
+            // drawn. That is correct for camera scrolling (reuse pixels from the old
+            // cache texture) but must not be used for in-place tile edits — pass null
+            // to redraw the entire bounds.
             const
                 tiles = arrayCache.setUp();
 
@@ -1194,12 +1218,19 @@ export default createComponentClass(/** @lends platypus.components.RenderTiles.p
                 container: wrapper,
                 target: renderTexture
             });
+
+            if (oldCache?.parent === src) {
+                src.removeChild(oldCache);
+            }
+
             renderTexture.requiresUpdate = true;
         },
 
         renderCacheClear: function (bounds, renderTexture, src, wrapper) {
             const
                 {renderer} = this;
+
+            this.detachCacheCopy();
 
             src.x = -bounds.left * this.tileWidth;
             src.y = -bounds.top * this.tileHeight;
