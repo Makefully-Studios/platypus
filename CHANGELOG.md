@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.9] - 2026-06-22
+
+### Added
+
+- `RenderTiles` `force-render` event for synchronous cache refresh after bulk tile edits.
+- `RenderTiles` helpers `refreshAllCaches`, `refreshPanningCache`, `refreshAllCacheGrid`, `alignCacheToCamera`, and `detachCacheCopy`.
+- Unit tests for `RenderTiles` `populateTiles` incremental vs full refresh and `alignCacheToCamera`.
+
+### Fixed
+
+- `RenderTiles` `change-tile` now always flags a cache refresh; the previous bounds check skipped updates when `this.cache` did not cover the edited tile (notably on multi-texture full-map grids).
+- `RenderTiles` `force-render` and in-place panning-cache refresh now repopulate the full visible window (`populate` with no `oldBounds`) instead of the camera-scroll incremental path, which skipped every tile when the camera had not moved.
+- `RenderTiles` panning-cache refresh draws into the alternate render texture before swapping the display sprite, avoiding blank tiles from clearing the on-screen texture in Pixi v8.
+- `RenderTiles` `force-render` re-renders all `cacheGrid` cells on multi-texture full-map layers instead of calling the single-texture path with no `cacheTexture`.
+- `RenderTiles` `renderCache` removes the temporary copy sprite from `mapContainer` after scroll blits.
+
 ## [4.1.8] - 2026-06-16
 
 ### Changed
