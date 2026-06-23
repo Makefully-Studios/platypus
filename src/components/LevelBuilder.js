@@ -1,5 +1,6 @@
 /* global atob, platypus */
 import {arrayCache, greenSlice, greenSplice, union} from '../utils/array.js';
+import {cloneDefinition} from '../utils/clone.js';
 import createComponentClass from '../factory.js';
 import {inflate} from 'pako';
 import TiledLoader from './TiledLoader.js';
@@ -31,6 +32,21 @@ const
         }
         return layer;
     },
+    cloneLevelDefinition = cloneDefinition,
+    copySegmentProperty = function (target, source, key) {
+        if (target[key]) {
+            return;
+        }
+
+        const
+            value = source[key];
+
+        if (value != null && typeof value === 'object') {
+            target[key] = cloneDefinition(value);
+        } else {
+            target[key] = value;
+        }
+    },
     mergeData = function (levelData, levelMergeAxisLength, segmentData, segmentMergeAxisLength, nonMergeAxisLength, mergeAxis) {
         const
             combined = greenSlice(levelData);
@@ -54,9 +70,7 @@ const
 
         for (let i = 0; i < obj2s.length; i++) {
             const
-                obj = {
-                    ...obj2s[i]
-                };
+                obj = cloneLevelDefinition(obj2s[i]);
 
             if (mergeAxis === 'horizontal') {
                 obj.x += mergeAxisLength;
@@ -68,6 +82,8 @@ const
         return list;
     },
     mergeSegment  = function (level, segment, mergeAxis) {
+        segment = cloneLevelDefinition(segment);
+
         if (!level.tilewidth && !level.tileheight) {
             //set level tile size data if it's not already set.
             level.tilewidth  = segment.tilewidth;
@@ -96,9 +112,7 @@ const
                 decodeLayer(segment.layers[i]);
                 
                 const
-                    layer = level.layers[i] = {
-                        ...segment.layers[i]
-                    };
+                    layer = level.layers[i] = cloneLevelDefinition(segment.layers[i]);
 
                 // If we're adding objects, make sure that they're offset correctly.
                 if (layer.objects) {
@@ -149,9 +163,7 @@ const
                 const
                     key = keys[i];
 
-                if (!level[key]) {
-                    level[key] = segment[key];
-                }
+                copySegmentProperty(level, segment, key);
             }
         }
     },
@@ -200,6 +212,8 @@ const
         return level;
     },
     mirrorSegment = function (segment) {
+        segment = cloneLevelDefinition(segment);
+
         const
             newSegment = {
                 layers: []
@@ -211,9 +225,7 @@ const
 
             const
                 fromLayer = segment.layers[i],
-                toLayer = newSegment.layers[i] = {
-                    ...fromLayer
-                };
+                toLayer = newSegment.layers[i] = cloneLevelDefinition(fromLayer);
 
             if (fromLayer.data) {
                 const
@@ -237,9 +249,7 @@ const
                 for (let j = 0; j < fromObjects.length; j++) {
                     const
                         fromObject = fromObjects[j],
-                        toObject = toObjects[j] = {
-                            ...fromObject
-                        };
+                        toObject = toObjects[j] = cloneLevelDefinition(fromObject);
 
                     toObject.x = width - fromObject.x - (fromObject.width || 0); // subtract object width since its top-left corner is the origin.
                     if (fromObject.rotation) {
@@ -265,9 +275,7 @@ const
                 const
                     key = keys[i];
 
-                if (!newSegment[key]) {
-                    newSegment[key] = segment[key];
-                }
+                copySegmentProperty(newSegment, segment, key);
             }
         }
 
@@ -351,6 +359,10 @@ export default createComponentClass(/** @lends platypus.components.LevelBuilder.
 
     events: {
         "layer-loaded": function (data) {
+            if (data?.level && typeof data.level === 'object') {
+                return;
+            }
+
             const
                 piecesToCopy = data?.levelPieces ?? this.levelPieces;
             
@@ -417,7 +429,10 @@ export default createComponentClass(/** @lends platypus.components.LevelBuilder.
                  * @param data.persistentData.levelPieces {Object} An object of key/value pairs listing the pieces that map to an id in the level template.
                  * @param data.persistentData.useUniques {Boolean} If true, no single map piece is used twice in the creation of the combined map.
                  */
-                this.owner.triggerEvent('created-level', this.levelMessage);
+                this.owner.triggerEvent('created-level', {
+                    level: cloneLevelDefinition(this.levelMessage.level),
+                    persistentData: this.levelMessage.persistentData
+                });
 
                 /**
                  * Dispatched when the scene has loaded and the level has been composited so TileLoader can begin loading the level.
@@ -461,6 +476,9 @@ export default createComponentClass(/** @lends platypus.components.LevelBuilder.
             } else {
                 throw new Error(`Level Builder: There are no level pieces of type: ${type}`);
             }
+        },
+        cloneLevel: function (level) {
+            return cloneLevelDefinition(level);
         },
         destroy: function () {
             this.levelMessage.level = null;

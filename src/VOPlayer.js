@@ -662,7 +662,7 @@ class VOPlayer extends Messenger {
      * @public
      */
     unloadSound (sound) {
-        this.assetCache.delete(sound);
+        this.assetCache.delete(this.assetCache.getFileId(sound));
     }
 
     /**
