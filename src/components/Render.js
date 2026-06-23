@@ -178,11 +178,17 @@ export default createComponentClass(/** @lends platypus.components.RenderSprite.
     
     getAssetList (a, b, c) {
         const
-            image = a?.image ?? b?.image ?? c?.image;
+            image = a?.image ?? b?.image ?? c?.image,
+            formatImageAsset = (src) => {
+                const
+                    alias = platypus.assetCache?.getFileId ? platypus.assetCache.getFileId(src) : src;
 
-        return (image ? [image] : a?.images ?? b?.images ?? c?.images ?? []).map((src) => ({
-            alias: [src],
-            src
-        }));
+                return {
+                    alias: [alias],
+                    src
+                };
+            };
+
+        return (image ? [image] : a?.images ?? b?.images ?? c?.images ?? []).map(formatImageAsset);
     }
 });

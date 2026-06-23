@@ -4,15 +4,74 @@ import {arrayCache, greenSlice} from './utils/array.js';
 import Data from './Data.js';
 
 const
-    MAX_KEY_LENGTH_PER_IMAGE = 128,
     animationCache = {},
     textureSourceCache = {},
     doNothing = function () {},
     emptyFrame = Texture.EMPTY,
-    regex = /[\[\]{},-]/g,
+    imageBasename = /([\w-\.]+)\.(\w+)$/,
+    hashString = function (value) {
+        const
+            str = typeof value === 'string' ? value : JSON.stringify(value);
+        let hash = 5381;
+
+        for (let i = 0; i < str.length; i++) {
+            hash = ((hash << 5) + hash) ^ str.charCodeAt(i);
+        }
+
+        return (hash >>> 0).toString(36);
+    },
+    getTextureCacheKey = function (path) {
+        return platypus.assetCache?.getFileId ? platypus.assetCache.getFileId(path) : path;
+    },
+    resolveTextureAsset = function (path) {
+        const
+            assetCache = platypus.assetCache;
+
+        if (!assetCache) {
+            return null;
+        }
+
+        let asset = assetCache.get(path);
+
+        if (asset) {
+            return asset;
+        }
+
+        const
+            basename = typeof path === 'string' ? path.match(imageBasename) : null;
+
+        if (basename) {
+            asset = assetCache.get(basename[1]);
+
+            if (asset) {
+                return asset;
+            }
+        }
+
+        return null;
+    },
+    getTextureSourceAliases = function (alias) {
+        const
+            aliases = arrayCache.setUp(alias),
+            basename = typeof alias === 'string' ? alias.match(imageBasename) : null;
+
+        if (platypus.assetCache?.getFileId) {
+            const
+                fileId = platypus.assetCache.getFileId(alias);
+
+            if (fileId !== alias) {
+                aliases.push(fileId);
+            }
+        }
+
+        if (basename) {
+            aliases.push(basename[1]);
+        }
+
+        return aliases;
+    },
     getTextureSources = function (images) {
         const
-            assetCache = platypus.assetCache,
             bts = arrayCache.setUp();
         
         for (let i = 0; i < images.length; i++) {
@@ -20,17 +79,21 @@ const
                 path = images[i];
 
             if (typeof path === 'string') {
-                if (!textureSourceCache[path]) {
-                    const
-                        asset = assetCache.get(path);
+                const
+                    cacheKey = getTextureCacheKey(path),
+                    asset = resolveTextureAsset(path);
 
-                    if (!asset) {
-                        platypus.debug.warn(`PIXIAnimation: "${path}" is not a loaded asset.`);
-                        break;
-                    }
-                    textureSourceCache[path] = asset.source;
+                if (!asset) {
+                    delete textureSourceCache[cacheKey];
+                    platypus.debug.warn(`PIXIAnimation: "${path}" is not a loaded asset.`);
+                    break;
                 }
-                bts.push(textureSourceCache[path]);
+
+                if (textureSourceCache[cacheKey] !== asset.source) {
+                    textureSourceCache[cacheKey] = asset.source;
+                }
+
+                bts.push(textureSourceCache[cacheKey]);
             } else {
                 bts.push(new TextureSource(path));
             }
@@ -49,9 +112,7 @@ const
             }
         }
         
-        spriteSheet.id = JSON.stringify(spriteSheet).replace(regex, '');
-
-        return spriteSheet.id;
+        return `ss-${hashString(spriteSheet)}`;
     },
     getDefaultAnimation = function (length, textures) {
         const
@@ -398,6 +459,29 @@ const
         }
         
         /**
+         * Removes cached texture sources for an unloaded asset alias.
+         *
+         * @method platypus.PIXIAnimation.invalidateTextureSources
+         * @param {*} alias Asset alias or path used when the texture was cached.
+         */
+        static invalidateTextureSources (alias) {
+            const
+                aliases = getTextureSourceAliases(alias),
+                cacheKey = getTextureCacheKey(alias);
+            let i = aliases.length;
+
+            if (aliases.indexOf(cacheKey) === -1) {
+                aliases.push(cacheKey);
+            }
+
+            while (i--) {
+                delete textureSourceCache[aliases[i]];
+            }
+
+            arrayCache.recycle(aliases);
+        }
+
+        /**
          * This method formats a provided value into a valid PIXIAnimation Sprite Sheet. This includes accepting the EaselJS spec, strings mapping to Platypus sprite sheets, or arrays of either.
          *
          * @method platypus.PIXIAnimation.formatSpriteSheet
@@ -406,7 +490,6 @@ const
          */
         static formatSpriteSheet (spriteSheet) {
             const
-                imageParts = /([\w-\.]+)\.(\w+)$/,
                 addAnimations = function (source = {}, destination, speedRatio, firstFrameIndex, id) {
                     const
                         keys = Object.keys(source),
@@ -458,7 +541,6 @@ const
                         ));
                     }
                 },
-                createId = (images) => images.map((image) => (image.src ?? image).substring(0, MAX_KEY_LENGTH_PER_IMAGE)).join(','),
                 format = function (source, destination) {
                     const
                         {
@@ -479,11 +561,8 @@ const
                         firstImageIndex = dImages.length,
                         firstFrameIndex = dFrames.length;
                     
-                    // Set up id
-                    if (dID) {
-                        destination.id = `${dID};${sID ?? createId(sImages)}`;
-                    } else {
-                        destination.id = sID ?? createId(sImages);
+                    if (sID) {
+                        destination.id = dID ? `${dID};${sID}` : sID;
                     }
                     
                     // Set up images array
@@ -546,7 +625,7 @@ const
                 formatImages = function (name) {
                     if (typeof name === 'string') {
                         const
-                            match = name.match(imageParts);
+                            match = name.match(imageBasename);
 
                         if (match) {
                             return match[1];

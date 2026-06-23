@@ -7,6 +7,7 @@
 /* global platypus, setTimeout */
 import Data from './Data.js';
 import DataMap from './DataMap.js';
+import PIXIAnimation from './PIXIAnimation.js';
 import {Assets} from 'pixi.js';
 import {arrayCache} from './utils/array.js';
 
@@ -58,6 +59,7 @@ export default class AssetManager {
                     asset.src = '';
                 }
                 assets.delete(alias);
+                PIXIAnimation.invalidateTextureSources(alias);
             }
 
             return !counts[alias];
