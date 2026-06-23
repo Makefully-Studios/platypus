@@ -26,6 +26,9 @@ const
             'src', path,
             'data', asset.data ?? null
         );
+    },
+    isRegisteredWithPixi = function (alias, src) {
+        return Assets.resolver.hasKey(alias) || (src && src !== alias && Assets.resolver.hasKey(src));
     };
 
 export default class AssetManager {
@@ -71,7 +74,18 @@ export default class AssetManager {
      * @return {Object} Returns the asset if defined.
      */
     get (alias) {
-        return this.assets.get(alias);
+        if (this.assets.has(alias)) {
+            return this.assets.get(alias);
+        }
+
+        const
+            fileId = this.getFileId(alias);
+
+        if (fileId !== alias && this.assets.has(fileId)) {
+            return this.assets.get(fileId);
+        }
+
+        return undefined;
     }
 
     /**
@@ -131,6 +145,7 @@ export default class AssetManager {
         const
             counts = this.counts,
             needsLoading = arrayCache.setUp(),
+            needsRelink = arrayCache.setUp(),
             adds = Data.setUp();
 
         if (platypus.game?.options?.images ?? platypus.game?.options?.audio) {
@@ -154,13 +169,39 @@ export default class AssetManager {
                 adds[alias] += 1;
             } else {
                 adds[alias] = 1;
+                if (isRegisteredWithPixi(alias, item.src)) {
+                    needsRelink.push(item);
+                } else {
+                    needsLoading.push(item);
+                }
+            }
+        }
+
+        for (let i = needsRelink.length - 1; i >= 0; i--) {
+            const
+                item = needsRelink[i],
+                alias = item.alias[0],
+                asset = Assets.get(alias) ?? Assets.get(item.src);
+
+            if (asset) {
+                this.set(alias, asset, adds[alias]);
+                needsRelink.splice(i, 1);
+            } else {
                 needsLoading.push(item);
+                needsRelink.splice(i, 1);
             }
         }
 
         if (needsLoading.length) {
             // Do this first to pass `data` property if needed
-            needsLoading.forEach((asset) => Assets.add(asset));
+            needsLoading.forEach((asset) => {
+                const
+                    alias = asset.alias[0];
+
+                if (!isRegisteredWithPixi(alias, asset.src)) {
+                    Assets.add(asset);
+                }
+            });
 
             const
                 aliases = needsLoading.map((asset) => asset.alias[0]),
@@ -188,6 +229,7 @@ export default class AssetManager {
         }
 
         arrayCache.recycle(needsLoading);
+        arrayCache.recycle(needsRelink);
     }
 
     /**

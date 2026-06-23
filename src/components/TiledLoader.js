@@ -1,5 +1,6 @@
 /* global atob, platypus */
 import {arrayCache, greenSlice, union} from '../utils/array.js';
+import {cloneDefinition} from '../utils/clone.js';
 import AABB from '../AABB.js';
 import Data from '../Data.js';
 import DataMap from '../DataMap.js';
@@ -336,6 +337,7 @@ const
     },
     checkLevel = function (levelOrLevelId, ss) {
         const
+            cacheAssetsOnLevel = typeof levelOrLevelId === 'string',
             addObjectGroupAssets = (assets, objectGroup, tilesets) => {
                 const objects = objectGroup.objects;
 
@@ -356,7 +358,7 @@ const
                 level.tilesets = importTilesetData(level.tilesets);
             }
 
-            if (level.assets) { // Property added by a previous parse (so that this algorithm isn't run on the same level multiple times)
+            if (cacheAssetsOnLevel && level.assets) { // Property added by a previous parse (so that this algorithm isn't run on the same level multiple times)
                 union(assets, level.assets);
             } else if (level.layers) {
                 for (let i = 0; i < level.layers.length; i++) {
@@ -405,7 +407,7 @@ const
                                             tile = tiles[l];
 
                                         if (((tile.id + firstgid) === id) && tile.objectgroup) {
-                                            addObjectGroupAssets(assets, tile.objectgroup);
+                                            addObjectGroupAssets(assets, tile.objectgroup, level.tilesets);
                                         }
                                     }
                                 }
@@ -452,7 +454,9 @@ const
                     union(assets, tilesets);
                     arrayCache.recycle(tilesets);
                 }
-                level.assets = greenSlice(assets); // Save for later in case this level is checked again.
+                if (cacheAssetsOnLevel) {
+                    level.assets = greenSlice(assets); // Save for later in case this level is checked again.
+                }
             }
         }
         
@@ -746,7 +750,7 @@ export default createComponentClass(/** @lends platypus.components.TiledLoader.p
                 } = layerProperties ? checkParallax(layer) : layer,
                 mapOffsetX = offsetX + layerOffsetX,
                 mapOffsetY = offsetY + layerOffsetY,
-                layerDefinition = JSON.parse(JSON.stringify(platypus.game.settings.entities[entityKind] ?? standardEntityLayers[entityKind])), //TODO: a bit of a hack to copy an object instead of overwrite values
+                layerDefinition = cloneDefinition(platypus.game.settings.entities[entityKind] ?? standardEntityLayers[entityKind]),
                 layerDefinitionProperties = layerDefinition.properties = layerDefinition.properties ?? {},
                 {components} = layerDefinition,
                 importAnimation = {},

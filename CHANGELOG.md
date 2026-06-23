@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.10] - 2026-06-23
+
+### Added
+
+- `cloneDefinition` utility for deep-copying JSON-like Platypus definitions.
+- `LevelBuilder#cloneLevel` public method.
+- Unit tests for level composition isolation and TiledLoader entity template isolation.
+
+### Fixed
+
+- **LevelBuilder:** Composed levels are deep-cloned so merges, mirrors, and replay do not share or corrupt source data; `created-level` dispatches an isolated snapshot; skips re-composition when a pre-built level object is already supplied.
+- **AssetManager:** Relinks assets already registered with Pixi between scene loads; `get()` falls back to `getFileId` for webpack URL lookups.
+- **Render:** Warns when initializing with an image not in the asset cache.
+- **TiledLoader:** Deep-copies entity templates from settings when creating layer entities; caches `level.assets` only for named level ids; passes tilesets when collecting assets from tile objectgroups.
+- **VOPlayer:** `unloadSound` uses `getFileId` so asset reference counts match loaded aliases.
+
 ## [4.1.9] - 2026-06-22
 
 ### Added

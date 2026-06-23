@@ -98,8 +98,18 @@ export default createComponentClass(/** @lends platypus.components.RenderSprite.
     initialize () {
         const
             {image, images, localRotation, localScaleX, localScaleY, offsetX, offsetY, offsetZ, options, owner, spriteType} = this,
+            resolveTexture = (path) => {
+                const
+                    texture = platypus.assetCache.get(path);
+
+                if (!texture) {
+                    platypus.debug.warn(`Render: Image is not a loaded asset: ${path}`);
+                }
+
+                return texture;
+            },
             sprite = this.sprite = new spriteTypes[spriteType === 'Sprite' && images && !images ? 'AnimatedSprite' : spriteType]({
-                ...(image ? {texture: platypus.assetCache.get(image)} : {textures: images.map((image) => platypus.assetCache.get(image))}),
+                ...(image ? {texture: resolveTexture(image)} : {textures: images.map((path) => resolveTexture(path))}),
                 ...options ?? {}
             }),
             matchEntity = this.matchEntity ? {
