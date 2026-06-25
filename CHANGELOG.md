@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.11] - 2026-06-25
+
+### Added
+
+- **PIXIAnimation:** `invalidateTextureSources` clears cached texture sources when an asset is unloaded.
+- Unit tests for `PIXIAnimation` sprite sheet cache ids and texture source invalidation.
+
+### Fixed
+
+- **LevelBuilder:** Throws informative errors when `levelPieces` or `levelTemplate` are incomplete or invalid (missing levels, empty rows, non-rectangular templates, incomplete level definitions) instead of generic undefined property errors.
+- **PIXIAnimation:** Resolves texture assets by full path or image basename; updates cached texture sources when the underlying asset changes; sprite sheet cache ids use content hashes instead of truncated JSON to avoid collisions.
+- **AssetManager:** Invalidates `PIXIAnimation` texture sources when unloading assets.
+- **Render / RenderSprite:** `getAssetList` registers image aliases via `getFileId` for webpack URL resolution.
+
 ## [4.1.10] - 2026-06-23
 
 ### Added

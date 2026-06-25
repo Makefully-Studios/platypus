@@ -489,12 +489,21 @@ export default createComponentClass(/** @lends platypus.components.RenderSprite.
     
     getAssetList: (function () {
         const
+            formatImageAsset = function (src) {
+                const
+                    alias = platypus.assetCache?.getFileId ? platypus.assetCache.getFileId(src) : src;
+
+                return {
+                    alias: [alias],
+                    src
+                };
+            },
             getImages = function (ss, spriteSheets) {
                 if (ss) {
                     if (typeof ss === 'string') {
                         return getImages(spriteSheets[ss], spriteSheets);
                     } else if (ss.images) {
-                        return greenSlice(ss.images);
+                        return greenSlice(ss.images).map(formatImageAsset);
                     }
                 }
 
