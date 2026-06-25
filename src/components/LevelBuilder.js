@@ -6,6 +6,176 @@ import {inflate} from 'pako';
 import TiledLoader from './TiledLoader.js';
 
 const
+    assertLevelPiece = function (piece, label) {
+        if (piece == null) {
+            throw new Error(`Level Builder: Level piece "${label}" is undefined. Check that it is defined in platypus.game.settings.levels or levelPieces.`);
+        }
+
+        if (typeof piece !== 'object') {
+            throw new Error(`Level Builder: Level piece "${label}" must be a level definition object, received ${typeof piece}.`);
+        }
+
+        if (piece.width == null) {
+            throw new Error(`Level Builder: Level piece "${label}" is missing width.`);
+        }
+
+        if (piece.height == null) {
+            throw new Error(`Level Builder: Level piece "${label}" is missing height.`);
+        }
+
+        if (piece.tilewidth == null) {
+            throw new Error(`Level Builder: Level piece "${label}" is missing tilewidth.`);
+        }
+
+        if (piece.tileheight == null) {
+            throw new Error(`Level Builder: Level piece "${label}" is missing tileheight.`);
+        }
+
+        if (piece.layers == null) {
+            throw new Error(`Level Builder: Level piece "${label}" is missing a layers array.`);
+        }
+
+        if (!Array.isArray(piece.layers)) {
+            throw new Error(`Level Builder: Level piece "${label}" layers must be an array.`);
+        }
+
+        return piece;
+    },
+    assertLevelTemplate = function (template) {
+        if (template == null) {
+            throw new Error(`Level Builder: levelTemplate is required but was not provided.`);
+        }
+
+        if (!Array.isArray(template)) {
+            throw new Error(`Level Builder: levelTemplate must be an array, received ${typeof template}.`);
+        }
+
+        if (template.length === 0) {
+            throw new Error(`Level Builder: levelTemplate cannot be empty.`);
+        }
+
+        let rowLength = null;
+
+        for (let i = 0; i < template.length; i++) {
+            const
+                row = template[i];
+
+            if (typeof row === 'string') {
+                if (!row) {
+                    throw new Error(`Level Builder: levelTemplate[${i}] is an empty string.`);
+                }
+
+                if (rowLength != null && rowLength !== '1d') {
+                    throw new Error(`Level Builder: levelTemplate is not rectangular: row 0 has ${rowLength} columns but row ${i} is a string.`);
+                }
+
+                rowLength = '1d';
+            } else if (Array.isArray(row)) {
+                if (row.length === 0) {
+                    throw new Error(`Level Builder: levelTemplate row ${i} is empty.`);
+                }
+
+                if (rowLength === '1d') {
+                    throw new Error(`Level Builder: levelTemplate is not rectangular: row 0 is a string but row ${i} is an array.`);
+                }
+
+                if (rowLength == null) {
+                    rowLength = row.length;
+                } else if (rowLength !== row.length) {
+                    throw new Error(`Level Builder: levelTemplate is not rectangular: row 0 has ${rowLength} columns but row ${i} has ${row.length}.`);
+                }
+
+                for (let j = 0; j < row.length; j++) {
+                    if (typeof row[j] !== 'string') {
+                        throw new Error(`Level Builder: levelTemplate[${i}][${j}] must be a piece id string, received ${typeof row[j]}.`);
+                    }
+
+                    if (!row[j]) {
+                        throw new Error(`Level Builder: levelTemplate[${i}][${j}] is an empty string.`);
+                    }
+                }
+            } else {
+                throw new Error(`Level Builder: levelTemplate[${i}] must be a string or array of strings, received ${typeof row}.`);
+            }
+        }
+
+        return template;
+    },
+    assertLevelPieces = function (pieces) {
+        if (pieces == null) {
+            return;
+        }
+
+        if (typeof pieces !== 'object' || Array.isArray(pieces)) {
+            throw new Error(`Level Builder: levelPieces must be an object, received ${Array.isArray(pieces) ? 'array' : typeof pieces}.`);
+        }
+
+        const
+            keys = Object.keys(pieces),
+            {length} = keys;
+
+        for (let i = 0; i < length; i++) {
+            const
+                key = keys[i],
+                value = pieces[key];
+
+            if (typeof value === 'string') {
+                if (!value) {
+                    throw new Error(`Level Builder: levelPieces["${key}"] is an empty string.`);
+                }
+            } else if (Array.isArray(value)) {
+                if (value.length === 0) {
+                    throw new Error(`Level Builder: levelPieces["${key}"] is an empty array. Provide at least one level piece id.`);
+                }
+
+                for (let j = 0; j < value.length; j++) {
+                    if (typeof value[j] !== 'string') {
+                        throw new Error(`Level Builder: levelPieces["${key}"][${j}] must be a string level id, received ${typeof value[j]}.`);
+                    }
+
+                    if (!value[j]) {
+                        throw new Error(`Level Builder: levelPieces["${key}"][${j}] is an empty string.`);
+                    }
+                }
+            } else {
+                throw new Error(`Level Builder: levelPieces["${key}"] must be a string or array of strings, received ${typeof value}.`);
+            }
+        }
+    },
+    resolveLevelPiece = function (piece, label) {
+        if (typeof piece === 'string') {
+            const
+                levelDefinitions = platypus.game.settings.levels,
+                transformIndex = piece.indexOf(':');
+            let levelDefinition = levelDefinitions?.[piece];
+
+            if (!levelDefinition && transformIndex >= 0) {
+                const
+                    baseLabel = piece.substring(0, transformIndex),
+                    transform = piece.substring(transformIndex + 1);
+
+                levelDefinition = levelDefinitions?.[baseLabel];
+
+                if (!levelDefinition) {
+                    throw new Error(`Level Builder: Level piece "${baseLabel}" (from "${piece}") was not found in platypus.game.settings.levels.`);
+                }
+
+                if (transform === 'mirror') {
+                    return levelDefinitions[piece] = mirrorSegment(assertLevelPiece(levelDefinition, baseLabel));
+                }
+
+                throw new Error(`Level Builder: Unknown transform "${transform}" in level piece "${piece}". Supported transforms: mirror.`);
+            }
+
+            if (!levelDefinition) {
+                throw new Error(`Level Builder: Level piece "${piece}" was not found in platypus.game.settings.levels.`);
+            }
+
+            return assertLevelPiece(levelDefinition, piece);
+        }
+
+        return assertLevelPiece(piece, label);
+    },
     maskXFlip = 0x80000000,
     decodeString = (str, index) => (((str.charCodeAt(index)) + (str.charCodeAt(index + 1) << 8) + (str.charCodeAt(index + 2) << 16) + (str.charCodeAt(index + 3) << 24 )) >>> 0),
     decodeArray = (arr, index) => ((arr[index] + (arr[index + 1] << 8) + (arr[index + 2] << 16) + (arr[index + 3] << 24 )) >>> 0),
@@ -25,7 +195,11 @@ const
         
         return arr;
     },
-    decodeLayer = function (layer) {
+    decodeLayer = function (layer, label) {
+        if (layer == null) {
+            throw new Error(`Level Builder: Cannot decode layer${label ? ` in "${label}"` : ''}: layer is undefined.`);
+        }
+
         if (layer.encoding === 'base64') {
             layer.data = decodeBase64(layer.data, layer.compression);
             layer.encoding = 'csv'; // So we won't have to decode again.
@@ -81,8 +255,8 @@ const
         }
         return list;
     },
-    mergeSegment  = function (level, segment, mergeAxis) {
-        segment = cloneLevelDefinition(segment);
+    mergeSegment  = function (level, segment, mergeAxis, segmentLabel) {
+        segment = cloneLevelDefinition(assertLevelPiece(segment, segmentLabel ?? 'segment'));
 
         if (!level.tilewidth && !level.tileheight) {
             //set level tile size data if it's not already set.
@@ -107,9 +281,13 @@ const
         }
 
         for (let i = 0; i < segment.layers.length; i++) {
+            if (segment.layers[i] == null) {
+                throw new Error(`Level Builder: Level piece "${segmentLabel ?? 'segment'}" layer ${i} is undefined.`);
+            }
+
             if (!level.layers[i]) {
                 //if the level doesn't have a layer yet, we're creating it and then copying it from the segment.
-                decodeLayer(segment.layers[i]);
+                decodeLayer(segment.layers[i], segmentLabel);
                 
                 const
                     layer = level.layers[i] = cloneLevelDefinition(segment.layers[i]);
@@ -126,7 +304,7 @@ const
                 //if the level does have a layer, we're appending the new data to it.
                 if (level.layers[i].data && segment.layers[i].data) {
                     // Make sure we're not trying to merge compressed levels.
-                    decodeLayer(segment.layers[i]);
+                    decodeLayer(segment.layers[i], segmentLabel);
                     
                     if (mergeAxis === 'horizontal') {
                         level.layers[i].data = mergeData(level.layers[i].data, level.width, segment.layers[i].data, segment.width, level.height, mergeAxis);
@@ -169,7 +347,6 @@ const
     },
     mergeLevels = function (levelSegments) {
         const
-            levelDefinitions = platypus.game.settings.levels,
             level = {
                 height: 0,
                 width: 0,
@@ -184,35 +361,25 @@ const
                     layers: []
                 };
 
-            for (let j = 0; j < levelSegments[i].length; j++) {
-                //Merge horizontally
-                if (typeof levelSegments[i][j] === 'string') {
-                    const
-                        levelDefinitionLabel = levelSegments[i][j],
-                        transformIndex = levelDefinitionLabel.indexOf(':');
-                    let levelDefinition = levelDefinitions[levelDefinitionLabel];
-                    
-                    // check for transform
-                    if (!levelDefinition && (transformIndex >= 0)) {
-                        const transform = levelDefinitionLabel.substring(transformIndex + 1);
+            if (!Array.isArray(levelSegments[i])) {
+                throw new Error(`Level Builder: mergeLevels row ${i} must be an array of level pieces, received ${typeof levelSegments[i]}.`);
+            }
 
-                        levelDefinition = levelDefinitions[levelDefinitionLabel.substring(0, transformIndex)];
-                        if (transform === 'mirror') {
-                            levelDefinition = levelDefinitions[levelDefinitionLabel] = mirrorSegment(levelDefinition);
-                        }
-                    }
-                    mergeSegment(row, levelDefinition, 'horizontal');
-                } else {
-                    mergeSegment(row, levelSegments[i][j], 'horizontal');
-                }
+            for (let j = 0; j < levelSegments[i].length; j++) {
+                const
+                    piece = levelSegments[i][j],
+                    pieceLabel = typeof piece === 'string' ? piece : `row ${i}, column ${j}`;
+
+                //Merge horizontally
+                mergeSegment(row, resolveLevelPiece(piece, pieceLabel), 'horizontal', pieceLabel);
             }
             //Then merge vertically
-            mergeSegment(level, row, 'vertical');
+            mergeSegment(level, row, 'vertical', `row ${i}`);
         }
         return level;
     },
-    mirrorSegment = function (segment) {
-        segment = cloneLevelDefinition(segment);
+    mirrorSegment = function (segment, segmentLabel) {
+        segment = cloneLevelDefinition(assertLevelPiece(segment, segmentLabel ?? 'segment'));
 
         const
             newSegment = {
@@ -221,7 +388,11 @@ const
             width = segment.width * segment.tilewidth;
 
         for (let i = 0; i < segment.layers.length; i++) {
-            decodeLayer(segment.layers[i]);
+            if (segment.layers[i] == null) {
+                throw new Error(`Level Builder: Level piece "${segmentLabel ?? 'segment'}" layer ${i} is undefined.`);
+            }
+
+            decodeLayer(segment.layers[i], segmentLabel);
 
             const
                 fromLayer = segment.layers[i],
@@ -369,6 +540,8 @@ export default createComponentClass(/** @lends platypus.components.LevelBuilder.
             this.levelMessage.persistentData = data;
             this.levelTemplate = data?.levelTemplate ?? this.levelTemplate;
             this.useUniques = data?.useUniques ?? this.useUniques;
+            assertLevelPieces(piecesToCopy);
+
             this.levelPieces = {};
             if (piecesToCopy) {
                 const
@@ -385,32 +558,26 @@ export default createComponentClass(/** @lends platypus.components.LevelBuilder.
                         this.levelPieces[key] = [
                             ...piecesToCopy[key]
                         ];
-                    } else {
-                        throw ('Level Builder: Level pieces of incorrect type: ' + piecesToCopy[key]);
                     }
                 }
             }
 
             if (this.levelTemplate) {
-                if (this.levelTemplate) {
-                    this.levelMessage.level = [];
-                    for (let i = 0; i < this.levelTemplate.length; i++) {
-                        const
-                            templateRow = this.levelTemplate[i];
+                assertLevelTemplate(this.levelTemplate);
 
-                        if (typeof templateRow === "string") {
-                            this.levelMessage.level[i] = this.getLevelPiece(templateRow);
-                        } else if (templateRow.length) {
-                            this.levelMessage.level[i] = [];
-                            for (let j = 0; j < templateRow.length; j++) {
-                                this.levelMessage.level[i][j] = this.getLevelPiece(templateRow[j]);
-                            }
-                        } else {
-                            throw ('Level Builder: Template row is neither a string or array. What is it?');
+                this.levelMessage.level = [];
+                for (let i = 0; i < this.levelTemplate.length; i++) {
+                    const
+                        templateRow = this.levelTemplate[i];
+
+                    if (typeof templateRow === "string") {
+                        this.levelMessage.level[i] = this.getLevelPiece(templateRow);
+                    } else {
+                        this.levelMessage.level[i] = [];
+                        for (let j = 0; j < templateRow.length; j++) {
+                            this.levelMessage.level[i][j] = this.getLevelPiece(templateRow[j]);
                         }
                     }
-                } else {
-                    platypus.debug.warn('Level Builder: Template is not defined');
                 }
             } else {
                 platypus.debug.warn('Level Builder: There is no level template.');
@@ -452,6 +619,10 @@ export default createComponentClass(/** @lends platypus.components.LevelBuilder.
     
     methods: {// These are methods that are called by this component.
         getLevelPiece: function (type) {
+            if (type == null || type === '') {
+                throw new Error(`Level Builder: Template references an invalid piece id: ${type}.`);
+            }
+
             const
                 pieces = this.levelPieces[type] ?? type;
             

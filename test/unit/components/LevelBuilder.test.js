@@ -1,5 +1,6 @@
 import {beforeEach, describe, expect, it} from 'vitest';
 import LevelBuilder from '../../../src/components/LevelBuilder.js';
+import Messenger from '../../../src/Messenger.js';
 
 function makePiece ({width, height, tile, objectX = 0, objectY = 0}) {
     return {
@@ -37,10 +38,7 @@ function makePiece ({width, height, tile, objectX = 0, objectY = 0}) {
 }
 
 function makeBuilder () {
-    return new LevelBuilder({
-        on () {},
-        triggerEvent () {}
-    }, {});
+    return new LevelBuilder(new Messenger(), {});
 }
 
 describe('LevelBuilder mergeLevels', () => {
@@ -121,3 +119,95 @@ describe('LevelBuilder mergeLevels', () => {
         expect(stored.layers[0].data[0]).toBe(3);
     });
 });
+
+describe('LevelBuilder validation errors', () => {
+    beforeEach(() => {
+        globalThis.platypus = {
+            game: {
+                settings: {
+                    levels: {}
+                }
+            },
+            debug: {
+                warn () {}
+            }
+        };
+    });
+
+    it('throws when merging an undefined level piece by name', () => {
+        const builder = makeBuilder();
+
+        expect(() => builder.mergeLevels([['missing-piece']])).toThrow(
+            'Level piece "missing-piece" was not found in platypus.game.settings.levels.'
+        );
+    });
+
+    it('throws when merging a level piece missing tilewidth', () => {
+        const builder = makeBuilder();
+
+        expect(() => builder.mergeLevels([[{width: 1, height: 1, layers: []}]])).toThrow(
+            'Level piece "row 0, column 0" is missing tilewidth.'
+        );
+    });
+
+    it('throws when levelPieces entry has an invalid type', () => {
+        const builder = makeBuilder();
+
+        expect(() => triggerLayerLoaded(builder, {
+            levelPieces: {forest: 42},
+            levelTemplate: ['forest']
+        })).toThrow(
+            'levelPieces["forest"] must be a string or array of strings, received number.'
+        );
+    });
+
+    it('throws when levelTemplate row is empty', () => {
+        const builder = makeBuilder();
+
+        expect(() => triggerLayerLoaded(builder, {
+            levelTemplate: [[]]
+        })).toThrow(
+            'levelTemplate row 0 is empty.'
+        );
+    });
+
+    it('throws when levelTemplate is not rectangular', () => {
+        const builder = makeBuilder();
+
+        expect(() => triggerLayerLoaded(builder, {
+            levelTemplate: [['start', 'end'], ['only-one']],
+            levelPieces: {start: 'a', end: 'b', 'only-one': 'c'}
+        })).toThrow(
+            'levelTemplate is not rectangular: row 0 has 2 columns but row 1 has 1.'
+        );
+    });
+
+    it('throws when a levelPieces mapping points to a missing level', () => {
+        const builder = makeBuilder();
+
+        expect(() => triggerLayerLoaded(builder, {
+            levelTemplate: [['forest']],
+            levelPieces: {forest: 'missing-map'}
+        })).toThrow(
+            'Level piece "missing-map" was not found in platypus.game.settings.levels.'
+        );
+    });
+
+    it('throws when useUniques exhausts piece options', () => {
+        const builder = makeBuilder();
+
+        platypus.game.settings.levels['forest-1'] = makePiece({width: 1, height: 1, tile: 1});
+
+        expect(() => triggerLayerLoaded(builder, {
+            levelTemplate: ['forest', 'forest'],
+            levelPieces: {forest: ['forest-1']},
+            useUniques: true
+        })).toThrow(
+            'There are no MORE level pieces of type: forest'
+        );
+    });
+});
+
+function triggerLayerLoaded (builder, data = {}) {
+    builder.owner.triggerEvent('layer-loaded', data);
+}
