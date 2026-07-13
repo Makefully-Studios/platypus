@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.12] - 2026-07-13
+
+### Changed
+
+- **supports:** Obsolete browser capability flags are fixed for modern browsers (`touch: true`, `ie: false`, `edge: false`); legacy Edge/IE user-agent sniffing removed.
+- **Messenger:** Assumes User Timing (`performance.mark` / `measure`) is available; no longer probes for support.
+- **sayHello:** Always uses styled console output (`%c`), which is supported in modern browsers.
+
 ## [4.1.11] - 2026-06-25
 
 ### Added

@@ -5,7 +5,7 @@
 /**
  * @namespace platypus
  */
-/* global global, navigator, window */
+/* global global, navigator */
 
 import AssetManager from './AssetManager.js';
 import {Debugger} from 'springroll';
@@ -46,7 +46,6 @@ const
         components
     },
     uagent    = navigator.userAgent.toLowerCase(),
-    isEdge    = (uagent.search('edge')    > -1),
     isIPod    = (uagent.search('ipod')    > -1),
     isIPhone  = (uagent.search('iphone')  > -1),
     isIPad    = (uagent.search('ipad')    > -1) || (uagent.search('mac') > -1 && navigator.maxTouchPoints > 2 && !isIPhone),
@@ -109,20 +108,21 @@ const
 
 /**
  * This is an object of boolean key/value pairs describing the current browser's properties.
+ * Obsolete capability flags (`touch`, `edge`, `ie`) are fixed to match modern browser support.
  * @property supports
  * @type Object
  **/
 platypus.supports = {
-    touch: (window.ontouchstart !== 'undefined'),
-    edge: isEdge,
+    touch: true, // Touch Events are universally available in modern browsers
+    edge: false, // Legacy EdgeHTML is no longer supported
     iPod: isIPod,
     iPhone: isIPhone,
     iPad: isIPad,
-    safari: (uagent.search('safari') > -1) && !isEdge,
-    ie: (uagent.search('msie') > -1) || (uagent.search('trident') > -1),
+    safari: (uagent.search('safari') > -1),
+    ie: false, // Internet Explorer is no longer supported
     firefox: (uagent.search('firefox') > -1),
     android: isAndroid,
-    chrome: (uagent.search('chrome') > -1) && !isEdge,
+    chrome: (uagent.search('chrome') > -1),
     silk: isSilk,
     iOS: isIOS,
     mobile: isMobile,

@@ -30,7 +30,7 @@ export default function (app) {
         author = docAuth ? `by ${docAuth}` : '',
         title = `${options.name ?? app.name ?? document.title ?? ''}${version ? ` ${version}` : ''}`,
         using = arrayCache.setUp(),
-        {springroll, supports} = platypus;
+        {springroll} = platypus;
     
     if (springroll) {
         using.push('SpringRoll ' + springroll.version);
@@ -38,13 +38,10 @@ export default function (app) {
     
     using.push('Pixi.js ' + pixiVersion);
     
-    if (supports.firefox || supports.chrome) {
-        console.log(`%c ${title} %c ${author}`, getStyle(title, title.substr(title.lastIndexOf(' ') - title.length + 1)), 'line-height: 1.5em;');
-        using.push(`Platypus ${platypus.version}`);
-        console.log(`Using %c ${using.join(' %c %c ')} %c `, ...getVersions(using));
-    } else {
-        console.log(`--- "${title}" ${author} - Using ${using.join(', ')}, and Platypus ${platypus.version} ---`);
-    }
+    // Styled console (%c) is supported in all modern browsers.
+    console.log(`%c ${title} %c ${author}`, getStyle(title, title.substr(title.lastIndexOf(' ') - title.length + 1)), 'line-height: 1.5em;');
+    using.push(`Platypus ${platypus.version}`);
+    console.log(`Using %c ${using.join(' %c %c ')} %c `, ...getVersions(using));
 
     arrayCache.recycle(using);
 };
