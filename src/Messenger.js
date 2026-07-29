@@ -334,7 +334,14 @@ class Messenger {
                 key = methods[i];
 
             if (key !== 'constructor') {
-                if (toProto[key]) {
+                const
+                    descriptor = Object.getOwnPropertyDescriptor(fromProto, key);
+
+                // Preserve accessors (e.g. `destroyed`); assigning fromProto[key] would
+                // evaluate getters and copy a stale value instead.
+                if (descriptor.get || descriptor.set) {
+                    Object.defineProperty(toProto, key, descriptor);
+                } else if (Object.prototype.hasOwnProperty.call(toProto, key) || toProto[key]) {
                     toProto[key] = runBoth(toProto[key], fromProto[key]);
                 } else {
                     toProto[key] = fromProto[key];

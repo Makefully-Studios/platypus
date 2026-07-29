@@ -139,6 +139,10 @@ const
             },
             
             addNewPrivateEvent (event) {
+                if (this.destroyed || !this.entities || !this._childEvents) {
+                    return false;
+                }
+
                 if (this._childEvents[event]) {
                     return false;
                 }
@@ -148,7 +152,17 @@ const
                 // Listen for message on children
                 for (let x = 0; x < this.entities.length; x++) {
                     const
-                        listenerList = this.entities[x]._listeners[event];
+                        entity = this.entities[x],
+                        listeners = entity && entity._listeners;
+
+                    // Child may already be destroyed while still listed (e.g. re-entrant
+                    // input during container teardown).
+                    if (!listeners) {
+                        continue;
+                    }
+
+                    const
+                        listenerList = listeners[event];
 
                     if (listenerList) {
                         const
@@ -156,7 +170,7 @@ const
 
                         for (let y = 0; y < handlers.length; y++) {
                             this.addChildEventListener(
-                                this.entities[x],
+                                entity,
                                 event,
                                 handlers[y]
                             );
@@ -174,7 +188,13 @@ const
             
             addChildEventListeners (entity) {
                 const
-                    {_listeners} = entity,
+                    {_listeners} = entity;
+
+                if (!_listeners) {
+                    return;
+                }
+
+                const
                     keys = Object.keys(_listeners),
                     {length} = keys;
 
@@ -268,10 +288,14 @@ const
             },
 
             destroy: function () {
+                // Mark destroyed first so re-entrant input (e.g. Enter:down) cannot
+                // walk children mid-teardown after their `_listeners` are nulled.
+                this._destroyed = true;
+
                 const
-                    entities = greenSlice(this.entities); // Make a copy to handle entities being destroyed while processing list.
+                    entities = this.entities ? greenSlice(this.entities) : arrayCache.setUp(); // Make a copy to handle entities being destroyed while processing list.
                 let i = entities.length;
-                
+
                 while (i--) {
                     const
                         entity = entities[i];
@@ -279,14 +303,22 @@ const
                     this.removeChildEventListeners(entity);
                     entity.destroy();
                 }
-                
+
                 arrayCache.recycle(entities);
-                arrayCache.recycle(this.entities);
+                if (this.entities) {
+                    arrayCache.recycle(this.entities);
+                    this.entities = null;
+                }
                 this.owner.entities = null;
-                arrayCache.recycle(this.childEvents);
-                this.childEvents = null;
-                arrayCache.recycle(this.newAdds);
-                this.newAdds = null;
+                this._childEvents = null;
+                if (this.childEvents) {
+                    arrayCache.recycle(this.childEvents);
+                    this.childEvents = null;
+                }
+                if (this.newAdds) {
+                    arrayCache.recycle(this.newAdds);
+                    this.newAdds = null;
+                }
             }
         },
         
@@ -485,7 +517,7 @@ const
              * @param {*} debug
              */
             triggerEventOnChildren: function (event, message, debug) {
-                if (this.destroyed) {
+                if (this.destroyed || !this.entities || !this._childEvents) {
                     return 0;
                 }
                 
@@ -504,7 +536,7 @@ const
              * @param {*} debug
              */
             triggerOnChildren: function (event) {
-                if (this.destroyed) {
+                if (this.destroyed || !this.entities || !this._childEvents) {
                     return 0;
                 }
                 
