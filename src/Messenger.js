@@ -1,9 +1,8 @@
-/* global platypus, window */
+/* global performance, platypus */
 import EventHandlerList from './EventHandlerList.js';
 import {arrayCache, greenSlice} from './utils/array.js';
 
 const
-    getPerfTools = () => typeof performance !== 'undefined' && performance.mark && performance.measure ? performance : null,
     runBoth = function (f1, f2) {
         return function () {
             f1.apply(this, arguments);
@@ -57,8 +56,6 @@ class Messenger {
                 
                 // Debug logging.
                 if (debugLogging || this.debug) {
-                    const perfTools = getPerfTools();
-
                     for (let i = 0; i < this.loopCheck.length; i++) {
                         if (this.loopCheck[i] === event) {
                             debugCount += 1;
@@ -72,17 +69,13 @@ class Messenger {
     
                     this.loopCheck.push(event);
 
-                    if (perfTools) {
-                        perfTools.mark("a");
-                    }
+                    performance.mark("a");
 
                     const
                         count = triggerEvent.apply(this, arguments);
 
-                    if (perfTools) {
-                        perfTools.mark("b");
-                        perfTools.measure(this.type + ":" + event, 'a', 'b');
-                    }
+                    performance.mark("b");
+                    performance.measure(this.type + ":" + event, 'a', 'b');
                     this.loopCheck.length = this.loopCheck.length - 1;
                     if (debugLogging) {
                         if (count) {
@@ -341,7 +334,14 @@ class Messenger {
                 key = methods[i];
 
             if (key !== 'constructor') {
-                if (toProto[key]) {
+                const
+                    descriptor = Object.getOwnPropertyDescriptor(fromProto, key);
+
+                // Preserve accessors (e.g. `destroyed`); assigning fromProto[key] would
+                // evaluate getters and copy a stale value instead.
+                if (descriptor.get || descriptor.set) {
+                    Object.defineProperty(toProto, key, descriptor);
+                } else if (Object.prototype.hasOwnProperty.call(toProto, key) || toProto[key]) {
                     toProto[key] = runBoth(toProto[key], fromProto[key]);
                 } else {
                     toProto[key] = fromProto[key];

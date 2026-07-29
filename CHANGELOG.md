@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.13] - 2026-07-28
+
+### Fixed
+
+- **EntityContainer:** Guard against destroyed children (null `_listeners`) when wiring events such as `Enter:down`, mark the container destroyed before tearing down children, and clear `entities` / `_childEvents` on destroy so re-entrant input during scene/layer unload cannot crash.
+- **Messenger.mixin:** Copy accessor descriptors (e.g. `destroyed`) instead of evaluating getters, so mixed-in classes report destroyed state correctly.
+
+### Changed
+
+- Peer dependency `@esotericsoftware/spine-pixi-v8` updated to `^4.3.13`.
+- Removed `RenderSpine` physics-inheritance setup; that API is not present in spine-pixi-v8 4.3.13.
+
+## [4.1.12] - 2026-07-13
+
+### Changed
+
+- **supports:** Obsolete browser capability flags are fixed for modern browsers (`touch: true`, `ie: false`, `edge: false`); legacy Edge/IE user-agent sniffing removed.
+- **Messenger:** Assumes User Timing (`performance.mark` / `measure`) is available; no longer probes for support.
+- **sayHello:** Always uses styled console output (`%c`), which is supported in modern browsers.
+
 ## [4.1.11] - 2026-06-25
 
 ### Added

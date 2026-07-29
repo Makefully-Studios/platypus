@@ -1,4 +1,4 @@
-import {beforeEach, describe, expect, it, vi} from 'vitest';
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import Messenger from '../../src/Messenger';
 
 describe('Messenger', () => {
@@ -397,6 +397,9 @@ describe('Messenger', () => {
 });
 
 describe('Messenger debug mode', () => {
+    let originalMark;
+    let originalMeasure;
+
     beforeEach(() => {
         globalThis.platypus = {
             debug: {
@@ -404,6 +407,15 @@ describe('Messenger debug mode', () => {
                 log: vi.fn()
             }
         };
+        originalMark = globalThis.performance.mark;
+        originalMeasure = globalThis.performance.measure;
+        globalThis.performance.mark = vi.fn();
+        globalThis.performance.measure = vi.fn();
+    });
+
+    afterEach(() => {
+        globalThis.performance.mark = originalMark;
+        globalThis.performance.measure = originalMeasure;
     });
 
     it('warns on nested identical events', () => {
@@ -491,11 +503,7 @@ describe('Messenger debug mode', () => {
         );
     });
 
-    it('dispatches debug events when performance APIs are unavailable', () => {
-        const original = globalThis.performance;
-
-        globalThis.performance = {measure: vi.fn()};
-
+    it('instruments debug events with performance mark and measure', () => {
         const messenger = new Messenger({debug: true});
         const spy = vi.fn();
 
@@ -504,8 +512,12 @@ describe('Messenger debug mode', () => {
         messenger.triggerEvent('perf', {debug: true});
 
         expect(spy).toHaveBeenCalledWith({debug: true});
-
-        globalThis.performance = original;
+        expect(globalThis.performance.mark).toHaveBeenCalled();
+        expect(globalThis.performance.measure).toHaveBeenCalledWith(
+            'entity:perf',
+            'a',
+            'b'
+        );
     });
 
     it('enters debug instrumentation when messenger.debug is set', () => {

@@ -379,14 +379,6 @@ export default createComponentClass(/** @lends platypus.components.RenderSpine.p
                     spine = this.spine = new Spine({skeletonData, autoUpdate: false}),
                     map = createAnimationMap(this.animationMap, skeleton.animations);
 
-                // Spine 4.3 inherits Pixi container world-transform deltas into skeleton physics by default.
-                // Platypus pans the camera by moving the world container, which shifts every entity's world
-                // transform even when owner.x/y are unchanged — causing unwanted physics on stationary characters.
-                // Use the `apply-spine-physics` event for intentional movement-driven physics instead.
-                spine.setPhysicsPositionInheritanceFactor(0, 0);
-                spine.physicsRotationInheritanceFactor = 0;
-                spine.resetPhysicsTransform();
-
                 let animation = '';
 
                 spine.state.addListener({
