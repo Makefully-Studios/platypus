@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.14] - 2026-08-03
+
+### Fixed
+
+- **PIXIAnimation:** `stop()` / `play()` now pause and resume the active child `AnimatedSprite`, so `stop-animation` freezes on the current frame instead of only toggling the wrapper `playing` flag.
+- **RenderSprite:** Passes the sprite's actual paused state to `update-animation` and skips `update` while paused.
+
+### Changed
+
+- **platypus.css:** Set `touch-action: none` on the platypus canvas; drop obsolete `-moz-`/`-ms-` `user-select` prefixes and keep `-webkit-user-select`.
+
 ## [4.1.13] - 2026-07-28
 
 ### Fixed
