@@ -430,15 +430,20 @@ export default createComponentClass(/** @lends platypus.components.RenderSprite.
     events: {
         "handle-render": function (renderData) {
             if (this.sprite) {
+                const
+                    playing = !this.sprite.paused;
+
                 /**
                  * This event is triggered each tick to check for animation updates.
                  *
                  * @event platypus.Entity#update-animation
                  * @param playing {Boolean} Whether the animation is in a playing or paused state.
                  */
-                this.owner.triggerEvent('update-animation', true);
+                this.owner.triggerEvent('update-animation', playing);
 
-                this.sprite.update(renderData.delta);
+                if (playing) {
+                    this.sprite.update(renderData.delta);
+                }
             }
         },
         

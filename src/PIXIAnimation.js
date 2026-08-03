@@ -339,6 +339,9 @@ const
         */
         stop () {
             this.paused = true;
+            if (this._animation?.stop) {
+                this._animation.stop();
+            }
         };
                 
         /**
@@ -348,6 +351,9 @@ const
         */
         play () {
             this.paused = false;
+            if (this._animation?.play) {
+                this._animation.play();
+            }
         };
         
         /**
