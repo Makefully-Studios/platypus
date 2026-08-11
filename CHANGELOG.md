@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.15] - 2026-08-11
+
+### Fixed
+
+- **EntityContainer:** Prevent layer-unload crashes from recycling an undefined child-listener array when `child-entity-updated` rewires listeners on an already-destroyed container. Only allocate `containerListener` after a handler is actually added, skip rewiring while destroyed, and guard recycle of `events` / `handlers` (with legacy `messages` fallback).
+
 ## [4.1.14] - 2026-08-03
 
 ### Fixed

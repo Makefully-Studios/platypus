@@ -187,6 +187,10 @@ const
             },
             
             addChildEventListeners (entity) {
+                if (this._destroyed) {
+                    return;
+                }
+
                 const
                     {_listeners} = entity;
 
@@ -219,33 +223,55 @@ const
             },
             
             removeChildEventListeners: function (entity) {
-                if (entity.containerListener?.events) {
+                const
+                    listener = entity.containerListener;
+
+                if (!listener) {
+                    return;
+                }
+
+                const
+                    {events} = listener,
+                    // Prefer current shape; fall back to legacy `messages`.
+                    handlers = listener.handlers ?? listener.messages;
+
+                if (events && handlers) {
                     const
-                        {events, handlers} = entity.containerListener,
                         {length} = events;
 
                     for (let i = 0; i < length; i++) {
-                        this.off(
-                            events[i],
-                            handlers[i].callback,
-                            handlers[i].context
-                        );
+                        const
+                            handler = handlers[i];
+
+                        if (!handler) {
+                            continue;
+                        }
+
+                        if (handler.callback) {
+                            this.off(events[i], handler.callback, handler.context);
+                        } else {
+                            this.off(events[i], handler);
+                        }
                     }
-
-                    arrayCache.recycle(events);
-                    arrayCache.recycle(handlers);
-
-                    entity.containerListener.recycle();
-                    entity.containerListener = null;
                 }
+
+                if (events) {
+                    arrayCache.recycle(events);
+                }
+                if (listener.handlers) {
+                    arrayCache.recycle(listener.handlers);
+                }
+                if (listener.messages) {
+                    arrayCache.recycle(listener.messages);
+                }
+
+                listener.recycle();
+                entity.containerListener = null;
             },
             
             addChildEventListener: function (entity, event, handler) {
-                if (!entity.containerListener) {
-                    entity.containerListener = Data.setUp(
-                        "events", arrayCache.setUp(),
-                        "handlers", arrayCache.setUp()
-                    );
+                if (this._destroyed) {
+                    return;
                 }
 
                 const
@@ -258,6 +284,13 @@ const
                     );
 
                 if (newHandler) {
+                    if (!entity.containerListener) {
+                        entity.containerListener = Data.setUp(
+                            "events", arrayCache.setUp(),
+                            "handlers", arrayCache.setUp()
+                        );
+                    }
+
                     entity.containerListener.events.push(event);
                     entity.containerListener.handlers.push(newHandler);
                 }
@@ -265,7 +298,19 @@ const
             
             removeChildEventListener: function (entity, event, callback) {
                 const
-                    {events, handlers} = entity.containerListener;
+                    listener = entity.containerListener;
+
+                if (!listener) {
+                    return;
+                }
+
+                const
+                    {events, handlers} = listener;
+
+                if (!events || !handlers) {
+                    return;
+                }
+
                 let i = events.length;
 
                 while (i--) {
