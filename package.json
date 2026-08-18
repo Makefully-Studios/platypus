@@ -1,6 +1,6 @@
 {
     "name": "@makefully/platypus",
-    "version": "4.1.17",
+    "version": "4.1.18",
     "description": "2D tile-based HTML5 game engine with a component-based entity model",
     "license": "MIT",
     "contributors": [
@@ -82,7 +82,7 @@
     },
     "optionalDependencies": {
         "box2d3-wasm": "^4.2.0",
-        "jsmediatags": "github:probityrules/jsmediatags",
+        "@probityrules/jsmediatags": "^4.0.4",
         "poly-decomp": "^0.3.0"
     },
     "engines": {

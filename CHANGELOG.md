@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.18] - 2026-08-18
+
+### Changed
+
+- Optional `jsmediatags` is now the npm package [`@probityrules/jsmediatags`](https://www.npmjs.com/package/@probityrules/jsmediatags) `^4.0.4` (`buffer` peer `^6.0.3`). Pass it into the game as `modules.jsmediatags`.
+
 ## [4.1.17] - 2026-08-18
 
 ### Fixed

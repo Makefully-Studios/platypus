@@ -28,7 +28,7 @@ The npm package ships **`src/` for `import`** (your bundler compiles it, same as
 | `@esotericsoftware/spine-pixi-v8` | Spine animations (`RenderSpine`) |
 | `pako` | Compression helpers where used |
 
-Optional: `box2d3-wasm`, `jsmediatags`, `poly-decomp` (see `optionalDependencies` in [package.json](package.json)).
+Optional: `box2d3-wasm`, `@probityrules/jsmediatags`, `poly-decomp` (see `optionalDependencies` in [package.json](package.json)).
 
 Entry points: `src/index.js` via `import platypus from '@makefully/platypus'`, or `lib/platypus.js` for `require`/script tags (plus worker chunks in `lib/` for the UMD build).
 
