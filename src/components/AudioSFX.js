@@ -1,7 +1,7 @@
 /* global platypus */
 import {arrayCache, greenSplice} from '../utils/array.js';
 import Data from '../Data.js';
-import {Sound} from '@pixi/sound';
+import {Sound, filters} from '@pixi/sound';
 import StateMap from '../StateMap.js';
 import createComponentClass from '../factory.js';
 
@@ -65,20 +65,20 @@ const
                     if (soundInstance.panFilter) {
                         soundInstance.panFilter.pan = data.pan;
                     } else {
-                        soundInstance.panFilter = new Sound.filters.StereoFilter(data.pan);
+                        soundInstance.panFilter = new filters.StereoFilter(data.pan);
                     }
                 }
                 if (soundInstance.panFilter || this.autoPanFilter) {
                     const
-                        filters = [];
+                        appliedFilters = [];
                     
                     if (soundInstance.panFilter) {
-                        filters.push(soundInstance.panFilter);
+                        appliedFilters.push(soundInstance.panFilter);
                     }
                     if (this.autoPanFilter) {
-                        filters.push(this.autoPanFilter);
+                        appliedFilters.push(this.autoPanFilter);
                     }
-                    soundInstance.filters = filters;
+                    soundInstance.filters = appliedFilters;
                 }
                 data.audio = this.player.play(soundInstance, data);
                 //if (data.volume) {
@@ -310,7 +310,7 @@ export default createComponentClass(/** @lends platypus.components.AudioSFX.prot
 
             this.volume = autoPan.maximum;
             
-            this.autoPanFilter = new Sound.filters.StereoFilter(lastPan);
+            this.autoPanFilter = new filters.StereoFilter(lastPan);
 
             this.addEventListener("camera-update", function (camera) {
                 const
