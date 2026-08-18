@@ -24,6 +24,26 @@ const
         speed: 1,
         playthrough: false
     },
+    createPanFilter = (pan = 0) => new filters.StereoFilter(pan),
+    setClipPan = (clip, pan) => {
+        if (!clip) {
+            return;
+        }
+
+        if (clip.panFilter) {
+            clip.panFilter.pan = pan;
+            return;
+        }
+
+        clip.panFilter = createPanFilter(pan);
+        clip.filters = [clip.panFilter];
+    },
+    releaseClipPan = (clip) => {
+        if (clip?.panFilter) {
+            clip.panFilter.destroy();
+            clip.panFilter = null;
+        }
+    },
     playSound = function (soundDefinition) {
         let sound = '',
             attributes = null;
@@ -61,26 +81,16 @@ const
                     data.loop = data.loop > 1 || data.loop < 0;
                 }
 
-                if (data.pan) {
-                    if (soundInstance.panFilter) {
-                        soundInstance.panFilter.pan = data.pan;
-                    } else {
-                        soundInstance.panFilter = new filters.StereoFilter(data.pan);
-                    }
-                }
-                if (soundInstance.panFilter || this.autoPanFilter) {
-                    const
-                        appliedFilters = [];
-                    
-                    if (soundInstance.panFilter) {
-                        appliedFilters.push(soundInstance.panFilter);
-                    }
-                    if (this.autoPanFilter) {
-                        appliedFilters.push(this.autoPanFilter);
-                    }
-                    soundInstance.filters = appliedFilters;
+                const
+                    pan = data.pan || (this.autoPan ? this.autoPanValue : 0);
+
+                if (this.autoPan || data.pan) {
+                    data.filters = [createPanFilter(pan)];
                 }
                 data.audio = this.player.play(soundInstance, data);
+                if (data.filters) {
+                    data.audio.panFilter = data.filters[0];
+                }
                 //if (data.volume) {
                 //    data.audio.volume = data.volume;
                 //}
@@ -273,6 +283,7 @@ export default createComponentClass(/** @lends platypus.components.AudioSFX.prot
         this.player = platypus.game.sfxPlayer;
 
         this.volume = 1;
+        this.autoPanValue = 0;
 
         if (audioMap) {
             const
@@ -306,17 +317,13 @@ export default createComponentClass(/** @lends platypus.components.AudioSFX.prot
                     "range": this.autoPan.range || -1,
                     "buffer": this.autoPan.buffer || 0
                 };
-            let lastPan = 0;
-
             this.volume = autoPan.maximum;
-            
-            this.autoPanFilter = new filters.StereoFilter(lastPan);
 
             this.addEventListener("camera-update", function (camera) {
                 const
                     delta = this.owner.x - camera.viewport.x,
                     distance = Math.abs(delta),
-                    direction = delta / distance,
+                    direction = distance ? delta / distance : 0,
                     range = autoPan.range === -1 ? camera.viewport.width : autoPan.range;
                 let pan = 0,
                     volume = 1;
@@ -332,9 +339,11 @@ export default createComponentClass(/** @lends platypus.components.AudioSFX.prot
                     volume = autoPan.maximum;
                 }
                 
-                if (pan !== lastPan) {
-                    this.autoPanFilter.pan = pan;
-                    lastPan = pan;
+                if (pan !== this.autoPanValue) {
+                    this.autoPanValue = pan;
+                    this.getAllClips((clip) => {
+                        setClipPan(clip, pan);
+                    });
                 }
                 if (volume !== this.volume) {
                     /**
@@ -475,9 +484,7 @@ export default createComponentClass(/** @lends platypus.components.AudioSFX.prot
         "set-pan": function (pan, soundId = '') {
             const
                 handler = (clip) => {
-                    if (clip) {
-                        clip.pan = pan;
-                    }
+                    setClipPan(clip, pan);
                 };
 
             if (soundId) {
@@ -573,6 +580,7 @@ export default createComponentClass(/** @lends platypus.components.AudioSFX.prot
                         if (clips[i].playthrough ?? playthrough) {
                         } else {
                             this.player.stop(clips[i]);
+                            releaseClipPan(clips[i]);
                             greenSplice(clips, i);
                         }
                     }
@@ -582,6 +590,7 @@ export default createComponentClass(/** @lends platypus.components.AudioSFX.prot
                     if (clips[i].playthrough ?? playthrough) {
                     } else {
                         this.player.stop(clips[i]);
+                        releaseClipPan(clips[i]);
                     }
                 }
                 clips.length = 0;
@@ -593,6 +602,7 @@ export default createComponentClass(/** @lends platypus.components.AudioSFX.prot
                 i = this.activeAudioClips.indexOf(audioClip);
 
             if (i >= 0) {
+                releaseClipPan(audioClip);
                 greenSplice(this.activeAudioClips, i);
             }
         },

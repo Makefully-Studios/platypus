@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.17] - 2026-08-18
+
+### Fixed
+
+- **AudioSFX:** Apply `pan`, `autoPan`, and `set-pan` to each playing instance via `@pixi/sound` play filters instead of mutating the shared sound asset.
+
 ## [4.1.16] - 2026-08-18
 
 ### Fixed
