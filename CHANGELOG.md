@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.19] - 2026-10-15
+
+### Fixed
+
+- **AudioSFX:** State-based stop now uses the same `getFileId`-resolved sound id stored on playing clips, so looping state audio actually stops when the state clears. Also honor `forcePlayThrough` (was looking up a mistyped `forcePlaythrough`).
+
 ## [4.1.18] - 2026-08-18
 
 ### Changed

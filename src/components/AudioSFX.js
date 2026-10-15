@@ -298,13 +298,15 @@ export default createComponentClass(/** @lends platypus.components.AudioSFX.prot
                 const
                     key = keys[i],
                     sound = audioMap[key],
+                    // Must match the resolved id stored on clips in playSound / stopAudio.
+                    soundId = platypus.assetCache.getFileId(sound.sound ?? sound),
                     playClip = playSound(sound);
 
                 if (this.eventBased) {
                     this.addEventListener(key, playClip);
                 }
                 if (this.stateBased) {
-                    this.addStateCheck(key, sound.sound ?? sound, playClip);
+                    this.addStateCheck(key, soundId, playClip);
                 }
             }
         }
@@ -623,7 +625,7 @@ export default createComponentClass(/** @lends platypus.components.AudioSFX.prot
                     if (active) {
                         play.call(this);
                     } else {
-                        this.stopAudio(audioId, this.forcePlaythrough);
+                        this.stopAudio(audioId, this.forcePlayThrough);
                     }
                     checkData.playing = active;
                 }
