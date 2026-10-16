@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.21] - 2026-10-16
+
+### Fixed
+
+- **HandlerController / Game:** On pause, release held keys via `blur-control`. While paused or while focus is in an editable field (`input` / `textarea` / `select` / `contenteditable`), keyboard capture no longer emits game input or calls `preventDefault`, so HTML overlays can receive typing. Also remove key listeners with matching capture flags on destroy.
+
 ## [4.1.20] - 2026-10-16
 
 ### Fixed

@@ -224,6 +224,9 @@ class Game extends Messenger {
                                 this.ticker.remove(this.tickInstance);
                                 this.paused = true;
                                 sound.pauseAll();
+                                // Release held keys so pause does not leave sticky input,
+                                // and so HandlerController can pass keyboard through to HTML.
+                                this.triggerOnChildren('blur-control');
                             }
                         } else {
                             if (this.paused) {
