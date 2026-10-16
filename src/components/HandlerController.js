@@ -4,6 +4,43 @@ import Gamepad from '../Gamepad.js';
 import createComponentClass from '../factory.js';
 
 const
+    /**
+     * Whether the event target is (or is inside) an editable field. Used so
+     * capture-phase game key handlers do not call preventDefault / emit game
+     * input while the user types in HTML overlays (forms, Notefully, etc.).
+     *
+     * @param {Event} event
+     * @return {Boolean}
+     */
+    isEditableKeyboardTarget = function (event) {
+        const target = event?.target;
+
+        if (!target || typeof target.closest !== 'function') {
+            return false;
+        }
+
+        if (target.isContentEditable) {
+            return true;
+        }
+
+        const tag = target.tagName;
+
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+            return true;
+        }
+
+        return !!target.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"]');
+    },
+    /**
+     * When the game is paused or focus is in an editable field, let the browser
+     * handle keys (no game events, no preventDefault).
+     *
+     * @param {Event} event
+     * @return {Boolean}
+     */
+    shouldPassThroughKeyboard = function (event) {
+        return !!(platypus.game?.paused || isEditableKeyboardTarget(event));
+    },
     broadcastHandleController = function (tick) {
         if (hasGamepads) {
             const
@@ -170,25 +207,33 @@ export default createComponentClass(/** @lends platypus.components.HandlerContro
      */
     initialize: function () {
         const
-            {enableDefaultEvents} = this;
+            {enableDefaultEvents} = this,
+            wrapKeyboard = (handler) => (event) => {
+                if (shouldPassThroughKeyboard(event)) {
+                    return;
+                }
+
+                handler(event);
+            };
 
         this.upsToBlur = [];
 
         if (platypus.game.settings.debug || enableDefaultEvents === 'all') { // If this is a test build, leave in the browser key combinations so debug tools can be opened as expected.
-            this.callbackKeyDown = onDown.bind(this, 'keyboard');
-            this.callbackKeyUp = onUp.bind(this, 'keyboard');
+            this.callbackKeyDown = wrapKeyboard(onDown.bind(this, 'keyboard'));
+            this.callbackKeyUp = wrapKeyboard(onUp.bind(this, 'keyboard'));
         } else { // Otherwise remove default browser behavior for key inputs so that they do not interfere with game-play.
             const
                 preventDefault = Array.isArray(enableDefaultEvents) ? (event) => enableDefaultEvents.indexOf(event.code) === -1 ? event.preventDefault() : null : (event) => event.preventDefault();
 
-            this.callbackKeyDown = (event) => {
+            this.callbackKeyDown = wrapKeyboard((event) => {
                 onDown.call(this, 'keyboard', event);
-                preventDefault(event); // default 'none' may be too aggressive - if problems arise, we may need to limit this to certain key combos that get in the way of game-play. Example: (event.metaKey && event.keyCode == 37) causes an accidental cmd key press to send the browser back a page while playing and hitting the left arrow button.
-            };
-            this.callbackKeyUp = (event) => {
+                // Still aggressive for gameplay keys, but not while paused or typing in HTML.
+                preventDefault(event);
+            });
+            this.callbackKeyUp = wrapKeyboard((event) => {
                 onUp.call(this, 'keyboard', event);
                 preventDefault(event);
-            };
+            });
         }
 
         window.addEventListener('keydown', this.callbackKeyDown, true);
@@ -256,8 +301,8 @@ export default createComponentClass(/** @lends platypus.components.HandlerContro
     },
     methods: {
         destroy: function () {
-            window.removeEventListener('keydown', this.callbackKeyDown);
-            window.removeEventListener('keyup',   this.callbackKeyUp);
+            window.removeEventListener('keydown', this.callbackKeyDown, true);
+            window.removeEventListener('keyup',   this.callbackKeyUp,   true);
             for (let i = 0; i < this.gamepads.length; i++) {
                 if (this.gamepads[i]) {
                     this.gamepads[i].recycle();
