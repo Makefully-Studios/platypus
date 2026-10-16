@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.20] - 2026-10-16
+
+### Fixed
+
+- **Component:** Guard `removeEventListener` / `removeEventListeners` when `listener.events` is missing, and detach `listener` before recycling it on destroy so re-entrant teardown cannot crash on `events.length`.
+
 ## [4.1.19] - 2026-10-15
 
 ### Fixed

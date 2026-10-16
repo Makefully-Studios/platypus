@@ -64,8 +64,14 @@ export default class Component {
         if (this.listener) {
             const
                 publicMethods = this.publicMethods,
-                keys = Object.keys(publicMethods);
+                keys = Object.keys(publicMethods),
+                // Detach first so re-entrant removeEventListener during teardown
+                // cannot read a recycled listener's deleted `events` array.
+                listener = this.listener,
+                {events, messages} = listener;
             let i = keys.length;
+
+            this.listener = null;
 
             // Handle component's destroy method before removing messaging and methods.
             if (this._destroy) {
@@ -77,12 +83,21 @@ export default class Component {
                 this.removeMethod(keys[i]);
             }
             this.publicMethods.recycle();
-            
-            this.removeEventListeners();
-            arrayCache.recycle(this.listener.events);
-            arrayCache.recycle(this.listener.messages);
-            this.listener.recycle();
-            this.listener = null;
+
+            if (events && messages) {
+                const
+                    {owner} = this,
+                    {length} = events;
+
+                for (let j = 0; j < length; j++) {
+                    owner.off(events[j], messages[j]);
+                }
+                events.length = 0;
+                messages.length = 0;
+                arrayCache.recycle(events);
+                arrayCache.recycle(messages);
+            }
+            listener.recycle();
         }
     }
 
@@ -96,7 +111,13 @@ export default class Component {
     removeEventListeners (listeners) {
         if (!listeners) {
             const
-                {listener, owner} = this,
+                {listener, owner} = this;
+
+            if (!listener?.events || !listener.messages) {
+                return;
+            }
+
+            const
                 {events, messages} = listener,
                 {length} = events;
 
@@ -188,7 +209,13 @@ export default class Component {
      */
     removeEventListener (event, callback) {
         const
-            {listener, owner} = this,
+            {listener, owner} = this;
+
+        if (!listener?.events || !listener.messages) {
+            return;
+        }
+
+        const
             {events, messages} = listener;
         
         for (let i = events.length - 1; i >= 0; i--) {
