@@ -1,6 +1,6 @@
 /* global document, platypus, window */
 import {Application} from 'springroll';
-import {CullerPlugin, Application as PixiApplication, Rectangle, Ticker, extensions} from 'pixi.js';
+import {CullerPlugin, Application as PixiApplication, RenderTexture, Ticker, extensions} from 'pixi.js';
 import {arrayCache, greenSlice, greenSplice, union} from './utils/array.js';
 import Data from './Data.js';
 import Entity from './Entity.js';
@@ -828,15 +828,14 @@ class Game extends Messenger {
      * Captures a screenshot of the currently visible game viewport (the canvas /
      * camera view), not the full stage or world bounds.
      *
-     * Uses the same crop approach as Paco's ScreenShooter: after camera
-     * transforms, the visible area is stage space (0, 0, screenWidth, screenHeight).
-     * Extracting only that frame avoids pulling in off-screen world content and
-     * avoids GPU texture-size failures when a full level's stage bounds are huge.
+     * Renders the stage into a screen-sized render texture (same space as the
+     * backbuffer), then extracts that texture. Never extracts the full stage —
+     * large levels exceed GPU max texture / renderbuffer size.
      *
      * @param {Object} [options]
      * @param {string} [options.format='png'] Image format for data URLs (`png`, `jpg`/`jpeg`, `webp`).
      * @param {number} [options.quality] Encoder quality for lossy formats (0–1).
-     * @param {boolean} [options.render=true] Render the stage before capturing.
+     * @param {boolean} [options.render=true] Unused; kept for API compatibility (always renders to the capture target).
      * @param {string} [options.as='dataURL'] Return type: `dataURL` or `canvas`.
      * @return {Promise<string|HTMLCanvasElement|null>} Screenshot, or null if unavailable.
      **/
@@ -845,7 +844,6 @@ class Game extends Messenger {
             {
                 format = 'png',
                 quality,
-                render = true,
                 as = 'dataURL'
             } = options,
             {renderer, stage} = this;
@@ -854,77 +852,52 @@ class Game extends Messenger {
             return null;
         }
 
-        if (render) {
-            renderer.render(stage);
-        }
-
         const
             width = Math.max(1, renderer.screen.width | 0),
             height = Math.max(1, renderer.screen.height | 0),
             resolution = renderer.resolution || 1,
             backgroundColor = this.options?.display?.backgroundColor,
             hasBackground = typeof backgroundColor === 'number' && backgroundColor >= 0,
-            // Opaque clear — transparent extracts read as a black shot in Notefully.
+            // Opaque clear — transparent captures read as a black shot in Notefully.
             clearColor = hasBackground ? backgroundColor : 0x000000,
             mime = format === 'jpg' || format === 'jpeg'
                 ? 'image/jpeg'
                 : format === 'webp'
                     ? 'image/webp'
-                    : 'image/png',
-            toOutput = (canvas) => {
-                if (as === 'canvas') {
-                    return canvas;
-                }
+                    : 'image/png';
 
-                return typeof quality === 'number'
-                    ? canvas.toDataURL(mime, quality)
-                    : canvas.toDataURL(mime);
-            };
+        let target = null;
 
         try {
-            // Screen-sized framed extract (viewport only).
-            return toOutput(renderer.extract.canvas({
-                target: stage,
-                frame: new Rectangle(0, 0, width, height),
-                resolution,
-                clearColor
-            }));
-        } catch (err) {
-            platypus.debug.warn('Game.captureViewport framed extract failed; trying bounds crop.', err);
-        }
-
-        // Paco ScreenShooter fallback: full extract, then crop the screen origin.
-        try {
-            const
-                bounds = stage.getBounds(),
-                full = renderer.extract.canvas(stage),
-                dest = document.createElement('canvas'),
-                ctx = dest.getContext('2d');
-
-            dest.width = width;
-            dest.height = height;
-
-            if (hasBackground) {
-                ctx.fillStyle = `#${backgroundColor.toString(16).padStart(6, '0')}`;
-                ctx.fillRect(0, 0, width, height);
-            }
-
-            ctx.drawImage(
-                full,
-                -bounds.x,
-                -bounds.y,
+            target = RenderTexture.create({
                 width,
                 height,
-                0,
-                0,
-                width,
-                height
-            );
+                resolution
+            });
 
-            return toOutput(dest);
+            renderer.render({
+                container: stage,
+                target,
+                clear: true,
+                clearColor
+            });
+
+            const canvas = renderer.extract.canvas(target);
+
+            if (as === 'canvas') {
+                return canvas;
+            }
+
+            return typeof quality === 'number'
+                ? canvas.toDataURL(mime, quality)
+                : canvas.toDataURL(mime);
         } catch (err) {
             platypus.debug.warn('Game.captureViewport failed.', err);
             return null;
+        } finally {
+            if (target) {
+                target.destroy(true);
+            }
         }
     }
     
