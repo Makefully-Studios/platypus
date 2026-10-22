@@ -828,8 +828,10 @@ class Game extends Messenger {
      * Captures a screenshot of the currently visible game viewport (the canvas /
      * camera view), not the full stage or world bounds.
      *
-     * Prefer this over `renderer.extract.*(stage)` without a frame — extracting
-     * the bare stage uses content bounds and can include off-screen world area.
+     * Uses the same crop approach as Paco's ScreenShooter: after camera
+     * transforms, the visible area is stage space (0, 0, screenWidth, screenHeight).
+     * Extracting only that frame avoids pulling in off-screen world content and
+     * avoids GPU texture-size failures when a full level's stage bounds are huge.
      *
      * @param {Object} [options]
      * @param {string} [options.format='png'] Image format for data URLs (`png`, `jpg`/`jpeg`, `webp`).
@@ -857,46 +859,72 @@ class Game extends Messenger {
         }
 
         const
-            {resolution, screen} = renderer,
-            frame = new Rectangle(0, 0, screen.width, screen.height),
-            extractOptions = {
-                target: stage,
-                frame,
-                resolution
+            width = Math.max(1, renderer.screen.width | 0),
+            height = Math.max(1, renderer.screen.height | 0),
+            resolution = renderer.resolution || 1,
+            backgroundColor = this.options?.display?.backgroundColor,
+            hasBackground = typeof backgroundColor === 'number' && backgroundColor >= 0,
+            // Opaque clear — transparent extracts read as a black shot in Notefully.
+            clearColor = hasBackground ? backgroundColor : 0x000000,
+            mime = format === 'jpg' || format === 'jpeg'
+                ? 'image/jpeg'
+                : format === 'webp'
+                    ? 'image/webp'
+                    : 'image/png',
+            toOutput = (canvas) => {
+                if (as === 'canvas') {
+                    return canvas;
+                }
+
+                return typeof quality === 'number'
+                    ? canvas.toDataURL(mime, quality)
+                    : canvas.toDataURL(mime);
             };
 
         try {
-            if (as === 'canvas') {
-                return renderer.extract.canvas(extractOptions);
+            // Screen-sized framed extract (viewport only).
+            return toOutput(renderer.extract.canvas({
+                target: stage,
+                frame: new Rectangle(0, 0, width, height),
+                resolution,
+                clearColor
+            }));
+        } catch (err) {
+            platypus.debug.warn('Game.captureViewport framed extract failed; trying bounds crop.', err);
+        }
+
+        // Paco ScreenShooter fallback: full extract, then crop the screen origin.
+        try {
+            const
+                bounds = stage.getBounds(),
+                full = renderer.extract.canvas(stage),
+                dest = document.createElement('canvas'),
+                ctx = dest.getContext('2d');
+
+            dest.width = width;
+            dest.height = height;
+
+            if (hasBackground) {
+                ctx.fillStyle = `#${backgroundColor.toString(16).padStart(6, '0')}`;
+                ctx.fillRect(0, 0, width, height);
             }
 
-            return await renderer.extract.base64({
-                ...extractOptions,
-                format,
-                quality
-            });
+            ctx.drawImage(
+                full,
+                -bounds.x,
+                -bounds.y,
+                width,
+                height,
+                0,
+                0,
+                width,
+                height
+            );
+
+            return toOutput(dest);
         } catch (err) {
             platypus.debug.warn('Game.captureViewport failed.', err);
-
-            // Fallback: canvas buffer after the render above (viewport-sized).
-            try {
-                if (as === 'canvas') {
-                    return this.canvas;
-                }
-
-                const mime = format === 'jpg' || format === 'jpeg'
-                    ? 'image/jpeg'
-                    : format === 'webp'
-                        ? 'image/webp'
-                        : 'image/png';
-
-                return typeof quality === 'number'
-                    ? this.canvas.toDataURL(mime, quality)
-                    : this.canvas.toDataURL(mime);
-            } catch (fallbackErr) {
-                platypus.debug.warn('Game.captureViewport canvas fallback failed.', fallbackErr);
-                return null;
-            }
+            return null;
         }
     }
     

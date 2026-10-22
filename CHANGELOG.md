@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.23] - 2026-10-22
+
+### Fixed
+
+- **Game.captureViewport:** Match Paco's ScreenShooter crop — extract the screen-space origin `(0, 0, screenWidth, screenHeight)` with an opaque clear color (game `display.backgroundColor` when set). Avoids black shots from transparent clears / WebGL `toDataURL` fallbacks, and avoids pulling in off-screen world bounds on large levels. Falls back to full-extract + bounds crop if the framed path fails.
+
 ## [4.1.22] - 2026-10-22
 
 ### Added
