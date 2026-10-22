@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.24] - 2026-10-22
+
+### Fixed
+
+- **Game.captureViewport:** Render the stage into a screen-sized `RenderTexture` and extract that only. Removes the full-stage extract fallback that exceeded GPU max texture/renderbuffer size on large levels (`texImage2D` / incomplete framebuffer errors).
+
 ## [4.1.23] - 2026-10-22
 
 ### Fixed
