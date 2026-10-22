@@ -1,6 +1,6 @@
 /* global document, platypus, window */
 import {Application} from 'springroll';
-import {CullerPlugin, Application as PixiApplication, Ticker, extensions} from 'pixi.js';
+import {CullerPlugin, Application as PixiApplication, Rectangle, Ticker, extensions} from 'pixi.js';
 import {arrayCache, greenSlice, greenSplice, union} from './utils/array.js';
 import Data from './Data.js';
 import Entity from './Entity.js';
@@ -822,6 +822,82 @@ class Game extends Messenger {
             }
         }
         return entities;
+    }
+
+    /**
+     * Captures a screenshot of the currently visible game viewport (the canvas /
+     * camera view), not the full stage or world bounds.
+     *
+     * Prefer this over `renderer.extract.*(stage)` without a frame — extracting
+     * the bare stage uses content bounds and can include off-screen world area.
+     *
+     * @param {Object} [options]
+     * @param {string} [options.format='png'] Image format for data URLs (`png`, `jpg`/`jpeg`, `webp`).
+     * @param {number} [options.quality] Encoder quality for lossy formats (0–1).
+     * @param {boolean} [options.render=true] Render the stage before capturing.
+     * @param {string} [options.as='dataURL'] Return type: `dataURL` or `canvas`.
+     * @return {Promise<string|HTMLCanvasElement|null>} Screenshot, or null if unavailable.
+     **/
+    async captureViewport (options = {}) {
+        const
+            {
+                format = 'png',
+                quality,
+                render = true,
+                as = 'dataURL'
+            } = options,
+            {renderer, stage} = this;
+
+        if (!renderer || !stage) {
+            return null;
+        }
+
+        if (render) {
+            renderer.render(stage);
+        }
+
+        const
+            {resolution, screen} = renderer,
+            frame = new Rectangle(0, 0, screen.width, screen.height),
+            extractOptions = {
+                target: stage,
+                frame,
+                resolution
+            };
+
+        try {
+            if (as === 'canvas') {
+                return renderer.extract.canvas(extractOptions);
+            }
+
+            return await renderer.extract.base64({
+                ...extractOptions,
+                format,
+                quality
+            });
+        } catch (err) {
+            platypus.debug.warn('Game.captureViewport failed.', err);
+
+            // Fallback: canvas buffer after the render above (viewport-sized).
+            try {
+                if (as === 'canvas') {
+                    return this.canvas;
+                }
+
+                const mime = format === 'jpg' || format === 'jpeg'
+                    ? 'image/jpeg'
+                    : format === 'webp'
+                        ? 'image/webp'
+                        : 'image/png';
+
+                return typeof quality === 'number'
+                    ? this.canvas.toDataURL(mime, quality)
+                    : this.canvas.toDataURL(mime);
+            } catch (fallbackErr) {
+                platypus.debug.warn('Game.captureViewport canvas fallback failed.', fallbackErr);
+                return null;
+            }
+        }
     }
     
     /**
