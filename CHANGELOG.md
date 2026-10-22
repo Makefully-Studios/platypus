@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.22] - 2026-10-22
+
+### Added
+
+- **Game.captureViewport:** Screenshot helper that captures the visible camera/canvas viewport (screen-sized extract frame), not the full stage/world bounds. Returns a data URL by default, or a canvas via `{ as: 'canvas' }`.
+
 ## [4.1.21] - 2026-10-16
 
 ### Fixed
