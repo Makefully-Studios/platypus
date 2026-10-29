@@ -1,6 +1,7 @@
 /* global platypus */
 import {Skin, Spine, AtlasAttachmentLoader, SkeletonJson} from "@esotericsoftware/spine-pixi-v8";
 import {arrayCache} from '../utils/array.js';
+import {parseAnimationPlayback} from '../utils/animationPlayback.js';
 import Data from '../Data.js';
 import RenderAnimator from './RenderAnimator.js';
 import RenderContainer from './RenderContainer.js';
@@ -17,6 +18,20 @@ const
                 states = StateMap.setUp(testStates);
 
             return (ownerState) => ownerState.includes(states) ? skin : null;
+        }
+    },
+    applyTrackPlayback = (entry, {startTime = 0, timeScale = 1} = {}) => {
+        if (!entry) {
+            return;
+        }
+
+        if (startTime > 0) {
+            entry.trackTime = startTime;
+            entry.animationLast = startTime;
+        }
+
+        if (timeScale !== 1) {
+            entry.timeScale = timeScale;
         }
     };
 
@@ -68,6 +83,8 @@ export default createComponentClass(/** @lends platypus.components.RenderSpine.p
          *      "standing": "default-animation"  // On receiving a "standing" event, or when this.owner.state.standing === true, the "default" animation will begin playing.
          *      "ground,moving": "walking",  // Comma separated values have a special meaning when evaluating "state-changed" messages. The above example will cause the "walking" animation to play ONLY if the entity's state includes both "moving" and "ground" equal to true.
          *      "ground,striking": "swing!", // Putting an exclamation after an animation name causes this animation to complete before going to the next animation. This is useful for animations that would look poorly if interrupted.
+         *      "jump-trick": "jump_trick@1.2", // `@seconds` starts playback partway into the animation.
+         *      "jump-short": "jump_short@0.5*2", // `*scale` sets TrackEntry timeScale (e.g. 2 = twice as fast).
          *      "default": "default-animation" // Optional. "default" is a special property that matches all states. If none of the above states are valid for the entity, it will use the default animation listed here.
          *  }
          *
@@ -584,8 +601,32 @@ export default createComponentClass(/** @lends platypus.components.RenderSpine.p
             this.stopAnimation(animation);
         },
         
+        /**
+         * Play an animation by name, playback spec string, or options object.
+         *
+         * Spec strings: `"anim"`, `"anim@1.2"`, `"anim@0.5*2"`, `"anim*2"`.
+         *
+         * Options object:
+         * `{ animation: 'jump_trick', loop: false, startTime: 1.2, timeScale: 1 }`
+         *
+         * @event platypus.Entity#play-animation
+         * @param animation {String|Array|Object} Animation name, spec, sequence, or options.
+         * @param loop {Boolean} Whether to loop (ignored when `animation` is an options object that sets `loop`).
+         */
         "play-animation": function (animation, loop) {
-            this.playAnimation(animation, loop);
+            if (animation && typeof animation === 'object' && !Array.isArray(animation)) {
+                const
+                    {
+                        animation: name,
+                        loop: loopOpt,
+                        startTime = 0,
+                        timeScale = 1
+                    } = animation;
+
+                this.playAnimation(name, loopOpt ?? true, {startTime, timeScale});
+            } else {
+                this.playAnimation(animation, loop);
+            }
         },
 
         "pause-animation": function () {
@@ -704,24 +745,24 @@ export default createComponentClass(/** @lends platypus.components.RenderSpine.p
             this.owner.container.addChild(this.spine);
         },
         
-        playAnimation: function (animation, loop = true) {
+        playAnimation: function (animation, loop = true, options = null) {
             if (Array.isArray(animation)) {
                 if (animation !== this.playSequence) {
                     this.playSequence = animation;
                     this.playIndex = 0;
                     this.loopSequence = loop;
-                    return this.innerPlayAnimation(animation[0], false);
+                    return this.innerPlayAnimation(animation[0], false, options);
                 } else {
                     return 0; //not sure if this is used
                 }
             } else {
                 this.playSequence = null;
                 this.playIndex = 0;
-                return this.innerPlayAnimation(animation, loop);
+                return this.innerPlayAnimation(animation, loop, options);
             }
         },
 
-        innerPlayAnimation: function (animation, loop) {
+        innerPlayAnimation: function (animation, loop, options = null) {
             const
                 {currentAnimations, spine} = this,
                 {state, skeleton} = spine,
@@ -732,16 +773,20 @@ export default createComponentClass(/** @lends platypus.components.RenderSpine.p
             while (remaining) {
                 const
                     semicolon = remaining.indexOf(';'),
-                    next = (semicolon >= 0) ? remaining.substring(0, semicolon) : remaining;
+                    next = (semicolon >= 0) ? remaining.substring(0, semicolon) : remaining,
+                    parsed = parseAnimationPlayback(next),
+                    name = parsed.name,
+                    startTime = options?.startTime ?? parsed.startTime,
+                    timeScale = options?.timeScale ?? parsed.timeScale;
                 
                 remaining = (semicolon >= 0) ? remaining.substring(semicolon + 1) : '';
 
-                if (next === '_') {
-                    currentAnimations[animated] = next;
+                if (next === '_' || name === '_') {
+                    currentAnimations[animated] = '_';
                     state.setEmptyAnimation(animated);
-                } else if (next && data.findAnimation(next)) {
-                    currentAnimations[animated] = next;
-                    state.setAnimation(animated, next, loop);
+                } else if (name && data.findAnimation(name)) {
+                    currentAnimations[animated] = name;
+                    applyTrackPlayback(state.setAnimation(animated, name, loop), {startTime, timeScale});
                 }
                 animated += 1;
             }
@@ -760,16 +805,17 @@ export default createComponentClass(/** @lends platypus.components.RenderSpine.p
             while (remaining) {
                 const
                     semicolon = remaining.indexOf(';'),
-                    next = (semicolon >= 0) ? remaining.substring(0, semicolon) : remaining;
+                    next = (semicolon >= 0) ? remaining.substring(0, semicolon) : remaining,
+                    {name} = parseAnimationPlayback(next);
                 
                 remaining = (semicolon >= 0) ? remaining.substring(semicolon + 1) : '';
 
-                if (next === '_') {
-                    currentAnimations[animated] = next;
+                if (next === '_' || name === '_') {
+                    currentAnimations[animated] = '_';
                     state.setEmptyAnimation(animated);
-                } else if (next && data.findAnimation(next)) {
-                    currentAnimations[animated] = next;
-                    state.setAnimation(animated, next, false);
+                } else if (name && data.findAnimation(name)) {
+                    currentAnimations[animated] = name;
+                    state.setAnimation(animated, name, false);
                 }
                 animated += 1;
             }
