@@ -1,5 +1,6 @@
 import StateMap from '../StateMap.js';
 import {arrayCache} from '../utils/array.js';
+import {animationBaseName} from '../utils/animationPlayback.js';
 import createComponentClass from '../factory.js';
 
 const
@@ -52,6 +53,7 @@ export default createComponentClass(/** @lends platypus.components.RenderAnimato
          *      "standing": "default-animation"  // On receiving a "standing" event, or when this.owner.state.standing === true, the "default" animation will begin playing.
          *      "ground,moving": "walking",  // Comma separated values have a special meaning when evaluating "state-changed" messages. The above example will cause the "walking" animation to play ONLY if the entity's state includes both "moving" and "ground" equal to true.
          *      "ground,striking": "swing!", // Putting an exclamation after an animation name causes this animation to complete before going to the next animation. This is useful for animations that would look poorly if interrupted.
+         *      "jump-short": "jump_short@0.5*2", // Optional `@startTime` and `*timeScale` playback suffixes (RenderSpine).
          *      "default": "default-animation" // Optional. "default" is a special property that matches all states. If none of the above states are valid for the entity, it will use the default animation listed here.
          *  }
          *
@@ -206,8 +208,12 @@ export default createComponentClass(/** @lends platypus.components.RenderAnimato
         },
 
         "animation-ended": function (animation) {
-            if (animation === this.currentAnimation) {
-                if (this.override && (animation === this.override)) {
+            const
+                currentBase = animationBaseName(this.currentAnimation),
+                overrideBase = animationBaseName(this.override);
+
+            if (animation === this.currentAnimation || animation === currentBase) {
+                if (this.override && (animation === this.override || animation === overrideBase)) {
                     this.stateChange = true;
                     this.override = false;
                 }

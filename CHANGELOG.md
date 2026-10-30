@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.2.0] - 2026-10-29
+
+### Added
+
+- **RenderSpine / RenderAnimator:** Animation playback specs for mid-clip starts and speed. Map or play values may use `@startTime` and `*timeScale` (e.g. `"jump_trick@1.2"`, `"jump_short@0.5*2"`). `play-animation` also accepts `{ animation, loop, startTime, timeScale }`.
+- Unit coverage for `parseAnimationPlayback` / `animationBaseName` (`test/unit/utils/animationPlayback.test.js`).
+
 ## [4.1.24] - 2026-10-22
 
 ### Fixed
