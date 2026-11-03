@@ -1,4 +1,5 @@
 import {arrayCache, greenSplice, union} from '../utils/array.js';
+import {JUMP_THROUGH_EPSILON, entitiesShareCollisionGroup, shouldSkipJumpThroughFace} from '../utils/jumpThrough.js';
 import AABB from '../AABB.js';
 import CollisionData from '../CollisionData.js';
 import CollisionDataContainer from '../CollisionDataContainer.js';
@@ -27,7 +28,7 @@ const
     groupSortBySize = function (a, b) {
         return a.collisionGroup.getAllEntities() - b.collisionGroup.getAllEntities();
     },
-    epsilon = 0.000001;
+    epsilon = JUMP_THROUGH_EPSILON;
 
 export default createComponentClass(/** @lends platypus.components.HandlerCollision.prototype */{
     id: 'HandlerCollision',
@@ -483,7 +484,7 @@ export default createComponentClass(/** @lends platypus.components.HandlerCollis
                 collisionTypes    = entityOrGroup.getCollisionTypes(),
                 ignoredEntities   = entityOrGroup.getSolidEntities?.() ?? false;
             let finalMovementInfo = Vector.setUp(ent.position);
-            
+
             if (dX || dY || collisionDirty) {
                 
                 if (bullet) {
@@ -569,7 +570,8 @@ export default createComponentClass(/** @lends platypus.components.HandlerCollis
                     }
                 },
                 shouldSkipJumpThroughCollision = function (platformEntity, movingAABB, platformAABB) {
-                    //TODO: currently does not handle individual shape jumpThrough. That will need to happen a layer deeper.
+                    // Jump-through uses start-of-step (previous) AABBs for both bodies,
+                    // matching tile one-ways. Per-shape resolution still happens deeper. - TODO
                     const collisionTypes = platformEntity.collisionTypes;
 
                     if (!collisionTypes) {
@@ -595,18 +597,7 @@ export default createComponentClass(/** @lends platypus.components.HandlerCollis
                             if (!normal) {
                                 continue;
                             } else {
-                                const
-                                    absx = Math.abs(normal.x),
-                                    absy = Math.abs(normal.y),
-                                    ignore = absy >= absx
-                                        ? ( // Primarily vertical normal
-                                            (normal.y < -epsilon && movingAABB.bottom > platformAABB.top) ||
-                                            (normal.y >  epsilon && movingAABB.top    < platformAABB.bottom)
-                                        )
-                                        : ( // Primarily horizontal normal
-                                            (normal.x < -epsilon && movingAABB.right  > platformAABB.left) ||
-                                            (normal.x >  epsilon && movingAABB.left   < platformAABB.right)
-                                        )
+                                const ignore = shouldSkipJumpThroughFace(movingAABB, platformAABB, normal, epsilon);
 
                                 normal.recycle();
 
@@ -619,13 +610,20 @@ export default createComponentClass(/** @lends platypus.components.HandlerCollis
 
                     return false;
                 },
-                includeEntity = function (thisEntity, aabb, otherEntity, otherAABB, ignoredEntities, sweepAABB) {
+                includeEntity = function (thisEntity, previousAABB, otherEntity, otherAABB, otherPrevAABB, ignoredEntities, sweepAABB) {
                     //Chop out all the special case entities we don't want to check against.
+                    // Jump-through side tests use both previous AABBs (start of step). Sweep
+                    // broadphase still uses the other's current AABB.
+                    // Carried pairs share a CollisionGroup: group sync rewrites the rider's
+                    // previous AABB before the individual solid pass, so JT side tests would
+                    // false-skip on descent / apex. Skip JT filtering for those pairs only.
+                    const grouped = entitiesShareCollisionGroup(thisEntity, otherEntity);
+
                     if (otherEntity === thisEntity) {
                         return false;
-                    } else if (shouldSkipJumpThroughCollision(otherEntity, aabb, otherAABB)) {
+                    } else if (!grouped && shouldSkipJumpThroughCollision(otherEntity, previousAABB, otherPrevAABB)) {
                         return false;
-                    } else if (shouldSkipJumpThroughCollision(thisEntity, otherAABB, aabb)) { // This will allow platforms to hit something solid sideways if it runs into them from the side even though originally they were above the top. - DDD
+                    } else if (!grouped && shouldSkipJumpThroughCollision(thisEntity, otherPrevAABB, previousAABB)) { // This will allow platforms to hit something solid sideways if it runs into them from the side even though originally they were above the top. - DDD
                         return false;
                     } else if (ignoredEntities) {
                         let i = ignoredEntities.length;
@@ -676,10 +674,11 @@ export default createComponentClass(/** @lends platypus.components.HandlerCollis
                             while (k--) {
                                 const
                                     otherEntity = otherEntities[k],
-                                    otherAABB = otherEntity.getAABB(otherCollisionType);
+                                    otherAABB = otherEntity.getAABB(otherCollisionType),
+                                    otherPrevAABB = otherEntity.getPreviousAABB(otherCollisionType) || otherAABB;
 
                                 //Do our sweep check against the AABB of the other object and add potentially colliding shapes to our list.
-                                if (includeEntity(ent, previousAABB, otherEntity, otherAABB, ignoredEntities, sweepAABB)) {
+                                if (includeEntity(ent, previousAABB, otherEntity, otherAABB, otherPrevAABB, ignoredEntities, sweepAABB)) {
                                     const
                                         otherShapes = otherEntity.getShapes(otherCollisionType);
                                     let l = otherShapes.length;

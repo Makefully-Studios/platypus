@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.2.1] - 2026-11-03
+
+### Fixed
+
+- **HandlerCollision:** Entity `jumpThrough` one-way tests now use both bodies’ previous (start-of-step) AABBs, matching tile semantics. Rising jump-through platforms no longer false-skip riders whose feet were on the prior top face.
+- **HandlerCollision:** Do not apply jump-through side filtering between entities that already share a `CollisionGroup` (carrier/rider). Group sync rewrites the rider’s previous AABB mid-step, which false-skipped one-ways at the apex/descent of moving platforms.
+- **LogicPortable:** If a floor `hit-solid` is missed for a frame while still grouped with the carrier and standing on its top face, keep carrying. Fixes descending jump-through platforms (e.g. cauldrons) that previously toggled board/release every frame and dropped the rider at the bottom of travel.
+- **LogicPortable:** `collide-off` forces an immediate carrier release when broadcast entity-wide.
+- **LogicPortable:** Keep-carry also ends when rider and carrier no longer share a solid-collision path (typed `collide-off` / Alma `no-ledge` removes `hero-on-ledge` without an entity-wide `collide-off`).
+
+### Removed
+
+- **CollisionGroup:** Unused `jumpThrough` flag on the group object (never consulted; shape-level `jumpThrough` is the real control).
+
 ## [4.2.0] - 2026-10-29
 
 ### Added

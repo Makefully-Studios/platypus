@@ -1,4 +1,11 @@
+import {entitiesCanSolidCollide, entitiesShareCollisionGroup} from '../utils/jumpThrough.js';
 import createComponentClass from '../factory.js';
+
+/**
+ * How far past a carrier's solid face (px) a rider may sit and still count as supported
+ * when a one-frame collision miss would otherwise drop them from a moving platform.
+ */
+const CARRY_SUPPORT_SLACK = 8;
 
 export default (function () {
     return createComponentClass(/** @lends platypus.components.LogicPortable.prototype */{
@@ -22,6 +29,7 @@ export default (function () {
          * @memberof platypus.components
          * @uses platypus.Component
          * @constructs
+         * @listens platypus.Entity#collide-off
          * @listens platypus.Entity#force-release
          * @listens platypus.Entity#handle-logic
          * @listens platypus.Entity#hit-solid
@@ -57,6 +65,9 @@ export default (function () {
                     
                     this.carrierConnected = false;
                 } else if (this.carrier) {
+                    // Moving jump-through carriers can miss a floor hit for a frame after
+                    // CollisionGroup sync. Stay carried while still grouped and supported.
+                    if (!this.isStillSupportedByCarrier(this.carrier)) {
 
                     /**
                      * This message is triggered on the current carrier, notifying them to release this entity.
@@ -66,6 +77,7 @@ export default (function () {
                      */
                     this.carrier.triggerEvent('release-me', msg);
                     this.carrier = null;
+                    }
                 }
                 this.lastCarrier = this.carrier;
             },
@@ -83,17 +95,22 @@ export default (function () {
             },
 
             /**
+             * Drop-through / temporary solid disable (e.g. Alma `no-ledge` → `collide-off`).
+             * Must release immediately so CollisionGroup sync cannot hold the rider up.
+             *
+             * @event platypus.Entity#collide-off
+             */
+            "collide-off": function () {
+                this.releaseCarrier();
+            },
+
+            /**
              * On receiving this message, this component immediately triggers 'release-me' on its owner's carrier.
              *
              * @event platypus.Entity#force-release
              */
             "force-release": function () {
-                if (this.carrier) {
-                    this.carrier.triggerEvent('release-me', this.message);
-                }
-                this.carrier = null;
-                this.lastCarrier = this.carrier;
-                this.carrierConnected = false;
+                this.releaseCarrier();
             }
         },
         methods: {
@@ -106,6 +123,51 @@ export default (function () {
                         this.carrierConnected = true;
                     }
                 }
+            },
+
+            releaseCarrier: function () {
+                if (this.carrier) {
+                    this.carrier.triggerEvent('release-me', this.message);
+                }
+                this.carrier = null;
+                this.lastCarrier = this.carrier;
+                this.carrierConnected = false;
+            },
+
+            /**
+             * True when this entity is still a CollisionGroup passenger of the carrier and
+             * remains horizontally over / near the carrier's top face.
+             */
+            isStillSupportedByCarrier: function (carrier) {
+                if (!carrier || !entitiesShareCollisionGroup(this.owner, carrier)) {
+                    return false;
+                }
+
+                // Typed collide-off (e.g. hero-on-ledge) removes the only solid
+                // link to a ledge carrier; aliases never broadcast entity-wide
+                // collide-off, so keep-carry must detect the missing path here.
+                if (!entitiesCanSolidCollide(this.owner, carrier)) {
+                    return false;
+                }
+
+                if (!this.portableDirections.down) {
+                    return true;
+                }
+
+                const
+                    riderAABB = this.owner.getAABB?.() ?? null,
+                    carrierAABB = carrier.getAABB?.() ?? null;
+
+                if (!riderAABB || !carrierAABB) {
+                    return true;
+                }
+
+                const
+                    horizontal = riderAABB.left < carrierAABB.right && riderAABB.right > carrierAABB.left,
+                    nearTop = riderAABB.bottom <= carrierAABB.top + CARRY_SUPPORT_SLACK
+                        && riderAABB.bottom >= carrierAABB.top - CARRY_SUPPORT_SLACK;
+
+                return horizontal && nearTop;
             }
         }
     });
