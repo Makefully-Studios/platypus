@@ -87,8 +87,7 @@ export default (function () {
                 }.bind(this),
                 getSolidEntities: function () {
                     return this.solidEntities;
-                }.bind(this),
-                jumpThrough: false //TODO: this introduces odd behavior - not sure how to resolve yet. - DDD
+                }.bind(this)
             };
         },
         
