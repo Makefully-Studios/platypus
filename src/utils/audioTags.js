@@ -29,9 +29,9 @@ export const clearAudioTags = (alias) => {
 };
 
 /**
- * @param {{read: Function}} tagReader jsmediatags-compatible reader
+ * @param {Object} tagReader jsmediatags-compatible reader with a `read` method
  * @param {ArrayBuffer|Blob|string} data
- * @return {Promise<Object>}
+ * @return {Promise} Resolves to the jsmediatags tag result object
  */
 export const readTags = (tagReader, data) => new Promise((resolve, reject) => {
     tagReader.read(data, {
