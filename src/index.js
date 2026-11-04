@@ -39,6 +39,7 @@ export * from './shapes/index.js';
 
 // Component creator
 export {default as createComponentClass} from './factory.js';
+export {default as defineEntity} from './defineEntity.js';
 
 const
     platypus = global.platypus = {

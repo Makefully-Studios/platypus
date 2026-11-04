@@ -67,6 +67,8 @@ export {default as RenderDebug} from "./RenderDebug.js";
 export {default as RenderDestroyMe} from "./RenderDestroyMe.js";
 export {default as RenderProgress} from "./RenderProgress.js";
 export {default as RenderSpine} from "./RenderSpine.js";
+// RenderLottie is intentionally omitted from the barrel: it hard-imports optional
+// @qva/pixi-lottie. Import it directly from src/components/RenderLottie.js when needed.
 export {default as RenderSprite} from "./RenderSprite.js";
 export {default as RenderText} from "./RenderText.js";
 export {default as RenderTiles} from "./RenderTiles.js";

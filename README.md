@@ -30,7 +30,7 @@ The npm package ships **`src/` for `import`** (your bundler compiles it, same as
 
 Optional: `box2d3-wasm`, `@probityrules/jsmediatags`, `poly-decomp` (see `optionalDependencies` in [package.json](package.json)).
 
-Entry points: `src/index.js` via `import platypus from '@makefully/platypus'`, or `lib/platypus.js` for `require`/script tags (plus worker chunks in `lib/` for the UMD build).
+Entry points: `src/index.js` via `import platypus from '@makefully/platypus'`, or `lib/platypus.js` for `require`/script tags (plus worker chunks in `lib/` for the UMD build). TypeScript consumers resolve typings from `types/` (`EntityOf`, `ComponentRegistry`, `defineEntity`).
 
 Bundlers should use the `import` entry (source). The prebuilt UMD omits Platypus's `pixi.js` sub-imports from your module graph, which can cause a Pixi `collectRenderablesMixin` crash on masked sprites unless you add `import 'pixi.js'` before Platypus.
 
@@ -48,6 +48,7 @@ Requires **Node.js 20+**.
 npm install
 npm run build:release   # production bundle → lib/ (gitignored)
 npm run test:run        # unit tests (Vitest)
+npm run test:types      # TypeScript contribution typings (tsd)
 npm run docs            # API reference → docs/api/ (gitignored)
 ```
 
@@ -57,6 +58,32 @@ npm run docs            # API reference → docs/api/ (gitignored)
 | `npm run build:debug` | Development bundle with source maps |
 | `npm run pack:check` | Preview the npm tarball contents |
 | `npm run assess:tiled` | TiledLoader vs Tiled spec report ([test/tiled/README.md](test/tiled/README.md)) |
+| `npm run test:types` | Compile-time checks for `EntityOf` / registry typings |
+| `npm run generate:component-keys` | Refresh `types/components/_keys.js` from live `componentMeta` |
+| `npm run generate:contribution-types` | Regenerate per-component contribution `.d.ts` + registry |
+
+### TypeScript
+
+Platypus ships **composition typings**: an entity’s type is the merge of the components added to it.
+
+```ts
+import type { EntityOf } from '@makefully/platypus';
+import { defineEntity } from '@makefully/platypus';
+
+type Hero = EntityOf<'CollisionBasic' | 'LogicPortable'>;
+
+const heroDef = defineEntity({
+  id: 'hero',
+  components: [
+    { type: 'CollisionBasic' as const, collisionType: 'hero' },
+    { type: 'LogicPortable' as const }
+  ]
+});
+```
+
+Augment `ComponentRegistry` for game-specific components. Contribution contract tests **warn** on key drift by default; set `PLATYPUS_TYPES_STRICT=1` to fail (planned default in the next major). The wide `Entity` index signature for ad-hoc JSON `properties` is also deferred for removal until then.
+
+`ComponentSwitcher` changes the runtime composition without narrowing types—annotate a union of possible component ids when you need precision.
 
 Contributor workflow, API docs publishing, and `npm publish` are described in [docs/README.md](docs/README.md).
 

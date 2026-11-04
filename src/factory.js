@@ -301,5 +301,15 @@ export default function (componentDefinition = {}) {
         NewComponent.getAssetList = getAssetList;
     }
 
+    NewComponent.componentId = id;
+    NewComponent.componentMeta = Object.freeze({
+        properties: Object.keys(properties || {}),
+        publicProperties: Object.keys(publicProperties || {}),
+        publicMethods: Object.keys(publicMethods || {}),
+        methods: Object.keys(methods || {}).filter((key) => key !== 'destroy'),
+        events: Object.keys(events || {}),
+        hasGetAssetList: typeof getAssetList === 'function'
+    });
+
     return NewComponent;
 };
