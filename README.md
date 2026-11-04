@@ -24,11 +24,13 @@ The npm package ships **`src/` for `import`** (your bundler compiles it, same as
 | `pixi.js` (^8.1.5) | Rendering |
 | `springroll` (^2.6.0) | Application shell |
 | `@tweenjs/tween.js` | Tweens |
-| `@pixi/sound` | Audio (Makefully fork; see `package.json`) |
+| `@pixi/sound` | Audio (`^6.0.2`) |
 | `@esotericsoftware/spine-pixi-v8` | Spine animations (`RenderSpine`) |
 | `pako` | Compression helpers where used |
 
-Optional: `box2d3-wasm`, `@probityrules/jsmediatags`, `poly-decomp` (see `optionalDependencies` in [package.json](package.json)).
+Optional: `box2d3-wasm`, `@probityrules/jsmediatags` (`^4.1.2`, ID3 + WebM), `poly-decomp` (see `optionalDependencies` in [package.json](package.json)).
+
+With jsmediatags enabled, VO/SFX can use `.webm` / `.weba` as well as `.mp3`. Embedded captions and lipsync come from ID3 `SYLT` or WebM `WEBVTT` tracks, normalized by `timedCueTracks` for `ID3CaptionPlayer` / `VOPlayer`. Safari may not decode Opus-in-WebM for Web Audio; prefer MP3 where that matters.
 
 Entry points: `src/index.js` via `import platypus from '@makefully/platypus'`, or `lib/platypus.js` for `require`/script tags (plus worker chunks in `lib/` for the UMD build). TypeScript consumers resolve typings from `types/` (`EntityOf`, `ComponentRegistry`, `defineEntity`).
 

@@ -265,6 +265,10 @@ class Game extends Messenger {
                     libraries = [];
                     
                 platypus.game = this; //Make this instance the only Game instance.
+
+                if (modules.jsmediatags) {
+                    platypus.assetCache.tagReader = modules.jsmediatags;
+                }
                 
                 if (options.dev) {
                     settings.debug = true;
@@ -293,7 +297,7 @@ class Game extends Messenger {
                         element.setAttribute('id', 'captions');
                         canvas.parentNode.insertBefore(element, canvas);
                         return element;
-                    })(), modules.jsmediatags);
+                    })(), !!modules.jsmediatags);
                 }
             
                 if (displayOptions.aspectRatio) { // Aspect ratio may be a single value like "4:3" or "4:3-2:1" for a range

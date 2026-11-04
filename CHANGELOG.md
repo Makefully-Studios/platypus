@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.4.0] - 2026-11-04
+
+### Added
+
+- **WebM VO:** `loadSoundAsset` accepts `.webm` / `.weba`; AudioVO/SFX/Music path helpers no longer force `.mp3` when an extension is present.
+- **`timedCueTracks`:** Normalizes jsmediatags ID3 `SYLT` and WebM `WEBVTT` into shared caption/lipsync cue tracks (`@probityrules/jsmediatags` `^4.1.2`).
+
+### Changed
+
+- **Audio / ID3:** When `modules.jsmediatags` is provided, audio is fetched once as an `ArrayBuffer`, tags are read, then the buffer is passed to `@pixi/sound` as `source`. Captions and VO lyric events use the cached tags instead of `media.file` / a second URL fetch.
+- **`@pixi/sound` peer:** Switched from the Makefully `feature/media-file` fork to published `@pixi/sound` `^6.0.2`.
+- **Optional dep:** `@probityrules/jsmediatags` bumped to `^4.1.2` (WebM tag reader).
+
 ## [4.3.0] - 2026-11-04
 
 ### Added

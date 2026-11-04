@@ -7,11 +7,11 @@ import createComponentClass from '../factory.js';
 
 const
     formatPath = (path) => {
-        if (path.indexOf('.mp3') === -1) {
-            return `${path}.mp3`;
-        } else {
+        if (/\.(mp3|webm|weba|ogg|wav|m4a)(\?.*)?$/i.test(path)) {
             return path;
         }
+
+        return `${path}.mp3`;
     },
     defaultSettings = {
         interrupt: 0,

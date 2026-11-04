@@ -1,5 +1,7 @@
 /* global platypus */
 import {arrayCache, greenSlice, greenSplice} from './utils/array.js';
+import {getAudioTags} from './utils/audioTags.js';
+import {getTimedCueTracks} from './utils/timedCueTracks.js';
 import Data from './Data.js';
 import Messenger from './Messenger.js';
 import TimeEventList from './TimeEventList.js';
@@ -21,7 +23,6 @@ class VOPlayer extends Messenger {
 
         this.game = game;
         this.assetCache = assetCache;
-        this.tagReader = game.options.modules?.jsmediatags ?? null;
 
         //Bound method calls
         this._onSoundFinished = this._onSoundFinished.bind(this);
@@ -451,36 +452,30 @@ class VOPlayer extends Messenger {
                     volume: this.volume * this.masterVolume
                 });
                 this.audioEventQueue = null;
-                if (this.tagReader) {
-                    this.tagReader.read(sound.media?.file ?? sound.url, {
-                        onSuccess: ({tags}) => {
-                            const
-                                {SYLT} = tags;
-                    
-                            if (SYLT) {
-                                const
-                                    list = Array.isArray(SYLT) ? SYLT : [SYLT],
-                                    combinedEventList = list.reduce((events, {data}) => {
-                                        events.push(...data.synchronisedText.map(({text: content, timeStamp: time}) => ({
-                                            event: 'lyric',
-                                            time,
-                                            message: {
-                                                language: data.language,
-                                                descriptor: data.descriptor,
-                                                contentType: data.contentType,
-                                                content
-                                            },
-                                            interruptable: true
-                                        })));
-                                        return events;
-                                    }, []);
-                    
-                                this.audioEventQueue = this.audioEventQueue || TimeEventList.setUp();
-                                this.audioEventQueue.addEvents(combinedEventList);
-                            }
-                        },
-                        onError: (error) => platypus.debug.warn(error)
-                    });
+
+                const
+                    tagResult = getAudioTags(soundId),
+                    timedTracks = getTimedCueTracks(tagResult);
+
+                if (timedTracks.length) {
+                    const
+                        combinedEventList = timedTracks.reduce((events, track) => {
+                            events.push(...track.synchronisedText.map(({text: content, timeStamp: time}) => ({
+                                event: 'lyric',
+                                time,
+                                message: {
+                                    language: track.language,
+                                    descriptor: track.descriptor,
+                                    contentType: track.contentType,
+                                    content
+                                },
+                                interruptable: true
+                            })));
+                            return events;
+                        }, []);
+
+                    this.audioEventQueue = TimeEventList.setUp();
+                    this.audioEventQueue.addEvents(combinedEventList);
                 }
                 if (this._captions) {
                     this._captions.start(sound, soundId, 0);

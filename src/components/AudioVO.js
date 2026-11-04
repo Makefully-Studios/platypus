@@ -1,16 +1,15 @@
 /*global platypus */
-import Data from '../Data.js';
 import {arrayCache} from '../utils/array.js';
 import createComponentClass from '../factory.js';
 import TimeEventList from '../TimeEventList.js';
 
 const
     formatPath = (path) => {
-        if (path.indexOf('.mp3') === -1) {
-            return `${path}.mp3`;
-        } else {
+        if (/\.(mp3|webm|weba|ogg|wav|m4a)(\?.*)?$/i.test(path)) {
             return path;
         }
+
+        return `${path}.mp3`;
     };
 
 export default createComponentClass(/** @lends platypus.components.AudioVO.prototype */{

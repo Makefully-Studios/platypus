@@ -9,7 +9,10 @@ import Data from './Data.js';
 import DataMap from './DataMap.js';
 import PIXIAnimation from './PIXIAnimation.js';
 import {Assets} from 'pixi.js';
+import {sound} from '@pixi/sound';
 import {arrayCache} from './utils/array.js';
+import {clearAudioTags} from './utils/audioTags.js';
+import {isAudioSrc, loadSoundAsset} from './utils/loadSoundAsset.js';
 
 const
     fn = /^(?:\w+:\/{2}\w+(?:\.\w+)*\/?)?(?:[\/.]*?(?:[^?]+)?\/)?(?:([^\/?]+?)(?:\.(\w+|{\w+(?:,\w+)*}))?)(?:\?\S*)?$/,
@@ -36,6 +39,17 @@ export default class AssetManager {
     constructor () {
         this.assets = DataMap.setUp();
         this.counts = Data.setUp();
+
+        /**
+         * Optional jsmediatags-compatible reader. When set, audio assets are fetched once as an
+         * ArrayBuffer, tags are read, then the buffer is handed to `@pixi/sound` as `source`
+         * (avoids a second network fetch for ID3 and removes the need for a media.file fork).
+         *
+         * @property tagReader
+         * @type {Object|null}
+         * @default null
+         */
+        this.tagReader = null;
     }
 
     /**
@@ -59,6 +73,10 @@ export default class AssetManager {
                     asset.src = '';
                 }
                 assets.delete(alias);
+                clearAudioTags(alias);
+                if (sound.exists(alias)) {
+                    sound.remove(alias);
+                }
                 PIXIAnimation.invalidateTextureSources(alias);
             }
 
@@ -147,8 +165,10 @@ export default class AssetManager {
         const
             counts = this.counts,
             needsLoading = arrayCache.setUp(),
+            needsSoundLoad = arrayCache.setUp(),
             needsRelink = arrayCache.setUp(),
-            adds = Data.setUp();
+            adds = Data.setUp(),
+            tagReader = this.tagReader;
 
         if (platypus.game?.options?.images ?? platypus.game?.options?.audio) {
             platypus.debug.warn('AssetManager: Default asset folders are no longer specified via game options. Include pathing in asset imports.');
@@ -171,7 +191,9 @@ export default class AssetManager {
                 adds[alias] += 1;
             } else {
                 adds[alias] = 1;
-                if (isRegisteredWithPixi(alias, item.src)) {
+                if (tagReader && isAudioSrc(item.src)) {
+                    needsSoundLoad.push(item);
+                } else if (isRegisteredWithPixi(alias, item.src)) {
                     needsRelink.push(item);
                 } else {
                     needsLoading.push(item);
@@ -194,27 +216,57 @@ export default class AssetManager {
             }
         }
 
-        if (needsLoading.length) {
-            // Do this first to pass `data` property if needed
-            needsLoading.forEach((asset) => {
-                const
-                    alias = asset.alias[0];
-
-                if (!isRegisteredWithPixi(alias, asset.src)) {
-                    Assets.add(asset);
-                }
-            });
-
+        if (needsSoundLoad.length || needsLoading.length) {
             const
-                aliases = needsLoading.map((asset) => asset.alias[0]),
-                loadedList = await Assets.load(aliases, one);
+                total = needsSoundLoad.length + needsLoading.length;
+            let
+                loadedCount = 0;
+            const
+                reportProgress = () => {
+                    if (one) {
+                        loadedCount += 1;
+                        one(loadedCount / total);
+                    }
+                };
 
-            aliases.forEach((alias) => {
+            if (needsSoundLoad.length) {
+                await Promise.all(needsSoundLoad.map(async (asset) => {
+                    const
+                        alias = asset.alias[0],
+                        snd = await loadSoundAsset({
+                            alias,
+                            src: asset.src,
+                            tagReader
+                        });
+
+                    this.set(alias, snd, adds[alias]);
+                    reportProgress();
+                }));
+            }
+
+            if (needsLoading.length) {
+                // Do this first to pass `data` property if needed
+                needsLoading.forEach((asset) => {
+                    const
+                        alias = asset.alias[0];
+
+                    if (!isRegisteredWithPixi(alias, asset.src)) {
+                        Assets.add(asset);
+                    }
+                });
+
                 const
-                    response = loadedList[alias];
+                    aliases = needsLoading.map((asset) => asset.alias[0]),
+                    // When mixed with tagged audio loads, drive progress ourselves so counts stay consistent.
+                    loadedList = await Assets.load(aliases, needsSoundLoad.length ? undefined : one);
 
-                this.set(alias, response, adds[alias]);
-            });
+                aliases.forEach((alias) => {
+                    this.set(alias, loadedList[alias], adds[alias]);
+                    if (needsSoundLoad.length) {
+                        reportProgress();
+                    }
+                });
+            }
 
             if (all) {
                 all();
@@ -231,6 +283,7 @@ export default class AssetManager {
         }
 
         arrayCache.recycle(needsLoading);
+        arrayCache.recycle(needsSoundLoad);
         arrayCache.recycle(needsRelink);
     }
 
