@@ -1,4 +1,6 @@
 import {CaptionFactory, CaptionPlayer, HtmlRenderer} from 'springroll';
+import {getAudioTags} from './utils/audioTags.js';
+import {findCaptionsTrack, getTimedCueTracks} from './utils/timedCueTracks.js';
 
 const
     nullCaption = [{
@@ -6,55 +8,49 @@ const
         start: 0,
         end: 1
     }],
-    findAndFormatCaptionsFromTags = ({tags}, length) => {
+    findAndFormatCaptionsFromTags = (tagResult, length) => {
         const
-            {SYLT} = tags;
+            captionsTrack = findCaptionsTrack(getTimedCueTracks(tagResult));
 
-        if (SYLT) {
-            const
-                list = Array.isArray(SYLT) ? SYLT : [SYLT],
-                captionsSYLT = list.filter(({data}) => data.descriptor === 'captions')[0] ?? list.filter(({data}) => data.contentType === 'transcription')[0] ?? list.filter(({data}) => data.contentType === 'lyrics')[0] ?? null;
+        if (captionsTrack) {
+            return CaptionFactory.createCaption(captionsTrack.synchronisedText.map(({text: content, timeStamp: start, end}, index, arr) => {
+                const
+                    next = arr[index + 1];
 
-            if (captionsSYLT) {
-                return CaptionFactory.createCaption(captionsSYLT.data.synchronisedText.map(({text: content, timeStamp: start}, index, arr) => {
-                    const
-                        next = arr[index + 1];
-
-                    return {
-                        content,
-                        start: Math.max(start, 0.001), // Prevents CaptionPlayer from playing caption before the audio is loaded/playing.
-                        end: next ? next.timeStamp : length
-                    };
-                }));
-            }
+                return {
+                    content,
+                    start: Math.max(start, 0.001), // Prevents CaptionPlayer from playing caption before the audio is loaded/playing.
+                    end: end ?? (next ? next.timeStamp : length)
+                };
+            }));
         }
 
         return null;
     },
     ID3CaptionPlayer = class extends CaptionPlayer {
-        constructor (captions = {nullCaption}, captionsElement, tagReader = null) {
+        constructor (captions = {nullCaption}, captionsElement, useCachedTags = false) {
             super(captions, new HtmlRenderer(captionsElement));
 
-            if (tagReader) {
-                this.getCaption = (audio) => new Promise((resolve, reject) => {
-                    tagReader.read(audio.media?.file ?? audio.url, {
-                        onSuccess: (tags) => resolve(findAndFormatCaptionsFromTags(tags, (audio.duration * 1000) >> 0)),
-                        onError: reject
-                    });
-                });
+            if (useCachedTags) {
+                this.getCaption = (audio, audioId) => {
+                    const
+                        tagResult = getAudioTags(audioId);
+
+                    return tagResult ? findAndFormatCaptionsFromTags(tagResult, (audio.duration * 1000) >> 0) : null;
+                };
             }
         }
 
         async start (audio, audioId, ...args) {
             if (this.getCaption && typeof this.captions[audioId] === 'undefined') {
                 try {
-                    this.captions[audioId] = await this.getCaption(audio);
+                    this.captions[audioId] = this.getCaption(audio, audioId);
                 } catch (e) {
                     this.captions[audioId] = null;
                     platypus.debug.warn(e.type, e.info);
                 }
             }
-            super.start(this.captions[audioId] ? audioId : audio.url, ...args);
+            super.start(this.captions[audioId] ? audioId : (audio.url || audioId), ...args);
         }
     };
 

@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.4.0] - 2026-11-04
+
+### Added
+
+- **WebM VO:** `loadSoundAsset` accepts `.webm` / `.weba`; AudioVO/SFX/Music path helpers no longer force `.mp3` when an extension is present.
+- **`timedCueTracks`:** Normalizes jsmediatags ID3 `SYLT` and WebM `WEBVTT` into shared caption/lipsync cue tracks (`@probityrules/jsmediatags` `^4.1.2`).
+
+### Changed
+
+- **Audio / ID3:** When `modules.jsmediatags` is provided, audio is fetched once as an `ArrayBuffer`, tags are read, then the buffer is passed to `@pixi/sound` as `source`. Captions and VO lyric events use the cached tags instead of `media.file` / a second URL fetch.
+- **`@pixi/sound` peer:** Switched from the Makefully `feature/media-file` fork to published `@pixi/sound` `^6.0.2`.
+- **Optional dep:** `@probityrules/jsmediatags` bumped to `^4.1.2` (WebM tag reader).
+
+## [4.3.0] - 2026-11-04
+
+### Added
+
+- **TypeScript typings (additive):** Contribution-based `EntityOf` / `ComponentRegistry` under `types/`, shipped via package `"types"` / `exports.types`. Entities are typed as the merge of attached component contributions; games can augment `ComponentRegistry` for custom components.
+- **`defineEntity`:** Runtime identity helper (plus typings) so `components[].type` literals can drive `EntityOf` inference.
+- **`createComponentClass` metadata:** Each factory class exposes frozen `componentId` / `componentMeta` for tooling and contract tests (no behavior change).
+- **Tests:** Smoke construction for every canonical component; warn-only contribution contract suite (`PLATYPUS_TYPES_STRICT=1` to fail); `npm run test:types` (tsd).
+
+### Notes
+
+- Contract key drift **warns** in this milestone; the next major will fail by default and may remove the wide `Entity` index signature.
+- `RenderLottie` stays out of the components barrel (hard-imports optional `@qva/pixi-lottie`); import the file directly when needed. `Camera` remains an alias of `HandlerCamera` in the registry.
+- `ComponentSwitcher` runtime add/remove is not statically precise; type the initial composition or a manual union of possible ids.
+
 ## [4.2.1] - 2026-11-03
 
 ### Fixed

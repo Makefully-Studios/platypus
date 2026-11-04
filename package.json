@@ -1,6 +1,6 @@
 {
     "name": "@makefully/platypus",
-    "version": "4.2.1",
+    "version": "4.4.0",
     "description": "2D tile-based HTML5 game engine with a component-based entity model",
     "license": "MIT",
     "contributors": [
@@ -9,8 +9,10 @@
     ],
     "main": "lib/platypus.js",
     "module": "src/index.js",
+    "types": "types/index.d.ts",
     "exports": {
         ".": {
+            "types": "./types/index.d.ts",
             "import": "./src/index.js",
             "require": "./lib/platypus.js"
         },
@@ -20,12 +22,16 @@
     "files": [
         "lib",
         "src",
+        "types",
         "README.md",
         "CHANGELOG.md",
         "CONTRIBUTORS.md",
         "licenses.txt",
         "assets"
     ],
+    "tsd": {
+        "directory": "test/types"
+    },
     "publishConfig": {
         "access": "public"
     },
@@ -54,8 +60,11 @@
         "pack:check": "npm pack --dry-run",
         "test:watch": "vitest",
         "test:run": "vitest run",
+        "test:types": "tsd",
         "coverage": "vitest run --coverage",
         "assess:tiled": "node test/tiled/assess-coverage.mjs",
+        "generate:component-keys": "vitest run test/unit/types/generate-component-keys.test.js",
+        "generate:contribution-types": "node scripts/generate-contribution-types.mjs",
         "docs": "node scripts/build-docs.mjs",
         "docs:publish": "npm run docs && node scripts/publish-docs.mjs"
     },
@@ -65,8 +74,11 @@
     "devDependencies": {
         "@vitest/coverage-v8": "^4.1.7",
         "gh-pages": "^6.3.0",
+        "happy-dom": "^21.0.4",
         "jsdoc": "^3.6.11",
         "minami": "^1.2.3",
+        "tsd": "^0.33.0",
+        "typescript": "^7.0.2",
         "vitest": "^4.1.7",
         "webpack": "^5.99.9",
         "webpack-cli": "^6.0.1",
@@ -74,15 +86,15 @@
     },
     "peerDependencies": {
         "@esotericsoftware/spine-pixi-v8": "^4.3.13",
-        "@pixi/sound": "github:Makefully-Studios/sound#feature/media-file",
+        "@pixi/sound": "^6.0.2",
         "@tweenjs/tween.js": "^23.1.1",
         "pako": "^2.1.0",
         "pixi.js": "^8.1.5",
         "springroll": "^2.6.0"
     },
     "optionalDependencies": {
+        "@probityrules/jsmediatags": "^4.1.2",
         "box2d3-wasm": "^4.2.0",
-        "@probityrules/jsmediatags": "^4.0.4",
         "poly-decomp": "^0.3.0"
     },
     "engines": {

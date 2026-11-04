@@ -6,7 +6,7 @@ import {Sprite, TilingSprite, AnimatedSprite, NineSliceSprite} from 'pixi.js';
 const
     spriteTypes = {Sprite, TilingSprite, AnimatedSprite, NineSliceSprite};
 
-export default createComponentClass(/** @lends platypus.components.RenderSprite.prototype */{
+export default createComponentClass(/** @lends platypus.components.Render.prototype */{
     
     id: 'Render',
     
