@@ -6,16 +6,23 @@
  */
 
 /**
+ * @typedef {Object} TimedCue
+ * @property {string} text
+ * @property {number} timeStamp
+ * @property {number} [end]
+ */
+
+/**
  * @typedef {Object} TimedCueTrack
  * @property {string} descriptor shortText / track name (captions, lipsync, events, …)
  * @property {string} [contentType] ID3 content type or WebM kind (lowercase)
  * @property {string} [language]
- * @property {Array<{text: string, timeStamp: number, end?: number}>} synchronisedText
+ * @property {Array.<TimedCue>} synchronisedText
  */
 
 /**
- * @param {Object|null|undefined} tagResult jsmediatags onSuccess payload
- * @return {TimedCueTrack[]}
+ * @param {Object} [tagResult] jsmediatags onSuccess payload
+ * @return {Array.<TimedCueTrack>}
  */
 export const getTimedCueTracks = (tagResult) => {
     if (!tagResult?.tags) {
@@ -67,8 +74,8 @@ export const getTimedCueTracks = (tagResult) => {
 
 /**
  * Prefer captions descriptor, then transcription/lyrics content types (ID3 fallbacks).
- * @param {TimedCueTrack[]} tracks
- * @return {TimedCueTrack|null}
+ * @param {Array.<TimedCueTrack>} tracks
+ * @return {?TimedCueTrack}
  */
 export const findCaptionsTrack = (tracks) => {
     if (!tracks?.length) {

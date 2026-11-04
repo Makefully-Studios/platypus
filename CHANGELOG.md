@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.4.1] - 2026-11-04
+
+### Fixed
+
+- **Docs:** JSDoc types in `loadSoundAsset` / `timedCueTracks` / `audioTags` use Closure-compatible syntax so `npm run docs` parses cleanly.
+
 ## [4.4.0] - 2026-11-04
 
 ### Added

@@ -21,8 +21,8 @@ export const isAudioSrc = (src) => typeof src === 'string' && AUDIO_EXT.test(src
  * @param {Object} options
  * @param {string} options.alias
  * @param {string} options.src
- * @param {{read: Function}|null} [options.tagReader]
- * @return {Promise<import('@pixi/sound').Sound>}
+ * @param {Object} [options.tagReader] jsmediatags-compatible reader with a `read` method
+ * @return {Promise} Resolves to a `@pixi/sound` Sound instance
  */
 export const loadSoundAsset = async ({alias, src, tagReader = null}) => {
     const
