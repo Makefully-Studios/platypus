@@ -1,8 +1,8 @@
 {
     "name": "@makefully/platypus",
-    "version": "4.4.1",
+    "version": "4.4.2",
     "description": "2D tile-based HTML5 game engine with a component-based entity model",
-    "license": "MIT",
+    "license": "BSD-3-Clause",
     "contributors": [
         "Derek Detweiler <derek.detweiler@gmail.com> (https://github.com/probityrules)",
         "Todd Lewis <todd.lewis@gopherwoodstudios.com> (https://github.com/GopherwoodTodd)"
@@ -26,7 +26,7 @@
         "README.md",
         "CHANGELOG.md",
         "CONTRIBUTORS.md",
-        "licenses.txt",
+        "LICENSE",
         "assets"
     ],
     "tsd": {

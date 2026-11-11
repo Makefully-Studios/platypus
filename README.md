@@ -109,6 +109,6 @@ When `package.json` **version** changes on `main`, [.github/workflows/release.ym
 
 [Code](https://github.com/Makefully-Studios/platypus) · [Docs](https://makefully-studios.github.io/platypus/) · [npm](https://www.npmjs.com/package/@makefully/platypus) · [Changelog](CHANGELOG.md)
 
-Maintained by **Derek Detweiler** and **Todd Lewis** ([CONTRIBUTORS.md](CONTRIBUTORS.md)).
+Maintained by **Makefully Studios** ([CONTRIBUTORS.md](CONTRIBUTORS.md)). Originally developed by PBS KIDS and [Gopherwood Studios](https://gopherwoodstudios.com/).
 
-Platypus was originally developed by PBS KIDS and [Gopherwood Studios](https://gopherwoodstudios.com/). It is free to use (see [licenses.txt](licenses.txt)); assets in the example games are © Gopherwood Studios and/or © PBS KIDS.
+Released under the [BSD 3-Clause License](LICENSE) (© 2013 Public Broadcasting Service). Assets in the example games are © Gopherwood Studios and/or © PBS KIDS.

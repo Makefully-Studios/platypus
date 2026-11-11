@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.4.2] - 2026-11-10
+
+### Changed
+
+- **License:** Ship a standard `LICENSE` as BSD-3-Clause (© 2013 Public Broadcasting Service), replacing `licenses.txt` and correcting the previous MIT package field. Docs note Makefully Studios as current maintainer.
+
 ## [4.4.1] - 2026-11-04
 
 ### Fixed
