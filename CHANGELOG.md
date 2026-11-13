@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.4.3] - 2026-11-10
+
+### Fixed
+
+- **Audio tags:** `readTags` wraps `ArrayBuffer` in a `Blob` before calling jsmediatags. The browser build registers Blob/XHR readers but not `ArrayBufferFileReader`, which caused `No suitable file reader found for [object ArrayBuffer]` after the 4.4.0 single-fetch audio path.
+
 ## [4.4.2] - 2026-11-10
 
 ### Changed

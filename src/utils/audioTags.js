@@ -29,12 +29,25 @@ export const clearAudioTags = (alias) => {
 };
 
 /**
+ * Browser jsmediatags registers Blob/XHR/byte-array readers, but not ArrayBuffer.
+ * Platypus loads audio as ArrayBuffer once (WebM/ID3 path); wrap for tag reads.
+ *
+ * @param {ArrayBuffer|Blob|string} data
+ * @return {ArrayBuffer|Blob|string}
+ */
+const forTagReader = (data) => (
+    typeof ArrayBuffer !== 'undefined' && data instanceof ArrayBuffer
+        ? new Blob([data])
+        : data
+);
+
+/**
  * @param {Object} tagReader jsmediatags-compatible reader with a `read` method
  * @param {ArrayBuffer|Blob|string} data
  * @return {Promise} Resolves to the jsmediatags tag result object
  */
 export const readTags = (tagReader, data) => new Promise((resolve, reject) => {
-    tagReader.read(data, {
+    tagReader.read(forTagReader(data), {
         onSuccess: resolve,
         onError: reject
     });
