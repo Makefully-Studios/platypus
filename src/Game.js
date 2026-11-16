@@ -16,6 +16,37 @@ import sayHello from './sayHello.js';
 
 sound.disableAutoPause = true; // We manually handle pausing via Springroll Container events.
 
+/**
+ * Pause/resume WebAudio without tearing down buffer sources.
+ * `@pixi/sound` `pauseAll`/`resumeAll` stop and rebuild sources; on resume that path has
+ * historically set `loopStart` to the playhead (pixijs/sound#275), so looping music collapses
+ * to a short tail after tab blur/focus. Suspending the AudioContext keeps sources intact.
+ * Falls back to pauseAll/resumeAll for the HTML Audio legacy path (no AudioContext).
+ */
+const
+    pauseSoundPlayback = () => {
+        if (!sound.useLegacy && sound.supported) {
+            const ctx = sound.context.audioContext;
+
+            if (ctx.state === 'running') {
+                ctx.suspend();
+            }
+            return;
+        }
+        sound.pauseAll();
+    },
+    resumeSoundPlayback = () => {
+        if (!sound.useLegacy && sound.supported) {
+            const ctx = sound.context.audioContext;
+
+            if (ctx.state === 'suspended') {
+                ctx.resume();
+            }
+            return;
+        }
+        sound.resumeAll();
+    };
+
 const
     XMLHttpRequest = window.XMLHttpRequest,
     getJSON = function (path, callback) {
@@ -223,7 +254,7 @@ class Game extends Messenger {
                             if (!this.paused) {
                                 this.ticker.remove(this.tickInstance);
                                 this.paused = true;
-                                sound.pauseAll();
+                                pauseSoundPlayback();
                                 // Release held keys so pause does not leave sticky input,
                                 // and so HandlerController can pass keyboard through to HTML.
                                 this.triggerOnChildren('blur-control');
@@ -232,7 +263,7 @@ class Game extends Messenger {
                             if (this.paused) {
                                 this.ticker.add(this.tickInstance);
                                 this.paused = false;
-                                sound.resumeAll();
+                                resumeSoundPlayback();
                             }
                         }
                     });

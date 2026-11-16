@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.4.4] - 2026-11-16
+
+### Fixed
+
+- **Music / pause:** SpringRoll pause now suspends/resumes the WebAudio `AudioContext` instead of calling `@pixi/sound` `pauseAll`/`resumeAll`. Rebuilding buffer sources on resume can shrink a looping track’s `loopStart`/`loopEnd` region (pixijs/sound#275), which sounded like music stuck on a one-second loop after tab blur/focus. HTML Audio legacy still uses `pauseAll`/`resumeAll`.
+
 ## [4.4.3] - 2026-11-10
 
 ### Fixed
