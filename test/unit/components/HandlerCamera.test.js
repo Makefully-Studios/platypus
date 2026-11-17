@@ -344,6 +344,80 @@ describe('HandlerCamera world-loaded', () => {
     });
 });
 
+describe('HandlerCamera shake', () => {
+    it('keeps the viewport inside world bounds while shaking', () => {
+        const {owner, camera} = createCamera({
+            width: 400,
+            height: 300,
+            x: 200,
+            y: 150
+        });
+        const {viewport} = camera.worldCamera;
+
+        owner.triggerEvent('world-loaded', {
+            world: {left: 0, top: 0, width: 1200, height: 900},
+            level: {infinite: false}
+        });
+
+        // Camera flush against the top edge (Junior roar at level top).
+        viewport.setAll(200, 150, 400, 300);
+        camera.updateMovementMethods();
+
+        owner.triggerEvent('shake', {
+            time: 1000,
+            xMagnitude: 5,
+            yMagnitude: 20,
+            xFrequency: 12,
+            yFrequency: 7
+        });
+
+        for (let i = 0; i < 20; i++) {
+            owner.triggerEvent('tick', {delta: 16});
+            expect(viewport.top).toBeGreaterThanOrEqual(0);
+            expect(viewport.left).toBeGreaterThanOrEqual(0);
+            expect(viewport.bottom).toBeLessThanOrEqual(900);
+            expect(viewport.right).toBeLessThanOrEqual(1200);
+        }
+    });
+
+    it('allows shake past world edges when the level is unbounded', () => {
+        const {owner, camera} = createCamera({
+            width: 400,
+            height: 300,
+            x: 200,
+            y: 150
+        });
+        const {viewport} = camera.worldCamera;
+
+        owner.triggerEvent('world-loaded', {
+            world: {left: 0, top: 0, width: 1200, height: 900},
+            level: {infinite: true}
+        });
+
+        viewport.setAll(200, 150, 400, 300);
+
+        owner.triggerEvent('shake', {
+            time: 1000,
+            xMagnitude: 0,
+            yMagnitude: 20,
+            xFrequency: 0,
+            yFrequency: 7
+        });
+
+        let sawOutside = false;
+
+        for (let i = 0; i < 20; i++) {
+            owner.triggerEvent('tick', {delta: 16});
+            if (viewport.top < 0) {
+                sawOutside = true;
+                break;
+            }
+        }
+
+        expect(sawOutside).toBe(true);
+    });
+});
+
 describe('HandlerCamera destroy', () => {
     it('cleans up pooled objects without shared message fields', () => {
         const {owner, camera} = createCamera();

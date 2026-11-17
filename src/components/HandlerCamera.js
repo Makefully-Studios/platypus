@@ -442,7 +442,9 @@ export default createComponentClass(/** @lends platypus.components.Camera.protot
             }
 
             if (this.shakeIncrementor < this.shakeTime) {
-                const viewport = this.worldCamera.viewport;
+                const
+                    viewport = this.worldCamera.viewport,
+                    {threshold} = this;
 
                 this.viewportUpdate = true;
                 this.shakeIncrementor += delta;
@@ -454,6 +456,17 @@ export default createComponentClass(/** @lends platypus.components.Camera.protot
                 
                 if (this.shakeIncrementor < this.yShakeTime) {
                     viewport.moveY(viewport.y + Math.sin((this.shakeIncrementor / this.yWaveLength) * (Math.PI * 2)) * this.yMagnitude);
+                }
+
+                /*
+                 * Shake bypasses normal movement clamping. Re-contain so we never
+                 * reveal outside the world (e.g. stage clear color at level edges).
+                 */
+                if (!this.unbounded) {
+                    this.threshold = -1;
+                    this.moveX(viewport.x);
+                    this.moveY(viewport.y);
+                    this.threshold = threshold;
                 }
             }
 
@@ -547,6 +560,8 @@ export default createComponentClass(/** @lends platypus.components.Camera.protot
         
         /**
          * On receiving this message, the camera will shake around its target location.
+         * For bounded worlds, the shake offset is clamped so the viewport stays inside
+         * world dimensions (avoids revealing the stage clear color at level edges).
          *
          * @event platypus.Entity#shake
          * @param {Object} shake
