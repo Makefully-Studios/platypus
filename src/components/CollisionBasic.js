@@ -651,7 +651,7 @@ export default createComponentClass(/** @lends platypus.components.CollisionBasi
         
         "relocate-entity": function (location, relative) {
             const
-                {aabb, owner, shapes} = this,
+                {aabb, owner, prevAABB, prevShapes, shapes} = this,
                 unstick = location.unstick,
                 um = unstick?.magnitude() ?? 0,
                 v = location.position ?? location;
@@ -691,7 +691,15 @@ export default createComponentClass(/** @lends platypus.components.CollisionBasi
                 aabb.include(shape.aABB);
             }
 
+            // Teleport: previous collision pose must match current. Jump-through tests
+            // use getPreviousAABB(); leaving prevAABB stale after relocate false-skips
+            // one-ways that moved this frame (e.g. ducking platforms).
             owner.previousPosition.setVector(owner.position);
+            prevAABB.set(aabb);
+            i = prevShapes.length;
+            while (i--) {
+                prevShapes[i].update(x, y);
+            }
             
             if (um > 0) { // to force check in all directions for ultimate stuck resolution (esp. for stationary entities)
                 if (!this.stuck) {

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.4.5] - 2026-11-17
+
+### Fixed
+
+- **Camera shake:** Shake offsets are re-clamped to world bounds on bounded levels so the viewport cannot leave the world and flash the stage clear color (e.g. Junior roar at the top of a level).
+- **CollisionBasic `relocate-entity`:** Also sync `prevAABB` / `prevShapes` to the new pose. Jump-through filtering reads previous AABBs; a relocate that only updated current shapes left a stale previous top and false-skipped one-way platforms that teleported in the same step (e.g. ducking ledges).
+
 ## [4.4.4] - 2026-11-16
 
 ### Fixed
