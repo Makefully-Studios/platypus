@@ -1,5 +1,5 @@
 import {arrayCache, greenSplice, union} from '../utils/array.js';
-import {JUMP_THROUGH_EPSILON, entitiesShareCollisionGroup, shouldSkipJumpThroughFace} from '../utils/jumpThrough.js';
+import {JUMP_THROUGH_EPSILON, entitiesShareCollisionGroup, shouldSkipGroupedCarryAxis, shouldSkipJumpThroughFace} from '../utils/jumpThrough.js';
 import AABB from '../AABB.js';
 import CollisionData from '../CollisionData.js';
 import CollisionDataContainer from '../CollisionDataContainer.js';
@@ -981,6 +981,16 @@ export default createComponentClass(/** @lends platypus.components.HandlerCollis
                     while (i--) {
                         const
                             pcShape = potentialCollidingShapes[i];
+
+                        /*
+                         * Carried riders share a CollisionGroup with their platform.
+                         * Resolve only the support axis (Y for floor/ceiling, X for
+                         * walls); skipping the free axis stops walk/climb velocity
+                         * from being clamped by the carrier (elevator run-in-place).
+                         */
+                        if (shouldSkipGroupedCarryAxis(translatedShape.owner, pcShape.owner, axis)) {
+                            continue;
+                        }
 
                         if (translatedShape.collides(pcShape)) {
                             const

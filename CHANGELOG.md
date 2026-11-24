@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.4.6] - 2026-11-24
+
+### Fixed
+
+- **HandlerCollision / LogicPortable:** While a rider shares a `CollisionGroup` with a carrier, skip solid resolution on the free axis only — keep Y for floor/ceiling carry (`portableDirections` up/down), keep X for wall carry (left/right). Stops elevator/spider side hits from clamping walk velocity (run-in-place) without breaking future side-mounted carriers. `LogicPortable` now tracks `carryDirection` and keep-carry support checks use the matching face.
+
 ## [4.4.5] - 2026-11-17
 
 ### Fixed

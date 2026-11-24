@@ -1,5 +1,12 @@
 import {describe, expect, it} from 'vitest';
-import {entitiesCanSolidCollide, entitiesShareCollisionGroup, shouldSkipJumpThroughFace} from '../../../src/utils/jumpThrough.js';
+import {
+    entitiesCanSolidCollide,
+    entitiesShareCollisionGroup,
+    getCarrySupportAxis,
+    getGroupedCarryDirection,
+    shouldSkipGroupedCarryAxis,
+    shouldSkipJumpThroughFace
+} from '../../../src/utils/jumpThrough.js';
 
 const aabb = (left, top, right, bottom) => ({left, top, right, bottom});
 
@@ -94,6 +101,80 @@ describe('entitiesShareCollisionGroup', () => {
         expect(entitiesShareCollisionGroup(rider, carrier)).toBe(true);
         expect(entitiesShareCollisionGroup(carrier, rider)).toBe(true);
         expect(entitiesShareCollisionGroup(rider, {type: 'platform-bat'})).toBe(false);
+    });
+});
+
+describe('grouped carry free-axis skip', () => {
+    const groupedPair = (direction, portableDirections = {down: true}) => {
+        const portable = {
+            carrier: null,
+            carryDirection: direction,
+            portableDirections
+        };
+        const rider = {
+            type: 'hero-alma',
+            getComponentsByType: (type) => (type === 'LogicPortable' ? [portable] : [])
+        };
+        const carrier = {
+            type: 'platform-spider',
+            collisionGroup: {
+                getSolidEntities: () => [carrier, rider]
+            },
+            getComponentsByType: () => []
+        };
+
+        portable.carrier = carrier;
+
+        return {rider, carrier, portable};
+    };
+
+    it('reads active carry direction from the rider LogicPortable', () => {
+        const {rider, carrier} = groupedPair('down');
+
+        expect(getGroupedCarryDirection(rider, carrier)).toBe('down');
+        expect(getGroupedCarryDirection(carrier, rider)).toBe('down');
+    });
+
+    it('keeps Y / skips X for floor and ceiling carry', () => {
+        const floor = groupedPair('down');
+        const ceiling = groupedPair('up', {up: true});
+
+        expect(getCarrySupportAxis(floor.rider, floor.carrier)).toBe('y');
+        expect(shouldSkipGroupedCarryAxis(floor.rider, floor.carrier, 'x')).toBe(true);
+        expect(shouldSkipGroupedCarryAxis(floor.rider, floor.carrier, 'y')).toBe(false);
+
+        expect(getCarrySupportAxis(ceiling.rider, ceiling.carrier)).toBe('y');
+        expect(shouldSkipGroupedCarryAxis(ceiling.rider, ceiling.carrier, 'x')).toBe(true);
+        expect(shouldSkipGroupedCarryAxis(ceiling.rider, ceiling.carrier, 'y')).toBe(false);
+    });
+
+    it('keeps X / skips Y for wall carry', () => {
+        const left = groupedPair('left', {left: true});
+        const right = groupedPair('right', {right: true});
+
+        expect(getCarrySupportAxis(left.rider, left.carrier)).toBe('x');
+        expect(shouldSkipGroupedCarryAxis(left.rider, left.carrier, 'y')).toBe(true);
+        expect(shouldSkipGroupedCarryAxis(left.rider, left.carrier, 'x')).toBe(false);
+
+        expect(getCarrySupportAxis(right.rider, right.carrier)).toBe('x');
+        expect(shouldSkipGroupedCarryAxis(right.rider, right.carrier, 'y')).toBe(true);
+        expect(shouldSkipGroupedCarryAxis(right.rider, right.carrier, 'x')).toBe(false);
+    });
+
+    it('does not skip axes against non-grouped entities', () => {
+        const {rider} = groupedPair('down');
+        const wall = {type: 'terrain'};
+
+        expect(shouldSkipGroupedCarryAxis(rider, wall, 'x')).toBe(false);
+        expect(shouldSkipGroupedCarryAxis(rider, wall, 'y')).toBe(false);
+    });
+
+    it('infers support axis from portableDirections when carryDirection is unset', () => {
+        const {rider, carrier, portable} = groupedPair(null, {left: true});
+
+        portable.carryDirection = null;
+        expect(getCarrySupportAxis(rider, carrier)).toBe('x');
+        expect(shouldSkipGroupedCarryAxis(rider, carrier, 'y')).toBe(true);
     });
 });
 
