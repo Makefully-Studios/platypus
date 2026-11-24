@@ -57,6 +57,85 @@ export const entitiesShareCollisionGroup = (a, b) => {
     );
 };
 
+const getLogicPortable = (entity) => entity?.getComponentsByType?.('LogicPortable')?.[0] ?? null;
+
+/**
+ * Active carry contact side on the rider (`up`/`down`/`left`/`right`), or null.
+ *
+ * @param {Object} a
+ * @param {Object} b
+ * @return {string|null}
+ */
+export const getGroupedCarryDirection = (a, b) => {
+    if (!a || !b || a === b) {
+        return null;
+    }
+
+    const
+        aPortable = getLogicPortable(a),
+        bPortable = getLogicPortable(b);
+
+    if (aPortable?.carrier === b && aPortable.carryDirection) {
+        return aPortable.carryDirection;
+    }
+    if (bPortable?.carrier === a && bPortable.carryDirection) {
+        return bPortable.carryDirection;
+    }
+
+    return null;
+};
+
+/**
+ * Axis that must keep resolving solids for the carry pair (`x` or `y`).
+ * Floor/ceiling → `y`; wall/side → `x`. Defaults to `y` (floor-carry world).
+ *
+ * @param {Object} a
+ * @param {Object} b
+ * @return {'x'|'y'}
+ */
+export const getCarrySupportAxis = (a, b) => {
+    const direction = getGroupedCarryDirection(a, b);
+
+    if (direction === 'left' || direction === 'right') {
+        return 'x';
+    }
+    if (direction === 'up' || direction === 'down') {
+        return 'y';
+    }
+
+    // No live direction yet: infer from portableDirections when unambiguous.
+    const
+        dirs = getLogicPortable(a)?.portableDirections
+            || getLogicPortable(b)?.portableDirections
+            || null,
+        vertical = !!(dirs?.up || dirs?.down),
+        horizontal = !!(dirs?.left || dirs?.right);
+
+    if (horizontal && !vertical) {
+        return 'x';
+    }
+
+    return 'y';
+};
+
+/**
+ * Skip solid resolution on the free axis between a grouped carrier/rider pair
+ * so the rider can move along the platform (walk on floors, climb on walls)
+ * without side/end hits clamping velocity. Support-axis collisions still apply.
+ *
+ * @param {Object} a
+ * @param {Object} b
+ * @param {'x'|'y'} axis
+ * @return {boolean}
+ */
+export const shouldSkipGroupedCarryAxis = (a, b, axis) => {
+    if (!entitiesShareCollisionGroup(a, b)) {
+        return false;
+    }
+
+    return axis !== getCarrySupportAxis(a, b);
+};
+
 /**
  * True when either entity's active collision types still appear in the other's
  * solid-collision map. Drop-through (`collide-off` on a typed CollisionBasic,

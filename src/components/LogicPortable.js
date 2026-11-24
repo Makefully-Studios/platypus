@@ -38,6 +38,7 @@ export default (function () {
          */
         initialize: function () {
             this.carrier = this.lastCarrier = null;
+            this.carryDirection = null;
             this.message = {
                 entity: this.owner
             };
@@ -77,6 +78,7 @@ export default (function () {
                      */
                     this.carrier.triggerEvent('release-me', msg);
                     this.carrier = null;
+                    this.carryDirection = null;
                     }
                 }
                 this.lastCarrier = this.carrier;
@@ -120,6 +122,7 @@ export default (function () {
                         if (entity !== this.carrier) {
                             this.carrier = entity;
                         }
+                        this.carryDirection = direction;
                         this.carrierConnected = true;
                     }
                 }
@@ -130,13 +133,15 @@ export default (function () {
                     this.carrier.triggerEvent('release-me', this.message);
                 }
                 this.carrier = null;
+                this.carryDirection = null;
                 this.lastCarrier = this.carrier;
                 this.carrierConnected = false;
             },
 
             /**
              * True when this entity is still a CollisionGroup passenger of the carrier and
-             * remains horizontally over / near the carrier's top face.
+             * remains near the support face for the active carry direction (floor, ceiling,
+             * or wall).
              */
             isStillSupportedByCarrier: function (carrier) {
                 if (!carrier || !entitiesShareCollisionGroup(this.owner, carrier)) {
@@ -150,7 +155,9 @@ export default (function () {
                     return false;
                 }
 
-                if (!this.portableDirections.down) {
+                const direction = this.carryDirection;
+
+                if (!direction) {
                     return true;
                 }
 
@@ -164,10 +171,21 @@ export default (function () {
 
                 const
                     horizontal = riderAABB.left < carrierAABB.right && riderAABB.right > carrierAABB.left,
-                    nearTop = riderAABB.bottom <= carrierAABB.top + CARRY_SUPPORT_SLACK
-                        && riderAABB.bottom >= carrierAABB.top - CARRY_SUPPORT_SLACK;
+                    vertical = riderAABB.top < carrierAABB.bottom && riderAABB.bottom > carrierAABB.top,
+                    near = (a, b) => Math.abs(a - b) <= CARRY_SUPPORT_SLACK;
 
-                return horizontal && nearTop;
+                switch (direction) {
+                case 'down':
+                    return horizontal && near(riderAABB.bottom, carrierAABB.top);
+                case 'up':
+                    return horizontal && near(riderAABB.top, carrierAABB.bottom);
+                case 'left':
+                    return vertical && near(riderAABB.left, carrierAABB.right);
+                case 'right':
+                    return vertical && near(riderAABB.right, carrierAABB.left);
+                default:
+                    return true;
+                }
             }
         }
     });
